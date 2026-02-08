@@ -99,6 +99,72 @@ After judge PASS: `gm.commit_changes("Passed quality gate")`
 
 ---
 
+## Priority 2b: Factory Dashboard Web App (HIGH PRIORITY)
+
+**The repo has NO web UI.** Everything is CLI-only. This needs a beautiful webapp for demonstrating, testing, and monitoring the factory pipeline -- similar to the recently built `robotics-mcp/web/` dashboard.
+
+### Recommended Stack
+- **Backend**: FastAPI (already a dependency via DTU)
+- **Frontend**: Single `index.html` + `script.js` + `style.css` in `web/` folder (no build step, like robotics-mcp)
+- **Styling**: Tailwind CDN, dark theme, glassmorphism cards
+
+### Required Pages / Panels
+
+1. **Dashboard (Home)**
+   - Factory status (idle / running / complete / failed)
+   - Current step indicator (Research -> Plan -> DTU -> Build -> Landing -> Judge -> Launch)
+   - Token usage meter (input/output tokens, estimated cost)
+   - Last run summary (output dir, specialist count, file count, verdict)
+
+2. **Vibe Editor**
+   - Textarea for editing `vibe.md` live
+   - "Enrich" button -> calls `foreman enrich` -> shows `enriched_vibe.md` side-by-side
+   - Stack selector dropdowns (backend: fastapi/flask/django/express, frontend: react/htmx/none, db: postgres/sqlite/mongo)
+   - "Run Factory" button
+
+3. **Specialist Council View**
+   - Visual grid/table of all 19 specialists
+   - Shows: name, temperature, status (pending/running/done/failed), files generated, time taken
+   - Dependency graph visualization (which specialist feeds into which)
+
+4. **DTU Monitor**
+   - Live request log from `GET /dtu/log`
+   - Service registry table from `GET /dtu/services`
+   - Health status indicator
+
+5. **Output Browser**
+   - File tree of the generated output directory
+   - Click to view file contents (syntax highlighted)
+   - Open landing page in iframe
+
+6. **Judge Report**
+   - Playwright results (screenshots if available)
+   - Audit report
+   - LLM verdict (PASS/FAIL + critique)
+   - `critique.md` viewer
+
+### API Endpoints (FastAPI backend in `web/server.py`)
+```
+GET  /api/status              -- factory state, current step, last run
+POST /api/run                 -- trigger factory run (async, returns run ID)
+GET  /api/run/{id}/progress   -- poll run progress (SSE or polling)
+GET  /api/vibe                -- read vibe.md
+PUT  /api/vibe                -- write vibe.md
+POST /api/enrich              -- trigger foreman enrich
+GET  /api/enriched            -- read enriched_vibe.md
+GET  /api/specialists         -- list all specialists with metadata
+GET  /api/output/{dir}        -- list files in output dir
+GET  /api/output/{dir}/{path} -- read file from output dir
+GET  /api/dtu/services        -- proxy to DTU /dtu/services
+GET  /api/dtu/log             -- proxy to DTU /dtu/log
+GET  /api/judge/report        -- last judge verdict + critique
+```
+
+### Reference
+Look at `d:\Dev\repos\robotics-mcp\web\` for the pattern: single HTML+JS+CSS, FastAPI backend, Tailwind dark theme, WebSocket for live updates.
+
+---
+
 ## Priority 3: Feature Enhancements
 
 ### 3.1 Specialist: Registrar Writes manifest.json
