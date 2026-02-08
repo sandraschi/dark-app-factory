@@ -39,7 +39,11 @@ def read_file(path: str) -> str:
 async def generate_specialist_files(
     specialist, file_paths, specs, shared_context, worker, output_dir, generated_files
 ):
-    """Generates files for a single specialist, potentially in parallel."""
+    """Generates files for a single specialist, potentially in parallel.
+
+    Includes runt detection (byte count) and specialist-specific validation
+    hooks. Failed validation triggers retry with error context injected.
+    """
     if specialist.name == "Generalist":
         owned_files = [f for f in file_paths if f not in generated_files]
     else:
@@ -59,7 +63,7 @@ async def generate_specialist_files(
     specialist_results = {}
     for file_path in owned_files:
         logger.info(f"{specialist.name} working on: {file_path}")
-        attempts, max_attempts, code = 0, 2, ""
+        attempts, max_attempts, code = 0, 3, ""
         current_specs = specs
 
         while attempts < max_attempts:
@@ -68,9 +72,8 @@ async def generate_specialist_files(
             )
             code = clean_code(raw_code)
 
-            # Stack-aware runt detection thresholds
+            # --- Gate 1: Runt detection (byte count) ---
             threshold = _get_runt_threshold(file_path)
-
             is_runt_candidate = (
                 file_path.endswith(".tsx")
                 or file_path.endswith(".py")
@@ -86,16 +89,29 @@ async def generate_specialist_files(
                 logger.warning(
                     f"Runt detected ({len(code)} bytes) for {file_path}. Retrying..."
                 )
-                current_specs += f"\n\n[RETRY WARNING]: The previous attempt for {file_path} was too short. DO NOT USE PLACEHOLDERS."
+                current_specs += f"\n\n[RETRY WARNING]: The previous attempt for {file_path} was too short ({len(code)} bytes, need {threshold}+). DO NOT USE PLACEHOLDERS."
                 attempts += 1
-            else:
-                generated_files.add(file_path)
-                specialist_results[file_path] = code
-                full_path = os.path.join(output_dir, file_path)
-                os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with open(full_path, "w", encoding="utf-8") as f:
-                    f.write(code)
-                break
+                continue
+
+            # --- Gate 2: Specialist validation hook ---
+            is_valid, validation_error = specialist.validate(file_path, code, specs)
+            if not is_valid and attempts < max_attempts - 1:
+                logger.warning(
+                    f"Validation failed for {file_path}: {validation_error}. Retrying..."
+                )
+                current_specs += f"\n\n[VALIDATION ERROR]: {validation_error}. Fix this in your next attempt."
+                attempts += 1
+                continue
+
+            # Passed both gates (or last attempt)
+            generated_files.add(file_path)
+            specialist_results[file_path] = code
+            full_path = os.path.join(output_dir, file_path)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, "w", encoding="utf-8") as f:
+                f.write(code)
+            break
+
     return specialist_results
 
 
@@ -175,7 +191,7 @@ async def run_factory(specs_path: str = "specs/specs.md", output_dir: str = "out
     # Deduplicate preserving order
     file_paths = list(dict.fromkeys(file_paths))
 
-    logger.success(f"Found {len(file_paths)} files to generate.")
+    logger.info(f"LLM-planned files: {len(file_paths)}")
 
     # 2. Assign Specialists
     from src.specialists.council import (
@@ -191,6 +207,13 @@ async def run_factory(specs_path: str = "specs/specs.md", output_dir: str = "out
         Nervos,
         Auditor,
         Professor,
+        Picasso,
+        Shakespeare,
+        Propagandist,
+        Houdini,
+        Morpheus,
+        Tesla,
+        Amodei,
     )
 
     council = {
@@ -205,8 +228,29 @@ async def run_factory(specs_path: str = "specs/specs.md", output_dir: str = "out
         "Nervos": Nervos(),
         "Auditor": Auditor(),
         "Professor": Professor(),
+        "Picasso": Picasso(),
+        "Shakespeare": Shakespeare(),
+        "Propagandist": Propagandist(),
+        "Houdini": Houdini(),
+        "Morpheus": Morpheus(),
+        "Tesla": Tesla(),
+        "Amodei": Amodei(),
         "Generalist": Generalist(),
     }
+
+    # 2b. Self-Declaration: let specialists inject files they need
+    declared_count = 0
+    for name, spec in council.items():
+        declared = spec.declare_files(specs, stack_profile)
+        for df in declared:
+            if df not in file_paths:
+                file_paths.append(df)
+                declared_count += 1
+    if declared_count:
+        logger.info(f"Specialists declared {declared_count} additional files.")
+    file_paths = list(dict.fromkeys(file_paths))
+
+    logger.success(f"Total files to generate: {len(file_paths)}")
 
     shared_context = {
         "file_paths": file_paths,

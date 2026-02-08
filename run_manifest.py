@@ -2,25 +2,66 @@ import os
 import subprocess
 import json
 import time
+from typing import Dict, Optional
+
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 from utils.logger import logger
+
+
+# DTU service registry: env var -> DTU endpoint mapping.
+# When dtu_url is provided, these env vars are injected so the
+# generated app talks to the DTU instead of real external APIs.
+DTU_ENV_VARS = {
+    "STRIPE_API_URL": "/stripe",
+    "AUTH_API_URL": "/auth",
+    "EMAIL_API_URL": "/email",
+    "SMS_API_URL": "/sms",
+    "STORAGE_API_URL": "/storage",
+    "DISCORD_WEBHOOK_URL": "/discord",
+    "SLACK_WEBHOOK_URL": "/slack",
+    "WEATHER_API_URL": "/weather",
+    "WEBHOOK_URL": "/webhook",
+}
 
 
 class RunManifest:
     """Orchestrator for booting generated components (Frontend, Backend, DTU)."""
 
-    def __init__(self, output_dir: str):
+    def __init__(self, output_dir: str, dtu_url: Optional[str] = None):
+        """
+        Args:
+            output_dir: Path to the generated app directory.
+            dtu_url: Base URL of the DTU server (e.g. http://localhost:8001).
+                     If provided, DTU env vars are injected into child processes.
+        """
         self.output_dir = output_dir
         self.manifest_path = os.path.join(output_dir, "manifest.json")
+        self.dtu_url = dtu_url
         self.processes = []
+
+    def _build_env(self) -> Dict[str, str]:
+        """Build environment dict for child processes, injecting DTU vars if available."""
+        env = os.environ.copy()
+
+        if self.dtu_url:
+            base = self.dtu_url.rstrip("/")
+            for var_name, path_suffix in DTU_ENV_VARS.items():
+                env[var_name] = f"{base}{path_suffix}"
+            env["DTU_URL"] = base
+            logger.info("DTU env vars injected (base: %s)", base)
+
+        return env
 
     def _detect_stack(self):
         """Detect stack from output files when no manifest exists."""
         has_requirements = os.path.exists(os.path.join(self.output_dir, "requirements.txt"))
         has_main_py = os.path.exists(os.path.join(self.output_dir, "main.py"))
+        has_app_py = os.path.exists(os.path.join(self.output_dir, "app.py"))
         has_package_json = os.path.exists(os.path.join(self.output_dir, "package.json"))
         has_server_js = os.path.exists(os.path.join(self.output_dir, "server.js"))
 
-        is_python = has_requirements or has_main_py
+        is_python = has_requirements or has_main_py or has_app_py
         is_node = has_package_json or has_server_js
 
         return is_python, is_node
@@ -28,30 +69,34 @@ class RunManifest:
     def load_manifest(self):
         if not os.path.exists(self.manifest_path):
             logger.warning(
-                f"No manifest.json found in {self.output_dir}. Detecting stack..."
+                "No manifest.json found in %s. Detecting stack...", self.output_dir
             )
             is_python, is_node = self._detect_stack()
             components = []
 
             if is_python:
+                # Determine entry file
+                entry = "main.py"
+                if not os.path.exists(os.path.join(self.output_dir, "main.py")):
+                    if os.path.exists(os.path.join(self.output_dir, "app.py")):
+                        entry = "app.py"
                 components.append(
-                    {"name": "backend", "command": "python main.py", "cwd": "."}
+                    {"name": "backend", "command": f"python {entry}", "cwd": "."}
                 )
-                logger.info("Detected Python backend.")
+                logger.info("Detected Python backend (entry: %s).", entry)
             elif is_node:
                 components.append(
                     {"name": "backend", "command": "npm start", "cwd": "."}
                 )
                 logger.info("Detected Node.js backend.")
 
-            # If we have package.json AND python backend, it's a hybrid (React frontend)
+            # Hybrid: Python backend + React frontend
             if is_python and os.path.exists(os.path.join(self.output_dir, "package.json")):
                 components.append(
                     {"name": "frontend", "command": "npm run dev", "cwd": "."}
                 )
                 logger.info("Detected hybrid stack: Python backend + Node frontend.")
             elif not is_python and is_node:
-                # Full Node stack -- dev script handles both
                 components = [
                     {"name": "app", "command": "npm run dev", "cwd": "."}
                 ]
@@ -64,34 +109,38 @@ class RunManifest:
 
             return {"components": components}
 
-        with open(self.manifest_path, "r") as f:
+        with open(self.manifest_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def boot(self):
         manifest = self.load_manifest()
-        logger.info(f"Booting system manifest for {self.output_dir}...")
+        env = self._build_env()
+
+        logger.info("Booting system manifest for %s...", self.output_dir)
+        if self.dtu_url:
+            logger.info("DTU integration active: %s", self.dtu_url)
 
         for comp in manifest.get("components", []):
             name = comp.get("name")
             cmd = comp.get("command")
             cwd = os.path.join(self.output_dir, comp.get("cwd", ""))
 
-            logger.info(f"Starting {name} (cmd: {cmd}) in {cwd}...")
+            logger.info("Starting %s (cmd: %s) in %s...", name, cmd, cwd)
 
             try:
-                # Start process in the background
                 p = subprocess.Popen(
                     cmd.split(),
                     cwd=cwd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
+                    env=env,
                     shell=True,
                 )
                 self.processes.append({"name": name, "process": p})
             except Exception as e:
-                logger.error(f"Failed to start {name}: {e}")
+                logger.error("Failed to start %s: %s", name, e)
 
-        # Wait a few seconds for startup
+        # Wait for startup
         time.sleep(5)
         self.check_status()
 
@@ -100,16 +149,19 @@ class RunManifest:
             name = item["name"]
             p = item["process"]
             if p.poll() is None:
-                logger.success(f"{name} (PID: {p.pid}) is running.")
+                logger.info("%s (PID: %d) is running.", name, p.pid)
             else:
-                logger.error(f"{name} has stopped (Exit code: {p.returncode}).")
+                logger.error("%s has stopped (Exit code: %s).", name, p.returncode)
 
     def terminate(self):
         logger.info("Terminating all processes...")
         for item in self.processes:
             p = item["process"]
-            p.terminate()
-            logger.debug(f"Terminated {item['name']}")
+            try:
+                p.terminate()
+                logger.debug("Terminated %s", item["name"])
+            except Exception as e:
+                logger.warning("Could not terminate %s: %s", item["name"], e)
 
 
 if __name__ == "__main__":
@@ -117,12 +169,16 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Dark App Factory Run Manifest")
     parser.add_argument("output_dir", help="Directory of the app to boot")
+    parser.add_argument(
+        "--dtu-url",
+        default=None,
+        help="DTU base URL (e.g. http://localhost:8001). Injects DTU env vars.",
+    )
     args = parser.parse_args()
 
-    orchestrator = RunManifest(args.output_dir)
+    orchestrator = RunManifest(args.output_dir, dtu_url=args.dtu_url)
     try:
         orchestrator.boot()
-        # Keep alive for demonstration or until keyboard interrupt
         input("Press Enter to stop all components...\n")
     finally:
         orchestrator.terminate()

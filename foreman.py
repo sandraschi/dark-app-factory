@@ -1,4 +1,6 @@
 import argparse
+import asyncio
+import json
 import sys
 import os
 from utils.logger import logger
@@ -29,7 +31,89 @@ def read_file_if_exists(path: str) -> str:
     return ""
 
 
-def generate_blueprint(vibe_content: str):
+# =====================================================================
+# ENRICH: LLM-augmented vibe expansion
+# =====================================================================
+async def enrich_vibe(vibe_path: str = "vibe.md", output_path: str = "enriched_vibe.md"):
+    """Read a terse vibe and use the Foreman LLM to expand it into a rich,
+    domain-aware brief. The user reviews and approves before proceeding to plan.
+    """
+    vibe_content = read_vibe(vibe_path)
+    logger.info("Enriching vibe with LLM domain expansion...")
+    logger.debug("Input vibe: %d chars", len(vibe_content))
+
+    foreman = LLMClient(role="foreman")
+
+    enrich_prompt = f"""
+    You are the Vibe Enricher for the Dark App Factory.
+
+    The user has given you a terse, informal description of the app they want.
+    Your job is to EXPAND this into a rich, structured vibe document that a
+    software factory can act on.
+
+    INPUT VIBE:
+    ---
+    {vibe_content}
+    ---
+
+    YOUR TASK:
+    1. **Identify the Domain**: What industry/profession is this for? What are
+       the professional standards, regulations, and terminology?
+    2. **Expand Features**: Based on the domain, suggest concrete features the
+       user likely needs but did not mention. Think like a domain expert.
+       Examples:
+       - A dentist app needs: appointment booking, patient records (GDPR!),
+         treatment plans, X-ray viewer integration, insurance billing codes.
+       - A beekeeper app needs: hive health monitoring, swarm calendar,
+         queen tracking, harvest logging, webshop for honey/products,
+         weather integration, apiary map.
+    3. **Suggest Tech Integrations**: What real-world APIs or services would
+       make this app genuinely useful? (e.g., payment gateway, calendar sync,
+       weather API, camera feeds, notification services)
+    4. **Propose a Name/Brand**: Suggest a catchy domain name or brand that
+       fits the user's locale and language.
+    5. **Identify Pages/Views**: List the distinct screens/pages the app needs.
+    6. **Business Logic**: Describe at least 2 multi-step workflows.
+    7. **Preserve the original vibe**: Keep the user's voice and intent.
+       Do NOT contradict what they explicitly stated.
+
+    OUTPUT FORMAT:
+    Write an enriched vibe.md in Markdown. Keep the original "## Tech Stack"
+    section if present (or suggest one). Mark your additions with
+    "[ENRICHED]" so the user can easily review what you added vs. what they wrote.
+
+    Be specific and concrete. No generic filler. Think like a domain consultant
+    who actually understands the user's business.
+    """
+
+    enriched = await foreman.generate(
+        enrich_prompt,
+        system_prompt=(
+            "You are a domain expansion expert. You turn vague app ideas into "
+            "rich, actionable briefs. Output ONLY the enriched Markdown document."
+        ),
+        temperature=0.6,
+    )
+
+    if not enriched:
+        logger.error("LLM enrichment failed -- check Ollama connectivity.")
+        return
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(enriched)
+
+    logger.success("Enriched vibe written to: %s", output_path)
+    logger.info(
+        "NEXT STEP: Review %s, edit as needed, then run:\n"
+        "  python foreman.py plan --vibe %s",
+        output_path, output_path,
+    )
+
+
+# =====================================================================
+# PLAN: Generate specs + scenarios from vibe
+# =====================================================================
+async def generate_blueprint(vibe_content: str):
     logger.info("Foreman is analyzing the vibe...")
     logger.debug(f"Input length: {len(vibe_content)} chars")
 
@@ -119,7 +203,7 @@ Output format: Markdown."""
     """
 
     logger.info("Generating Specs...")
-    specs = foreman.generate(specs_prompt, system_prompt=system_prompt_specs)
+    specs = await foreman.generate(specs_prompt, system_prompt=system_prompt_specs)
     if specs:
         # Embed stack profile as HTML comment at top of specs
         specs = embed_in_specs(specs, stack_profile)
@@ -158,7 +242,7 @@ Output format: Markdown checklist."""
     """
 
     logger.info("Generating Scenarios...")
-    scenarios = foreman.generate(
+    scenarios = await foreman.generate(
         scenarios_prompt, system_prompt=system_prompt_scenarios
     )
 
@@ -171,7 +255,10 @@ Output format: Markdown checklist."""
         logger.error("Failed to generate scenarios.")
 
 
-def conduct_research(vibe_content: str):
+# =====================================================================
+# RESEARCH: Generate search queries for domain data
+# =====================================================================
+async def conduct_research(vibe_content: str):
     logger.info("Oracle is preparing research queries...")
 
     foreman = LLMClient(role="foreman")
@@ -192,13 +279,11 @@ def conduct_research(vibe_content: str):
     """
 
     logger.info("Generating Search Queries...")
-    queries_json = foreman.generate(
+    queries_json = await foreman.generate(
         research_prompt, system_prompt="You are the Oracle. Output ONLY valid JSON."
     )
 
     try:
-        import json
-
         queries = json.loads(queries_json)
         os.makedirs("specs", exist_ok=True)
         with open("specs/queries.json", "w", encoding="utf-8") as f:
@@ -212,12 +297,32 @@ def conduct_research(vibe_content: str):
         logger.debug(queries_json)
 
 
+# =====================================================================
+# CLI Entry Point
+# =====================================================================
 def main():
     parser = argparse.ArgumentParser(description="Dark App Factory Foreman")
     subparsers = parser.add_subparsers(dest="command")
 
+    # Enrich command (NEW)
+    enrich_parser = subparsers.add_parser(
+        "enrich",
+        help="LLM-augment the vibe with domain expertise -> enriched_vibe.md",
+    )
+    enrich_parser.add_argument("--vibe", default="vibe.md", help="Path to vibe file")
+    enrich_parser.add_argument(
+        "--output", default="enriched_vibe.md", help="Output path for enriched vibe"
+    )
+
+    # Plan command
     plan_parser = subparsers.add_parser("plan", help="Generate blueprint from vibe")
     plan_parser.add_argument("--vibe", default="vibe.md", help="Path to vibe file")
+
+    # Research command
+    research_parser = subparsers.add_parser(
+        "research", help="Generate domain research queries"
+    )
+    research_parser.add_argument("--vibe", default="vibe.md", help="Path to vibe file")
 
     # Help Command (Multilevel)
     help_parser = subparsers.add_parser("help", help="Query the Help Oracle")
@@ -238,12 +343,14 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command == "plan":
+    if args.command == "enrich":
+        asyncio.run(enrich_vibe(args.vibe, args.output))
+    elif args.command == "plan":
         vibe = read_vibe(args.vibe)
-        generate_blueprint(vibe)
+        asyncio.run(generate_blueprint(vibe))
     elif args.command == "research":
         vibe = read_vibe(args.vibe)
-        conduct_research(vibe)
+        asyncio.run(conduct_research(vibe))
     elif args.command == "help":
         help_content = oracle.get_help(level=args.level, topic=args.topic)
         logger.info("Help Oracle - %s:\n%s", args.level.upper(), help_content)

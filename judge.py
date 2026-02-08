@@ -57,9 +57,11 @@ def read_file(path: str) -> str:
 
 
 async def run_judgement(
-    scenarios_path: str = "scenarios/scenarios.md", output_dir: str = "output"
+    scenarios_path: str = "scenarios/scenarios.md",
+    output_dir: str = "output",
+    dtu_url: str = None,
 ):
-     logger.info(f"Satisficer Session: Judging {output_dir}")
+    logger.info(f"Satisficer Session: Judging {output_dir}")
 
     scenarios = read_file(scenarios_path)
     if not scenarios:
@@ -85,10 +87,11 @@ async def run_judgement(
     )
 
     # 3. Execution Verification (The Satisficer Upgrade)
-    logger.info(
-        "[bold yellow]Satisficer Stage 2:[/bold yellow] Booting app for execution check..."
-    )
-    orchestrator = RunManifest(output_dir)
+    if dtu_url:
+        logger.info("Satisficer Stage 2: Booting app with DTU integration (%s)...", dtu_url)
+    else:
+        logger.info("Satisficer Stage 2: Booting app for execution check (no DTU)...")
+    orchestrator = RunManifest(output_dir, dtu_url=dtu_url)
     ui_report = {"summary": "Execution check skipped (offline mode)"}
 
     try:
@@ -159,13 +162,17 @@ def main():
     judge_parser.add_argument(
         "--output", default="output", help="Target output directory to judge"
     )
+    judge_parser.add_argument(
+        "--dtu-url", default=None,
+        help="DTU base URL (e.g. http://localhost:8001). Injects DTU env vars into generated app."
+    )
 
     args = parser.parse_args()
 
     if args.command == "judge":
         import asyncio
 
-        asyncio.run(run_judgement(args.scenarios, args.output))
+        asyncio.run(run_judgement(args.scenarios, args.output, dtu_url=args.dtu_url))
     else:
         parser.print_help()
 

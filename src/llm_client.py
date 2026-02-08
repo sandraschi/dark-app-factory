@@ -39,7 +39,8 @@ class LLMClient:
         )
 
     async def generate(
-        self, prompt: str, system_prompt: str = "You are a helpful assistant."
+        self, prompt: str, system_prompt: str = "You are a helpful assistant.",
+        temperature: float = None,
     ) -> str:
         prompt_len = len(prompt) + len(system_prompt)
         estimated_tokens = prompt_len // 4
@@ -50,6 +51,9 @@ class LLMClient:
                 estimated_tokens,
             )
 
+        # Use caller-specified temperature, else role default
+        effective_temp = temperature if temperature is not None else (0.7 if self.role == "foreman" else 0.2)
+
         try:
             response = await self.client.chat.completions.create(
                 model=self.model,
@@ -57,7 +61,7 @@ class LLMClient:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.7 if self.role == "foreman" else 0.2,
+                temperature=effective_temp,
             )
 
             if response.usage:

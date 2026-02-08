@@ -1,5 +1,7 @@
 import abc
-from typing import List, Dict, Any
+import json
+import re
+from typing import List, Dict, Any, Tuple
 
 
 class Specialist(abc.ABC):
@@ -8,12 +10,20 @@ class Specialist(abc.ABC):
     Each specialist owns specific files and may depend on others.
     """
 
+    # Default temperature; subclasses override via __init__ kwarg.
+    DEFAULT_TEMPERATURE: float = 0.2
+
     def __init__(
-        self, name: str, owned_patterns: List[str], requires: List[str] = None
+        self,
+        name: str,
+        owned_patterns: List[str],
+        requires: List[str] = None,
+        temperature: float = None,
     ):
         self.name = name
         self.owned_patterns = owned_patterns
         self.requires = requires or []
+        self.temperature = temperature if temperature is not None else self.DEFAULT_TEMPERATURE
         self.output_files: Dict[str, str] = {}  # Path -> Content
         self.ANTI_GASLIGHTING_PROMPT = """
         [ANTI-GASLIGHTING PROTOCOL]:
@@ -42,3 +52,43 @@ class Specialist(abc.ABC):
             elif file_path == pattern:
                 return True
         return False
+
+    # -----------------------------------------------------------------
+    # Context Injection: read upstream dependency outputs
+    # -----------------------------------------------------------------
+    def get_dependency_context(self, shared_context: Dict[str, Any]) -> str:
+        """Build a summary of code produced by required upstream specialists.
+
+        Returns a string (capped at 8000 chars) containing truncated file
+        contents from each dependency, suitable for injection into prompts.
+        """
+        if not self.requires:
+            return ""
+        chunks: List[str] = []
+        for req in self.requires:
+            dep_output = shared_context.get(req, {})
+            if not isinstance(dep_output, dict):
+                continue
+            for path, code in dep_output.items():
+                if not code:
+                    continue
+                chunks.append(f"--- {req}/{path} ---\n{code[:2000]}")
+        combined = "\n".join(chunks)
+        return combined[:8000]
+
+    # -----------------------------------------------------------------
+    # Validation Hook: domain-specific quality checks
+    # -----------------------------------------------------------------
+    def validate(self, file_path: str, code: str, specs: str) -> Tuple[bool, str]:
+        """Return (is_valid, error_message). Override in subclasses."""
+        return (True, "")
+
+    # -----------------------------------------------------------------
+    # Self-Declaration: specialists declare files they need
+    # -----------------------------------------------------------------
+    def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
+        """Return additional file paths this specialist wants to generate,
+        based on keyword analysis of the specs and the stack profile.
+        Default: no extra files. Override in subclasses.
+        """
+        return []
