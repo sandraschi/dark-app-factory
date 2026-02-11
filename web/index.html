@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark App Factory | SOTA Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --neon: #6366f1;
+            --neon-glow: rgba(99, 102, 241, 0.4);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a, #020617);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .neon-text {
+            text-shadow: 0 0 10px var(--neon-glow);
+        }
+
+        .neon-border {
+            border-color: var(--neon);
+            box-shadow: 0 0 15px var(--neon-glow);
+        }
+
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .glow-button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glow-button:hover {
+            box-shadow: 0 0 20px var(--neon-glow);
+            transform: scale(1.02);
+        }
+
+        .sidebar-item {
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid var(--neon);
+        }
+    </style>
+</head>
+
+<body class="flex">
+
+    <!-- Retractable Sidebar -->
+    <aside id="sidebar"
+        class="w-64 glass h-screen fixed left-0 top-0 transition-all duration-300 z-50 flex flex-col p-6">
+        <div class="flex items-center gap-3 mb-12">
+            <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center neon-border">
+                <span class="font-bold text-xl">D</span>
+            </div>
+            <h1 class="font-bold text-lg tracking-tight">App Factory</h1>
+        </div>
+
+        <nav class="flex-1 space-y-4">
+            <a href="#" id="nav-dashboard" onclick="showSection('dashboard')"
+                class="sidebar-item flex items-center gap-3 p-3 rounded-lg bg-white/5 border-l-4 border-indigo-500">
+                <span>📊</span> Dashboard
+            </a>
+            <a href="#" id="nav-build" onclick="showSection('build')"
+                class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
+                <span>🚀</span> Build Runner
+            </a>
+            <a href="#" id="nav-specialists" onclick="showSection('specialists')"
+                class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
+                <span>🧰</span> Specialist Hub
+            </a>
+            <a href="#" id="nav-settings" onclick="showSection('settings')"
+                class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
+                <span>⚙️</span> Settings
+            </a>
+        </nav>
+
+        <div class="mt-auto glass p-4 rounded-xl text-xs text-slate-400">
+            <p>System v1.5 SOTA</p>
+            <p class="mt-1">Worker Pool: Active</p>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ml-64 flex-1 p-8">
+
+        <!-- Top Bar -->
+        <header class="flex justify-between items-center mb-12 glass p-4 rounded-2xl">
+            <div class="flex items-center gap-4">
+                <span class="text-slate-400">Project:</span>
+                <span id="project-name" class="font-semibold text-indigo-400">Satisficer_Run_01</span>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <span class="text-sm">Factory Ready</span>
+                </div>
+                <div
+                    class="w-10 h-10 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center">
+                    👤
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <section id="section-dashboard" class="space-y-8 animate-in fade-in duration-500">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass p-6 rounded-2xl">
+                    <h4 class="text-slate-400 text-sm mb-1">Total Revenue</h4>
+                    <p class="text-3xl font-bold">$12,450.00</p>
+                    <span class="text-emerald-400 text-xs text-bold">↑ 12% vs last run</span>
+                </div>
+                <div class="glass p-6 rounded-2xl">
+                    <h4 class="text-slate-400 text-sm mb-1">Token Burn Rate</h4>
+                    <p class="text-3xl font-bold">1.2M / hr</p>
+                    <span class="text-amber-400 text-xs text-bold">Optimal efficiency</span>
+                </div>
+                <div class="glass p-6 rounded-2xl">
+                    <h4 class="text-slate-400 text-sm mb-1">System Entropy</h4>
+                    <p class="text-3xl font-bold">0.04</p>
+                    <span class="text-indigo-400 text-xs text-bold">Steady state</span>
+                </div>
+            </div>
+            <div class="glass p-8 rounded-3xl h-96 flex flex-col items-center justify-center text-center">
+                <div class="w-24 h-24 bg-indigo-600/20 rounded-full flex items-center justify-center mb-6">
+                    <span class="text-4xl">📈</span>
+                </div>
+                <h3 class="text-xl font-bold mb-2">Performance Analytics</h3>
+                <p class="text-slate-400 max-w-sm">Detailed telemetry for the Satisficer pipeline will be visualized
+                    here once the factory stabilizes.</p>
+            </div>
+        </section>
+
+        <!-- Build Section -->
+        <section id="section-build"
+            class="hidden grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
+
+            <!-- Build Form -->
+            <div class="lg:col-span-2 space-y-8">
+                <div class="glass p-8 rounded-3xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-3xl -z-10"></div>
+
+                    <h2 class="text-2xl font-bold mb-6 neon-text">Initiate Build</h2>
+
+                    <div class="mb-4">
+                        <label for="sample-prompts" class="block text-sm font-medium text-slate-400 mb-2">
+                            Quick Start Vibes
+                        </label>
+                        <select id="sample-prompts" onchange="applySamplePrompt()"
+                            class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer hover:bg-black/60">
+                            <option value="" disabled selected>Select a sample vibe...</option>
+                            <option
+                                value="Webpage for our crochet club, with member acquisition and info about crochet. Use warm, cozy colors and soft typography.">
+                                Crochet Club (Plausible)</option>
+                            <option
+                                value="A futuristic Vibecoding School interface. Seeded with logic from 'mcp-central-docs' (AGENT_PROTOCOLS, STANDARDS). High-tech reductionist aesthetic with clean data viz.">
+                                Vibecoding School (Seeded)</option>
+                            <option
+                                value="A game portal hub taking the 'games-app' repository as a foundation. Curated selection of Chess, Shogi, and Jenga. Retro-arcade meets glassmorphism.">
+                                Games Portal (Seeded)</option>
+                            <option
+                                value="Specialized Japanese learning platform using the Kanji/vocab stacks from 'games-app' (kanji_database, wakan_vocab). Zen-minimalist with N3 paths.">
+                                Japanese Learning (Seeded)</option>
+                            <option
+                                value="A website to drum up business for my diving shop in Niger. Few divers, but there ought to be a few even there! Use desert-underwater fusion aesthetics.">
+                                Niger Diving Shop (Absurd)</option>
+                            <option
+                                value="My pygmy hippo housebreaking school. We teach miniature hippos to respect the rug. Use sophisticated yet slightly chaotic academy vibes.">
+                                Pygmy Hippo Housebreaking (Absurd)</option>
+                        </select>
+                    </div>
+
+                    <textarea id="vibe-input" oninput="checkRefinementVisibility()"
+                        placeholder="Describe the application vibe (e.g., 'A premium glassmorphic crypto dashboard with real-time charts')..."
+                        class="w-full h-48 bg-black/20 border border-white/10 rounded-2xl p-6 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-lg"></textarea>
+
+                    <!-- Prompt Refinement Suggestion Card -->
+                    <div id="refinement-container" class="hidden mt-6 animate-in slide-in-from-top-4 duration-300">
+                        <div class="glass p-6 rounded-2xl border-l-4 border-indigo-500 bg-indigo-500/5">
+                            <div class="flex items-start gap-4">
+                                <span class="text-2xl">✨</span>
+                                <div class="flex-1">
+                                    <h4 class="font-bold text-sm mb-1 text-indigo-300">AI Prompt Refinement</h4>
+                                    <p class="text-xs text-slate-400 mb-4">Should the LLM improve your request, catch
+                                        bloopers, and add professional technical specs?</p>
+
+                                    <div id="improved-prompt-area"
+                                        class="hidden mb-4 p-4 bg-black/40 rounded-xl text-sm border border-white/5 max-h-48 overflow-y-auto">
+                                        <!-- Improved prompt content goes here -->
+                                    </div>
+
+                                    <div class="flex gap-3">
+                                        <button id="refine-btn" onclick="refinePrompt()"
+                                            class="text-xs font-bold bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/50 px-4 py-2 rounded-lg transition-all">
+                                            Yes, Improve Vibe
+                                        </button>
+                                        <button id="refine-accept-btn" onclick="useRefinedPrompt()"
+                                            class="hidden text-xs font-bold bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/50 px-4 py-2 rounded-lg transition-all">
+                                            Use This Version
+                                        </button>
+                                        <button onclick="dismissRefinement()"
+                                            class="text-xs font-bold bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg transition-all">
+                                            Keep My Original
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ghosting Section -->
+                    <div class="mt-8 pt-8 border-t border-white/10">
+                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-ghost text-blue-400"></i>
+                            Ghost Site (Clone DNA)
+                        </h3>
+                        <div class="flex gap-4 mb-4">
+                            <input type="text" id="ghostSearchQuery"
+                                placeholder="Who should we ghost? (e.g., 'best locksmith vienna')"
+                                class="flex-1 bg-black/40 border border-white/10 rounded-lg px-4 py-2 focus:border-blue-500 transition-all outline-none">
+                            <button onclick="suggestExemplars()"
+                                class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 px-6 py-2 rounded-lg border border-blue-500/50 transition-all flex items-center gap-2">
+                                <i class="fas fa-search"></i> Discover
+                            </button>
+                        </div>
+
+                        <!-- Suggestions List -->
+                        <div id="exemplarContainer" class="hidden space-y-2 mb-4">
+                            <p class="text-sm text-gray-400 mb-2">Suggested Exemplars:</p>
+                            <div id="exemplarList" class="grid gap-2"></div>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <input type="text" id="ghostUrl" placeholder="Or enter target URL directly..."
+                                class="flex-1 bg-black/40 border border-white/10 rounded-lg px-4 py-2 focus:border-purple-500 transition-all outline-none">
+                            <button onclick="extractGhost()"
+                                class="bg-purple-600/20 hover:bg-purple-600/40 text-purple-400 px-8 py-2 rounded-lg border border-purple-500/50 transition-all flex items-center gap-2">
+                                <i class="fas fa-magic"></i> Extract DNA
+                            </button>
+                        </div>
+
+                        <!-- Ghost DNA Status -->
+                        <div id="ghostStatus" class="hidden mt-4 glass-card p-4 border-purple-500/30">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="font-bold text-purple-400 flex items-center gap-2">
+                                        <i class="fas fa-dna"></i> Extracted Blueprint
+                                    </h4>
+                                    <p id="ghostSummary" class="text-sm text-gray-300 mt-1"></p>
+                                </div>
+                                <span class="bg-purple-500/20 text-purple-300 text-xs px-2 py-1 rounded">READY</span>
+                            </div>
+                            <pre id="ghostBlueprint"
+                                class="text-[10px] text-purple-300/70 mt-3 bg-black/40 p-2 rounded overflow-x-auto"></pre>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center mt-6">
+                        <div class="flex gap-4">
+                            <span class="glass px-3 py-1 rounded-full text-xs">Vite</span>
+                            <span class="glass px-3 py-1 rounded-full text-xs">React</span>
+                            <span class="glass px-3 py-1 rounded-full text-xs">Tailwind</span>
+                        </div>
+                        <button onclick="triggerBuild()" id="build-btn"
+                            class="glow-button bg-indigo-600 px-8 py-3 rounded-xl font-bold text-white shadow-lg shadow-indigo-500/20">
+                            Launch Factory
+                        </button>
+                    </div>
+
+                    <!-- Build Progress Bar (SOTA Feedback) -->
+                    <div id="progress-container"
+                        class="hidden mt-8 pt-8 border-t border-white/10 animate-in fade-in zoom-in duration-500">
+                        <div class="flex justify-between items-end mb-2">
+                            <div>
+                                <h4 id="progress-status" class="text-sm font-bold text-indigo-400">Orchestrating
+                                    council...</h4>
+                                <p id="progress-detail"
+                                    class="text-[10px] text-slate-500 mt-1 uppercase tracking-tight">Initializing build
+                                    sequence</p>
+                            </div>
+                            <span id="progress-percentage" class="text-2xl font-bold neon-text">0%</span>
+                        </div>
+                        <div class="w-full h-2 bg-black/40 rounded-full overflow-hidden border border-white/5">
+                            <div id="progress-bar"
+                                class="h-full bg-indigo-600 shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-500"
+                                style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Logs -->
+                <div class="glass p-8 rounded-3xl h-64 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">Live Build Logs</h3>
+                        <span class="text-xs text-indigo-400">SSE Connection Stable</span>
+                    </div>
+                    <div id="logs"
+                        class="flex-1 bg-black/40 rounded-xl p-4 font-mono text-sm overflow-y-auto space-y-1 text-slate-300">
+                        <p class="text-slate-500 italic">> Factory dashboard initialized.</p>
+                        <p class="text-slate-500 italic">> Awaiting user instruction...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats & Status -->
+            <div class="space-y-8">
+
+                <!-- Status Card -->
+                <div class="glass p-6 rounded-3xl text-center">
+                    <p class="text-slate-400 text-sm mb-2">Current System Entropy</p>
+                    <div id="status-circle"
+                        class="w-32 h-32 rounded-full border-4 border-slate-800 mx-auto flex flex-col items-center justify-center relative">
+                        <div class="absolute inset-0 rounded-full border-t-4 border-indigo-500 animate-spin"></div>
+                        <span id="active-builds" class="text-3xl font-bold">0</span>
+                        <span class="text-[10px] uppercase text-slate-500">Active Builds</span>
+                    </div>
+                    <p id="system-verdict" class="mt-4 font-medium text-emerald-400">Status: Ready</p>
+                </div>
+
+                <!-- Milestones -->
+                <div class="glass p-6 rounded-3xl">
+                    <h3 class="font-semibold mb-4">Pipeline Milestones</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-[10px]">
+                                ✓</div>
+                            <span class="text-sm">Registrar Optimized</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-[10px]">
+                                ✓</div>
+                            <span class="text-sm">Council Assembled</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Placeholders for other sections -->
+        <section id="section-specialists" class="hidden animate-in fade-in duration-500">
+            <div class="glass p-8 rounded-3xl">
+                <div class="flex justify-between items-center mb-12">
+                    <div>
+                        <h2 class="text-3xl font-bold neon-text">Specialist Hub</h2>
+                        <p class="text-slate-400">The Council of 19: SOTA Intelligence for Industrial Build Flows.</p>
+                    </div>
+                    <button onclick="fetchSpecialists()"
+                        class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 px-4 py-2 rounded-lg border border-indigo-500/50 transition-all flex items-center gap-2 text-sm">
+                        <span>🔄</span> Refresh Council
+                    </button>
+                </div>
+
+                <div id="specialist-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Specialist Cards will be injected here -->
+                    <div class="lg:col-span-full py-12 text-center text-slate-500 italic">
+                        Initializing Council connections...
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        </section>
+    </main>
+
+    <!-- Documentation Modal -->
+    <div id="docs-modal"
+        class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div
+            class="glass max-w-2xl w-full max-h-[80vh] rounded-3xl overflow-hidden flex flex-col animate-in zoom-in duration-300">
+            <div class="p-6 border-b border-white/10 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span id="modal-icon" class="text-3xl">👤</span>
+                    <div>
+                        <h3 id="modal-title" class="text-xl font-bold neon-text">Specialist Documentation</h3>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest">Instruction Set & Logic</p>
+                    </div>
+                </div>
+                <button onclick="hideDocs()"
+                    class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">✕</button>
+            </div>
+            <div class="p-8 overflow-y-auto bg-black/20 flex-1">
+                <pre id="modal-content"
+                    class="text-sm text-slate-300 whitespace-pre-wrap font-sans leading-relaxed"></pre>
+            </div>
+            <div class="p-6 border-t border-white/10 flex justify-end">
+                <button onclick="hideDocs()"
+                    class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 px-6 py-2 rounded-xl border border-indigo-500/50 transition-all font-bold text-sm">Acknowledge</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        function applySamplePrompt() {
+            const select = document.getElementById('sample-prompts');
+            const input = document.getElementById('vibe-input');
+            if (select.value) {
+                input.value = select.value;
+                checkRefinementVisibility();
+                appendLog(`Applied sample vibe: ${select.options[select.selectedIndex].text}`, 'text-indigo-400');
+            }
+        }
+
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            // Show target section
+            document.getElementById(`section-${sectionId}`).classList.remove('hidden');
+
+            // Update sidebar active state
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('bg-white/5', 'border-l-4', 'border-indigo-500');
+            });
+            document.getElementById(`nav-${sectionId}`).classList.add('bg-white/5', 'border-l-4', 'border-indigo-500');
+
+            if (sectionId === 'specialists') {
+                fetchSpecialists();
+            }
+            appendLog(`Navigated to ${sectionId}.`, 'text-slate-500 italic');
+        }
+
+        async function fetchSpecialists() {
+            const grid = document.getElementById('specialist-grid');
+            try {
+                const res = await fetch(`${API_BASE}/specialists`);
+                const data = await res.json();
+
+                if (data.success) {
+                    grid.innerHTML = '';
+                    data.specialists.forEach(spec => {
+                        const card = document.createElement('div');
+                        card.className = 'glass p-6 rounded-2xl border-t-4 border-indigo-500 hover:scale-[1.02] transition-all cursor-default group';
+
+                        // Icon mapping based on name
+                        const icons = {
+                            "Plumber": "🔧", "Sculptor": "🗿", "Librarian": "📚", "Registrar": "📋",
+                            "Maestro": "🎼", "WebFinder": "🌐", "Archivist": "📁", "Raggy": "🧩",
+                            "Nervos": "🧠", "Auditor": "🔍", "Professor": "🎓", "Picasso": "🎨",
+                            "Shakespeare": "✍️", "Propagandist": "📢", "Houdini": "🪄", "Morpheus": "💊",
+                            "Tesla": "⚡", "Amodei": "🧪", "Generalist": "🛠️"
+                        };
+                        const icon = icons[spec.name] || "👤";
+
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="text-4xl">${icon}</span>
+                                <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded">T: ${spec.temperature}</span>
+                            </div>
+                            <h4 class="font-bold text-lg mb-1 group-hover:text-indigo-400 transition-colors">${spec.name}</h4>
+                            <p class="text-[10px] text-slate-500 mb-3 uppercase tracking-wider font-semibold">Specialist</p>
+                            
+                            <div class="space-y-2">
+                                <p class="text-xs text-slate-400"><span class="text-indigo-400">Owns:</span> ${spec.owned_patterns.join(', ')}</p>
+                                <p class="text-xs text-slate-400"><span class="text-indigo-400">Requires:</span> ${spec.requires.join(', ') || 'None'}</p>
+                            </div>
+                            
+                            <div class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
+                                <span class="text-[10px] text-emerald-400">● Available</span>
+                                <button onclick="showDocs('${spec.name}', \`${spec.docs.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`, '${icon}')" 
+                                        class="text-[10px] bg-white/5 hover:bg-white/10 px-2 py-1 rounded transition-colors">Documentation</button>
+                            </div>
+                        `;
+                        grid.appendChild(card);
+                    });
+                } else {
+                    grid.innerHTML = `<div class="lg:col-span-full py-12 text-center text-rose-400">The Council is currently unavailable: ${data.detail || 'Unknown error'}</div>`;
+                }
+            } catch (e) {
+                grid.innerHTML = `<div class="lg:col-span-full py-12 text-center text-rose-400">Failed to summon the Council: ${e.message}</div>`;
+            }
+        }
+
+        function showDocs(name, docs, icon) {
+            document.getElementById('modal-title').innerText = `${name} | Instructions`;
+            document.getElementById('modal-icon').innerText = icon;
+            document.getElementById('modal-content').innerText = docs.trim();
+            document.getElementById('docs-modal').classList.remove('hidden');
+            appendLog(`Viewing documentation for ${name}.`, 'text-indigo-400');
+        }
+
+        function hideDocs() {
+            document.getElementById('docs-modal').classList.add('hidden');
+        }
+
+        async function updateStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/status`);
+                const data = await res.json();
+
+                document.getElementById('active-builds').innerText = data.active_builds;
+                document.getElementById('system-verdict').innerText = `Verdict: ${data.last_verdict}`;
+
+                if (data.active_builds > 0) {
+                    document.getElementById('system-verdict').className = 'mt-4 font-medium text-indigo-400 animate-pulse';
+                    document.getElementById('build-btn').disabled = true;
+                    document.getElementById('build-btn').classList.add('opacity-50', 'cursor-not-allowed');
+
+                    // Show progress container
+                    document.getElementById('progress-container').classList.remove('hidden');
+                    pollProgress();
+                } else {
+                    document.getElementById('system-verdict').className = 'mt-4 font-medium ' + (data.last_verdict === 'PASS' ? 'text-emerald-400' : 'text-rose-400');
+                    document.getElementById('build-btn').disabled = false;
+                    document.getElementById('build-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+
+                    // Hide progress container if build just finished
+                    if (window.lastProgress === 100) {
+                        setTimeout(() => {
+                            if (document.getElementById('active-builds').innerText == 0) {
+                                document.getElementById('progress-container').classList.add('hidden');
+                                window.lastProgress = 0;
+                            }
+                        }, 5000);
+                    }
+                }
+            } catch (e) {
+                console.error('Status check failed', e);
+            }
+        }
+
+        window.lastProgress = 0;
+        async function pollProgress() {
+            try {
+                const res = await fetch(`${API_BASE}/progress`);
+                const data = await res.json();
+
+                const bar = document.getElementById('progress-bar');
+                const pctText = document.getElementById('progress-percentage');
+                const statusText = document.getElementById('progress-status');
+                const detailText = document.getElementById('progress-detail');
+
+                bar.style.width = `${data.percentage}%`;
+                pctText.innerText = `${data.percentage}%`;
+                statusText.innerText = data.status || "Processing...";
+
+                // Logic to update detail based on percentage ranges if status is generic
+                window.lastProgress = data.percentage;
+            } catch (e) {
+                console.error('Progress poll failed', e);
+            }
+        }
+
+        async function triggerBuild() {
+            const vibe = document.getElementById('vibe-input').value;
+            if (!vibe) return alert('Please describe your vibe first.');
+
+            appendLog('User initiated build request.');
+            appendLog(`Vibe: ${vibe.substring(0, 50)}...`, 'text-indigo-300');
+
+            try {
+                const res = await fetch(`${API_BASE}/build`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        vibe_content: vibe,
+                        ghost_blueprint_path: window.ghostBlueprintPath || null
+                    })
+                });
+
+                if (res.ok) {
+                    appendLog('Factory confirmed build reception. Orchestrating workers...', 'text-emerald-400');
+                    document.getElementById('vibe-input').value = '';
+                    // Reset ghost path after launch
+                    window.ghostBlueprintPath = null;
+                } else {
+                    const error = await res.json();
+                    appendLog(`Factory Error: ${error.detail}`, 'text-rose-400');
+                }
+            } catch (e) {
+                appendLog(`Connection Error: ${e.message}`, 'text-rose-400');
+            }
+        }
+
+        function appendLog(msg, colorClass = '') {
+            const logs = document.getElementById('logs');
+            const p = document.createElement('p');
+            p.className = colorClass;
+            p.innerText = `> [${new Date().toLocaleTimeString()}] ${msg}`;
+            logs.appendChild(p);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        let refinementHistory = [];
+        let currentImprovedText = "";
+
+        async function suggestExemplars() {
+            const query = document.getElementById('ghostSearchQuery').value;
+            if (!query) return;
+
+            const container = document.getElementById('exemplarContainer');
+            const list = document.getElementById('exemplarList');
+            list.innerHTML = '<div class="animate-pulse text-blue-400">Searching for exemplars...</div>';
+            container.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/suggest-exemplars', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+                const data = await response.json();
+
+                list.innerHTML = '';
+                data.suggestions.forEach(s => {
+                    const el = document.createElement('div');
+                    el.className = 'glass-card p-2 hover:bg-white/5 cursor-pointer transition-all flex justify-between items-center group';
+                    el.innerHTML = `
+                        <div>
+                            <div class="text-sm font-bold text-white group-hover:text-blue-400">${s.title}</div>
+                            <div class="text-[10px] text-gray-500">${s.url}</div>
+                        </div>
+                        <button onclick="selectExemplar('${s.url}')" class="text-xs bg-blue-500/20 px-2 py-1 rounded">Ghost This</button>
+                    `;
+                    list.appendChild(el);
+                });
+            } catch (error) {
+                list.innerHTML = `<div class="text-red-400">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function selectExemplar(url) {
+            document.getElementById('ghostUrl').value = url;
+            extractGhost();
+        }
+
+        async function extractGhost() {
+            const url = document.getElementById('ghostUrl').value;
+            if (!url) return;
+
+            const status = document.getElementById('ghostStatus');
+            const summary = document.getElementById('ghostSummary');
+            const blueprintEl = document.getElementById('ghostBlueprint');
+
+            status.classList.remove('hidden');
+            summary.innerText = "Deep-diving into site structure...";
+            blueprintEl.innerText = "// Initializing extraction payload...";
+
+            try {
+                const response = await fetch('/api/ghost', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    summary.innerText = data.summary;
+                    blueprintEl.innerText = JSON.stringify(data.blueprint, null, 2);
+                    window.ghostBlueprintPath = data.blueprint_path;
+                } else {
+                    summary.innerText = "Extraction failed.";
+                }
+            } catch (error) {
+                summary.innerText = "Error: " + error.message;
+            }
+        }
+
+        function checkRefinementVisibility() {
+            const vibe = document.getElementById('vibe-input').value.trim();
+            const container = document.getElementById('refinement-container');
+            if (vibe.length > 10 && container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+            }
+        }
+
+        function dismissRefinement() {
+            document.getElementById('refinement-container').classList.add('hidden');
+            document.getElementById('improved-prompt-area').classList.add('hidden');
+        }
+
+        async function refinePrompt() {
+            const vibe = document.getElementById('vibe-input').value;
+            const refineBtn = document.getElementById('refine-btn');
+
+            refineBtn.innerText = "Refining...";
+            refineBtn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/refine`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: vibe,
+                        history: refinementHistory
+                    })
+                });
+
+                const data = await res.json();
+                currentImprovedText = data.improved;
+
+                const area = document.getElementById('improved-prompt-area');
+                area.innerHTML = `<div class="prose prose-invert text-xs">${currentImprovedText.replace(/\n/g, '<br>')}</div>`;
+                area.classList.remove('hidden');
+
+                document.getElementById('refine-accept-btn').classList.remove('hidden');
+                refineBtn.innerText = "Refine Again";
+                refineBtn.disabled = false;
+
+                appendLog("AI Suggestion generated.", "text-indigo-400");
+            } catch (e) {
+                appendLog(`Refinement failed: ${e.message}`, 'text-rose-400');
+                refineBtn.innerText = "Yes, Improve Vibe";
+                refineBtn.disabled = false;
+            }
+        }
+
+        function useRefinedPrompt() {
+            refinementHistory.push(document.getElementById('vibe-input').value);
+            document.getElementById('vibe-input').value = currentImprovedText;
+            dismissRefinement();
+            appendLog("Switched to AI-improved prompt.", "text-emerald-400 font-bold");
+        }
+
+        // Poll status every 2 seconds
+        setInterval(updateStatus, 2000);
+        updateStatus();
+    </script>
+</body>
+
+</html>

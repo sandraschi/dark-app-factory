@@ -34,7 +34,11 @@ def read_file_if_exists(path: str) -> str:
 # =====================================================================
 # ENRICH: LLM-augmented vibe expansion
 # =====================================================================
-async def enrich_vibe(vibe_path: str = "vibe.md", output_path: str = "enriched_vibe.md"):
+async def enrich_vibe(
+    vibe_path: str = "vibe.md",
+    output_path: str = "enriched_vibe.md",
+    foreman: LLMClient = None,
+):
     """Read a terse vibe and use the Foreman LLM to expand it into a rich,
     domain-aware brief. The user reviews and approves before proceeding to plan.
     """
@@ -42,7 +46,8 @@ async def enrich_vibe(vibe_path: str = "vibe.md", output_path: str = "enriched_v
     logger.info("Enriching vibe with LLM domain expansion...")
     logger.debug("Input vibe: %d chars", len(vibe_content))
 
-    foreman = LLMClient(role="foreman")
+    if not foreman:
+        foreman = LLMClient(role="foreman")
 
     enrich_prompt = f"""
     You are the Vibe Enricher for the Dark App Factory.
@@ -106,14 +111,15 @@ async def enrich_vibe(vibe_path: str = "vibe.md", output_path: str = "enriched_v
     logger.info(
         "NEXT STEP: Review %s, edit as needed, then run:\n"
         "  python foreman.py plan --vibe %s",
-        output_path, output_path,
+        output_path,
+        output_path,
     )
 
 
 # =====================================================================
 # PLAN: Generate specs + scenarios from vibe
 # =====================================================================
-async def generate_blueprint(vibe_content: str):
+async def generate_blueprint(vibe_content: str, foreman: LLMClient = None):
     logger.info("Foreman is analyzing the vibe...")
     logger.debug(f"Input length: {len(vibe_content)} chars")
 
@@ -122,7 +128,8 @@ async def generate_blueprint(vibe_content: str):
     stack_desc = describe_stack(stack_profile)
     logger.info("Resolved stack: %s", stack_desc)
 
-    foreman = LLMClient(role="foreman")
+    if not foreman:
+        foreman = LLMClient(role="foreman")
 
     # 1. Generate Specs
     system_prompt_specs = """You are the Foreman of a Dark App Factory.
@@ -258,10 +265,11 @@ Output format: Markdown checklist."""
 # =====================================================================
 # RESEARCH: Generate search queries for domain data
 # =====================================================================
-async def conduct_research(vibe_content: str):
+async def conduct_research(vibe_content: str, foreman: LLMClient = None):
     logger.info("Oracle is preparing research queries...")
 
-    foreman = LLMClient(role="foreman")
+    if not foreman:
+        foreman = LLMClient(role="foreman")
 
     research_prompt = f"""
     You are the Domain Research Oracle. 
@@ -355,8 +363,6 @@ def main():
         help_content = oracle.get_help(level=args.level, topic=args.topic)
         logger.info("Help Oracle - %s:\n%s", args.level.upper(), help_content)
     elif args.command == "log":
-        from utils.logger import logger
-
         if args.tail:
             lines = logger.tail(args.tail)
             for line in lines:

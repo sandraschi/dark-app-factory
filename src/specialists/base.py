@@ -1,6 +1,4 @@
 import abc
-import json
-import re
 from typing import List, Dict, Any, Tuple
 
 
@@ -23,7 +21,9 @@ class Specialist(abc.ABC):
         self.name = name
         self.owned_patterns = owned_patterns
         self.requires = requires or []
-        self.temperature = temperature if temperature is not None else self.DEFAULT_TEMPERATURE
+        self.temperature = (
+            temperature if temperature is not None else self.DEFAULT_TEMPERATURE
+        )
         self.output_files: Dict[str, str] = {}  # Path -> Content
         self.ANTI_GASLIGHTING_PROMPT = """
         [ANTI-GASLIGHTING PROTOCOL]:
@@ -92,3 +92,7 @@ class Specialist(abc.ABC):
         Default: no extra files. Override in subclasses.
         """
         return []
+
+    def get_docs(self) -> str:
+        """Returns the specialist's documentation from its docstring."""
+        return self.__doc__ or "No documentation available for this specialist."

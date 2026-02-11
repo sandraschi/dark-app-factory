@@ -1,14 +1,17 @@
-import os
 import argparse
 import sys
-from utils.logger import logger
-from run_manifest import RunManifest
-import asyncio
-import time
+import json
 
-# Add src to path if needed or structure correctly
-sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
-from llm_client import LLMClient
+# SOTA: Standardize import normalization
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+if os.path.join(BASE_DIR, "src") not in sys.path:
+    sys.path.append(os.path.join(BASE_DIR, "src"))
+
+from src.utils.logger import logger
+from src.run_manifest import RunManifest
+from src.llm_client import LLMClient
 
 
 class PlaywrightVerifier:
@@ -49,11 +52,33 @@ class PlaywrightVerifier:
 
 
 def read_file(path: str) -> str:
+    """Reads a file and returns its content."""
     if not os.path.exists(path):
         logger.error(f"File not found at {path}")
         return ""
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
+
+
+async def query_dtu_logs(dtu_url: str):
+    """Queries the DTU log for service interaction verification."""
+    if not dtu_url:
+        return []
+
+    try:
+        # SOTA: Use httpx for async requests if possible,
+        # but using urllib here to avoid extra dependencies for the base gate.
+        import urllib.request
+
+        log_url = f"{dtu_url.rstrip('/')}/dtu/log"
+        logger.info(f"Querying DTU logs at {log_url}...")
+
+        with urllib.request.urlopen(log_url, timeout=5) as response:
+            if response.status == 200:
+                return json.loads(response.read().decode())
+    except Exception as e:
+        logger.warning(f"Failed to query DTU logs: {e}")
+    return []
 
 
 async def run_judgement(
@@ -88,7 +113,9 @@ async def run_judgement(
 
     # 3. Execution Verification (The Satisficer Upgrade)
     if dtu_url:
-        logger.info("Satisficer Stage 2: Booting app with DTU integration (%s)...", dtu_url)
+        logger.info(
+            "Satisficer Stage 2: Booting app with DTU integration (%s)...", dtu_url
+        )
     else:
         logger.info("Satisficer Stage 2: Booting app for execution check (no DTU)...")
     orchestrator = RunManifest(output_dir, dtu_url=dtu_url)
@@ -112,6 +139,19 @@ async def run_judgement(
     finally:
         orchestrator.terminate()
 
+    # 3.5 DTU Log Verification
+    dtu_logs = []
+    if dtu_url:
+        dtu_logs = await query_dtu_logs(dtu_url)
+        if dtu_logs:
+            logger.info(
+                f"DTU Interaction Verified: Observed {len(dtu_logs)} service calls."
+            )
+        else:
+            logger.warning(
+                "DTU integrated but no service logs observed (possible failed interaction)."
+            )
+
     # 4. Final Verdict
     prompt = f"""
     Review these scenarios and the ACTUAL state of the generated app in '{output_dir}'.
@@ -127,6 +167,9 @@ async def run_judgement(
 
     UI/EXECUTION REPORT:
     {ui_report}
+
+    DTU INTERACTION LOGS:
+    {json.dumps(dtu_logs[:20], indent=2) if dtu_logs else "No DTU logs observed."}
     
     VERDICT: Does this app satisfy the user's materialistic requirements for a SOTA, HIGH-FIDELITY implementation?
     OUTPUT FORMAT: 
@@ -163,8 +206,9 @@ def main():
         "--output", default="output", help="Target output directory to judge"
     )
     judge_parser.add_argument(
-        "--dtu-url", default=None,
-        help="DTU base URL (e.g. http://localhost:8001). Injects DTU env vars into generated app."
+        "--dtu-url",
+        default=None,
+        help="DTU base URL (e.g. http://localhost:8001). Injects DTU env vars into generated app.",
     )
 
     args = parser.parse_args()

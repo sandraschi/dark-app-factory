@@ -2,8 +2,14 @@
 
 > **Mission**: Democratize "Software Factory" methodology for the vibecoder community using low-cost/local models (Ollama/DeepSeek) with strategic injection of high-intelligence compute (Opus 4.6).
 
+**Inspired by**: [StrongDM Factory](https://factory.strongdm.ai) (specs + scenarios -> agents -> validation). They target $1,000/dev/day in API tokens. We do it for free. See [STRONGDM_ANALYSIS.md](docs/STRONGDM_ANALYSIS.md).
+
 ## Abstract
 The **Dark App Factory** is an open-source scaffold and workflow engine designed to replicate the "Factory" methodology (Specs + Scenarios -> Agents -> Code) without the enterprise price tag. It decouples **Intelligence (Planning)** from **Labor (Coding)** to optimize for cost and speed.
+
+## Business & Monetization
+
+See [MONETIZATION_PLAN.md](docs/MONETIZATION_PLAN.md). Two product legs: €100 "Make My App", €300 "Dark Factory + Support". Remote client demo: [REMOTE_CLIENT_DEMO.md](docs/REMOTE_CLIENT_DEMO.md). Full auto deployment (domain, host, HTTPS): [FULL_AUTO_DEPLOYMENT.md](docs/FULL_AUTO_DEPLOYMENT.md) — not yet implemented.
 
 ## Core Philosophy
 1.  **Find Knobs, Turn to Eleven**: If testing is good, 1000 tests are better. If mocks are good, full Digital Twins are better.
@@ -72,6 +78,10 @@ The **Dark App Factory** is an open-source scaffold and workflow engine designed
 - [x] **v1.0**: Architectural Hardening (Async Parallelism).
 - [x] **v1.1**: System Surge (Playwright Judging, Help Oracle, Logging, Git).
 - [x] **v1.2**: Multi-Stack Factory (Python/Node, React/HTMX).
-- [x] **v1.3 (Current)**: Council Sophistication + Vibe Enrichment + Marketing Pipeline.
-- [ ] **v1.4**: Wire DTU to generated apps. Token usage reporting. GitManager integration.
-- [ ] **v2.0**: Multi-agent recursive self-healing. meta-mcp agent lifecycle.
+- [x] **v1.3**: Council Sophistication + Vibe Enrichment + Marketing Pipeline.
+- [x] **v1.4**: DTU integration (9 mocks, env var injection, pipeline wiring).
+- [x] **v1.5**: Dashboard, Progress Protocol, Industrial Startup.
+- [x] **v1.6**: Remote client demo doc, full auto deployment gap analysis, monetization plan.
+- [ ] **v1.7**: Token usage reporting. GitManager integration. RunManifest manifest.json.
+- [ ] **v2.0**: Multi-agent recursive self-healing. meta-mcp agent lifecycle. **Pyramid Summaries** (StrongDM technique).
+- [ ] **v2.1**: Full auto deployment (Phase 1: deploy.sh + config. Phase 2: meta-mcp deploy tools. Phase 3: INWX + Hetzner + HTTPS).

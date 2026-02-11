@@ -1,8 +1,8 @@
 # Dark App Factory -- Deep Technical Assessment
 
 **Assessor**: Claude Opus 4.6 (Cursor)
-**Last Updated**: 2026-02-08
-**Rounds Completed**: 5
+**Last Updated**: 2025-02-08
+**Rounds Completed**: 6
 
 ---
 
@@ -12,7 +12,9 @@ Dark App Factory is a local-first software factory scaffold that uses cheap/loca
 
 After 4 rounds of iterative improvement (Gemini 3 in Antigravity + Claude Opus 4.6 in Cursor), the project has evolved from a working prototype to a sophisticated multi-stack, multi-specialist system with proper logging, async execution, dependency-aware context injection, per-specialist validation, temperature tuning, self-declaring file generation, vibe enrichment, and a full marketing/distribution pipeline.
 
-**Current maturity**: v1.4 -- Full pipeline with DTU integration. Generated apps connect to local mocks during testing.
+**Current maturity**: v1.7 -- Full pipeline with DTU, Dashboard, remote client demo docs, full auto deployment gap analysis, monetization plan.
+
+**Strategic positioning**: Inspired by [StrongDM Factory](https://factory.strongdm.ai) (specs + scenarios -> agents -> validation). They target $1,000/dev/day in API tokens; we replicate the methodology for ~$0 using Ollama. See [STRONGDM_ANALYSIS.md](docs/STRONGDM_ANALYSIS.md).
 
 ---
 
@@ -132,31 +134,42 @@ DTU v0.2 now has 9 mock services, a service registry (`/dtu/services`), and a re
 
 The Registrar hardcodes many npm/pip dependency groups regardless of vibe. Acceptable during dev. Must be whittled down before release.
 
+### DEFERRED: Full Auto Deployment
+
+Factory generates app only. No domain (INWX/nic.at), no Hetzner provisioning, no SSL, no deploy. See [FULL_AUTO_DEPLOYMENT.md](docs/FULL_AUTO_DEPLOYMENT.md). Phase 1: output deploy.sh. Phase 2: meta-mcp deploy tools. Phase 3: full auto.
+
+### DEFERRED: Pyramid Summaries (StrongDM Technique)
+
+StrongDM uses **Pyramid Summaries**: reversible summarization at multiple zoom levels (2 words, 4, 8, 16, etc.). Agents survey hundreds of items at compressed level, expand only interesting ones. Combines with MapReduce + Clustering. We use flat 50k char injection; no multi-resolution context. Would help when specs or file lists grow beyond context window.
+
 ---
 
 ## Round-by-Round Progress
 
-| Issue | R1 | R2 | R3 | R4 | R5 |
-|-------|----|----|-----|-----|-----|
-| Async LLM | Blocking | AsyncOpenAI | AsyncOpenAI | AsyncOpenAI + fixed await | AsyncOpenAI |
-| Parallel specialists | Sequential | asyncio.gather | asyncio.gather | asyncio.gather | asyncio.gather |
-| Specialist count | 12 | 12 | 12 | 19 | 19 |
-| Context injection | None | None | None | **get_dependency_context()** | Same |
-| Validation hooks | None | None | None | **5 specialists** | Same |
-| Self-declaration | None | None | None | **7 specialists** | Same |
-| Temperature tuning | Fixed 0.2 | Fixed 0.2 | Fixed 0.2 | **Per-specialist** | Same |
-| Stack support | Node only | Node only | **Multi-stack** | Multi-stack | Multi-stack |
-| Vibe enrichment | None | None | None | **foreman enrich** | Same |
-| Marketing pipeline | None | None | None | **Propagandist** | Same |
-| Landing page | None | None | None | **www/index.html** | Same |
-| Token tracking | None | Tracked | Tracked | Tracked, not reported | Tracked, not reported |
-| Judge executes app | Fake | File list | **Playwright** | Playwright | **Playwright + DTU env vars** |
-| Logging | None | None | **DarkLogger** | DarkLogger | DarkLogger |
-| Health endpoints | None | None | None | **Mandatory** | Mandatory |
-| API docs | None | None | None | **Mandatory** | Mandatory |
-| DTU connected | No | No | No | No | **Yes (9 services, env var injection)** |
-| DTU services | 3 endpoints | 3 | 3 | 3 | **9 services + registry + audit log** |
-| Kitchen-sink deps | Yes | Yes | Yes | Yes | Yes (deferred) |
+| Issue | R1 | R2 | R3 | R4 | R5 | R6 |
+|-------|----|----|-----|-----|-----|-----|
+| Async LLM | Blocking | AsyncOpenAI | AsyncOpenAI | AsyncOpenAI + fixed await | AsyncOpenAI | Same |
+| Parallel specialists | Sequential | asyncio.gather | asyncio.gather | asyncio.gather | asyncio.gather | Same |
+| Specialist count | 12 | 12 | 12 | 19 | 19 | 19 |
+| Context injection | None | None | None | **get_dependency_context()** | Same | Same |
+| Validation hooks | None | None | None | **5 specialists** | Same | Same |
+| Self-declaration | None | None | None | **7 specialists** | Same | Same |
+| Temperature tuning | Fixed 0.2 | Fixed 0.2 | Fixed 0.2 | **Per-specialist** | Same | Same |
+| Stack support | Node only | Node only | **Multi-stack** | Multi-stack | Multi-stack | Same |
+| Vibe enrichment | None | None | None | **foreman enrich** | Same | Same |
+| Marketing pipeline | None | None | None | **Propagandist** | Same | Same |
+| Landing page | None | None | None | **www/index.html** | Same | Same |
+| Token tracking | None | Tracked | Tracked | Tracked, not reported | Tracked, not reported | Same |
+| Judge executes app | Fake | File list | **Playwright** | Playwright | **Playwright + DTU** | Same |
+| Logging | None | None | **DarkLogger** | DarkLogger | DarkLogger | Same |
+| Health endpoints | None | None | None | **Mandatory** | Mandatory | Same |
+| API docs | None | None | None | **Mandatory** | Mandatory | Same |
+| DTU connected | No | No | No | No | **Yes** | Yes |
+| DTU services | 3 endpoints | 3 | 3 | 3 | **9 + registry** | Same |
+| Kitchen-sink deps | Yes | Yes | Yes | Yes | Yes | Yes (deferred) |
+| Remote client docs | No | No | No | No | No | **REMOTE_CLIENT_DEMO** |
+| Full auto deploy | No | No | No | No | No | **Gap doc (roadmap)** |
+| Monetization plan | No | No | No | No | No | **MONETIZATION_PLAN** |
 
 ---
 
@@ -190,10 +203,14 @@ dark-app-factory/
       git_manager.py   # Git init/commit (unwired)
       stack_profile.py # Multi-stack parsing/embedding
   dtu/
-    main.py            # Digital Twin Universe (skeleton)
+    main.py            # Digital Twin Universe (9 mocks, registry, audit log)
   docs/
     ARCHITECTURE.md    # System architecture doc
     META_MCP_INTEGRATION.md  # meta-mcp cross-utilization plan
+    STRONGDM_ANALYSIS.md    # StrongDM Factory comparison, methodology, economics
+    REMOTE_CLIENT_DEMO.md   # Practical use at client (notebook + Tailscale + goliath)
+    FULL_AUTO_DEPLOYMENT.md # Gap: domain, host, HTTPS, deploy (roadmap)
+    MONETIZATION_PLAN.md    # €100/€300 products, Austrian setup
   specs/               # Generated specs and research
   scenarios/           # Generated test scenarios
   skills/              # Domain knowledge files

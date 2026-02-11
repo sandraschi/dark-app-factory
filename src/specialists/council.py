@@ -127,13 +127,21 @@ class Plumber(Specialist):
             """
             system = f"You are the {self.name}. Output ONLY code. Provide EXHAUSTIVE, production-ready logic."
 
-        return await worker.generate(code_prompt, system_prompt=system, temperature=self.temperature)
+        return await worker.generate(
+            code_prompt, system_prompt=system, temperature=self.temperature
+        )
 
     def validate(self, file_path: str, code: str, specs: str) -> Tuple[bool, str]:
         errors = []
         if file_path in ("main.py", "app.py"):
-            if "uvicorn" not in code and "app.listen" not in code and "run(" not in code:
-                errors.append("Entry file missing server startup (uvicorn.run or app.listen).")
+            if (
+                "uvicorn" not in code
+                and "app.listen" not in code
+                and "run(" not in code
+            ):
+                errors.append(
+                    "Entry file missing server startup (uvicorn.run or app.listen)."
+                )
             if "/health" not in code and "health" not in code.lower():
                 errors.append("Missing /health endpoint.")
         if file_path == "server.js":
@@ -148,10 +156,22 @@ class Plumber(Specialist):
         backend = stack_profile.get("backend", "node/express")
         specs_lower = specs.lower()
         if backend.startswith("python/"):
-            if any(kw in specs_lower for kw in ["patient", "appointment", "booking", "user", "crud"]):
-                files.extend(["routers/__init__.py", "schemas/__init__.py", "database/__init__.py"])
+            if any(
+                kw in specs_lower
+                for kw in ["patient", "appointment", "booking", "user", "crud"]
+            ):
+                files.extend(
+                    [
+                        "routers/__init__.py",
+                        "schemas/__init__.py",
+                        "database/__init__.py",
+                    ]
+                )
         else:
-            if any(kw in specs_lower for kw in ["patient", "appointment", "booking", "user", "crud"]):
+            if any(
+                kw in specs_lower
+                for kw in ["patient", "appointment", "booking", "user", "crud"]
+            ):
                 files.extend(["routes/api.js", "models/index.js"])
         return files
 
@@ -161,8 +181,10 @@ class Plumber(Specialist):
 # =====================================================================
 class Sculptor(Specialist):
     """
-    The Frontend Specialist.
-    Supports: React (default), HTMX, or None (API-only).
+    The UI/UX Artisan & Frontend Architect.
+    Crafstman of premium, high-fidelity user interfaces. Expert in
+    glassmorphism, advanced Tailwind patterns, and responsive component
+    architecture. Owns the visual and interactive core of the application.
     """
 
     def __init__(self):
@@ -295,7 +317,10 @@ class Sculptor(Specialist):
     def validate(self, file_path: str, code: str, specs: str) -> Tuple[bool, str]:
         if file_path.endswith(".tsx") or file_path.endswith(".jsx"):
             if "export" not in code:
-                return (False, f"{file_path}: Missing 'export' statement -- component not importable.")
+                return (
+                    False,
+                    f"{file_path}: Missing 'export' statement -- component not importable.",
+                )
         return (True, "")
 
 
@@ -304,9 +329,11 @@ class Sculptor(Specialist):
 # =====================================================================
 class Librarian(Specialist):
     """
-    The Documentation Specialist.
-    Expert in technical writing and API documentation.
-    Requires: Plumber (to know what APIs were built).
+    The Technical Writer & API Documentarian.
+    Expert in crafting clear, concise, and comprehensive documentation.
+    Specializes in API reference guides, user manuals, and project
+    readmes. Ensures the application's functionality is well-understood
+    and easily consumable.
     """
 
     def __init__(self):
@@ -440,9 +467,10 @@ class Professor(Specialist):
 # =====================================================================
 class Registrar(Specialist):
     """
-    The Infrastructure Specialist.
-    Dual-mode: generates package.json/vite.config for Node, or
-    requirements.txt/pyproject.toml for Python. Both for hybrid stacks.
+    The Infrastructure & DevOps Engineer.
+    Architect of the application's foundational environment. Expert in
+    Docker, Kubernetes, CI/CD pipelines, and cloud-native deployments.
+    Ensures the application is scalable, resilient, and production-ready.
     """
 
     def __init__(self):
@@ -530,9 +558,16 @@ class Registrar(Specialist):
             except (json.JSONDecodeError, ValueError) as e:
                 return (False, f"package.json is not valid JSON: {e}")
         if file_path == "requirements.txt":
-            lines = [l.strip() for l in code.strip().splitlines() if l.strip() and not l.strip().startswith("#")]
+            lines = [
+                l.strip()
+                for l in code.strip().splitlines()
+                if l.strip() and not l.strip().startswith("#")
+            ]
             if len(lines) < 3:
-                return (False, "requirements.txt has fewer than 3 packages -- likely incomplete.")
+                return (
+                    False,
+                    "requirements.txt has fewer than 3 packages -- likely incomplete.",
+                )
         return (True, "")
 
     def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
@@ -720,15 +755,31 @@ class Nervos(Specialist):
             """
             system = f"You are the {self.name}. Output ONLY code."
 
-        return await worker.generate(prompt, system_prompt=system, temperature=self.temperature)
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
 
     def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
         specs_lower = specs.lower()
-        if not any(kw in specs_lower for kw in ["heartbeat", "plugin", "email", "telegram", "whatsapp", "notification", "monitor"]):
+        if not any(
+            kw in specs_lower
+            for kw in [
+                "heartbeat",
+                "plugin",
+                "email",
+                "telegram",
+                "whatsapp",
+                "notification",
+                "monitor",
+            ]
+        ):
             return []
         backend = stack_profile.get("backend", "node/express")
         if backend.startswith("python/"):
-            return ["src/services/nervos/heartbeat.py", "src/services/nervos/connectors.py"]
+            return [
+                "src/services/nervos/heartbeat.py",
+                "src/services/nervos/connectors.py",
+            ]
         return ["src/services/nervos/heartbeat.js", "src/plugins/registry.js"]
 
 
@@ -737,8 +788,10 @@ class Nervos(Specialist):
 # =====================================================================
 class Auditor(Specialist):
     """
-    The MS Office & Audit Specialist.
-    Expert in Excel, Word, and "Cook my books" data validation.
+    The Data Modeler & Schema Engineer.
+    Architect of the persistence layer. Expert in Prisma, SQL, and NoSQL
+    schema design. Ensures data integrity and efficient relationship
+    modeling across the entire application stack.
     """
 
     def __init__(self):
@@ -792,7 +845,9 @@ class Auditor(Specialist):
             """
             system = f"You are the {self.name}. Output ONLY code."
 
-        return await worker.generate(prompt, system_prompt=system, temperature=self.temperature)
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
 
 
 # =====================================================================
@@ -800,8 +855,10 @@ class Auditor(Specialist):
 # =====================================================================
 class Raggy(Specialist):
     """
-    The RAG & Vector Search Specialist.
-    Expert in Embeddings, Vector Stores, and Retrieval logic.
+    The Semantic Intelligence & RAG Architect.
+    Expert in Retrieval-Augmented Generation, vector embeddings, and
+    semantic search orchestration. Specialists in ChromaDB, FAISS, and
+    LLM contextual grounding logic.
     """
 
     def __init__(self):
@@ -856,11 +913,23 @@ class Raggy(Specialist):
             """
             system = f"You are the {self.name}. Output ONLY code."
 
-        return await worker.generate(prompt, system_prompt=system, temperature=self.temperature)
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
 
     def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
         specs_lower = specs.lower()
-        if not any(kw in specs_lower for kw in ["rag", "vector", "embedding", "semantic search", "chat with doc", "knowledge base"]):
+        if not any(
+            kw in specs_lower
+            for kw in [
+                "rag",
+                "vector",
+                "embedding",
+                "semantic search",
+                "chat with doc",
+                "knowledge base",
+            ]
+        ):
             return []
         backend = stack_profile.get("backend", "node/express")
         if backend.startswith("python/"):
@@ -873,8 +942,10 @@ class Raggy(Specialist):
 # =====================================================================
 class WebFinder(Specialist):
     """
-    The Web Scraping & Embedding Specialist.
-    Expert in Wikipedia API, TVTropes scraping, and content extraction.
+    The Web Intelligence & Scraping Specialist.
+    Expert in automated data collection and content extraction. Specializes
+    in Wikipedia/TVTropes APIs, RSS orchestration, and async scraping
+    pipelines with rate-limiting and sanitization.
     """
 
     def __init__(self):
@@ -929,7 +1000,9 @@ class WebFinder(Specialist):
             """
             system = f"You are the {self.name}. Output ONLY code."
 
-        return await worker.generate(prompt, system_prompt=system, temperature=self.temperature)
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
 
 
 # =====================================================================
@@ -937,8 +1010,10 @@ class WebFinder(Specialist):
 # =====================================================================
 class Archivist(Specialist):
     """
-    The Digital Book & Calibre Specialist.
-    Expert in ePub, PDF, and Mobi parsing.
+    The Digital Asset & Library Specialist.
+    Architect of document processing systems. Expert in ePub, PDF, and
+    Calibre library integration. Specializes in metadata extraction,
+    chapter-level parsing, and binary stream management.
     """
 
     def __init__(self):
@@ -993,7 +1068,9 @@ class Archivist(Specialist):
             """
             system = f"You are the {self.name}. Output ONLY code."
 
-        return await worker.generate(prompt, system_prompt=system, temperature=self.temperature)
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
 
 
 # =====================================================================
@@ -1001,8 +1078,10 @@ class Archivist(Specialist):
 # =====================================================================
 class Maestro(Specialist):
     """
-    The Music & Audio Specialist.
-    Expert in Suno/Udio API patterns, Tone.js, and Web Audio.
+    The Audio Engineering & Generative Music Specialist.
+    Conductor of the Web Audio API. Expert in Tone.js, AI music
+    orchestration (Suno/Udio), and MIDI generation patterns. Ensures
+    the application sounds as premium as it looks.
     """
 
     def __init__(self):
@@ -1056,7 +1135,9 @@ class Maestro(Specialist):
             """
             system = f"You are the {self.name}. Output ONLY code."
 
-        return await worker.generate(prompt, system_prompt=system, temperature=self.temperature)
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
 
 
 # =====================================================================
@@ -1064,8 +1145,10 @@ class Maestro(Specialist):
 # =====================================================================
 class Picasso(Specialist):
     """
-    The Visualizer.
-    Expert in SVG orchestration, UI illustrations, and media asset management.
+    The Visual Identity & Vector Artist.
+    Master of the SVG canvas. Expert in custom icons, high-fidelity UI
+    illustrations, and optimized vector orchestration. Ensures
+    visual continuity across all media assets.
     """
 
     def __init__(self):
@@ -1108,8 +1191,10 @@ class Picasso(Specialist):
 # =====================================================================
 class Shakespeare(Specialist):
     """
-    The Copywriter.
-    Expert in high-fidelity content, marketing copy, and landing page narratives.
+    The Narrative Lead & Copy Director.
+    Architect of the application's voice. Expert in persuasive
+    copywriting, high-fidelity marketing narratives, and multi-language
+    localization (i18n). Ensures the story is clear and compelling.
     """
 
     def __init__(self):
@@ -1151,10 +1236,10 @@ class Shakespeare(Specialist):
 # =====================================================================
 class Propagandist(Specialist):
     """
-    The Distribution Specialist.
-    Takes Shakespeare's copy and Librarian's docs, then generates
-    platform-specific distribution assets: press releases, blog posts,
-    social media posts, email pitches, Reddit/HN posts, Discord announcements.
+    The Growth & Distribution Specialist.
+    Architect of the product launch. Expert in tech PR, Reddit/HN
+    orchestration, and social media viral loops. Transforms code into
+    newsworthy narratives and platform-specific assets.
     """
 
     def __init__(self):
@@ -1311,7 +1396,9 @@ class Propagandist(Specialist):
         """
 
         system = f"You are the {self.name}, an expert in tech PR, growth marketing, and developer relations. You know how each platform works and what resonates with its audience."
-        return await worker.generate(prompt, system_prompt=system, temperature=self.temperature)
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
 
     def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
         # Always generate the core marketing kit
@@ -1332,9 +1419,10 @@ class Propagandist(Specialist):
 # =====================================================================
 class Houdini(Specialist):
     """
-    The Illusionist.
-    Expert in Framer Motion, Three.js, and advanced CSS animations.
-    Requires Sculptor to know component structure for animation targeting.
+    The Motion Designer & Illusionist.
+    Master of fluid interactions. Expert in Framer Motion, Three.js,
+    and advanced CSS physics. Creates the animations that make the UI
+    feel premium, alive, and responsive.
     """
 
     def __init__(self):
@@ -1382,9 +1470,10 @@ class Houdini(Specialist):
 # =====================================================================
 class Morpheus(Specialist):
     """
-    The Guardian.
-    Expert in Auth hardening, JWT, input sanitization, and encryption.
-    Requires Plumber to know the route structure for middleware integration.
+    The Zero-Trust Security Specialist.
+    Guardian of the application stack. Expert in JWT hardening,
+    at-rest encryption (AES-256), and secret repository patterns.
+    Ensures the application is production-hardened and secure.
     """
 
     def __init__(self):
@@ -1448,21 +1537,48 @@ class Morpheus(Specialist):
             - Implementation of zero-trust security patterns.
             - Robust encryption and hashing (bcrypt/Argon2).
             - Secure session management and header hardening (Helmet/HSTS).
+            - **SECRET REPOSITORY PATTERN**:
+                - Implement a `SecretVault` or `CredentialManager` that reads from encrypted `.env.vault` files.
+                - Use AES-256 for at-rest encryption of sensitive API keys (Gemini, Vertex, etc.).
+                - Ensure keys are NEVER logged or exposed in client-side bundles.
             """
             system = f"You are the {self.name}. Output ONLY secure, production-hardened code."
 
-        return await worker.generate(prompt, system_prompt=system, temperature=self.temperature)
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
 
     def validate(self, file_path: str, code: str, specs: str) -> Tuple[bool, str]:
         code_lower = code.lower()
-        if "security" in file_path.lower() or "crypto" in file_path.lower() or "auth" in file_path.lower():
-            if not any(kw in code_lower for kw in ["bcrypt", "argon2", "passlib", "hash", "jwt", "jose", "jsonwebtoken"]):
-                return (False, f"{file_path}: Security file missing crypto/auth imports (bcrypt, jwt, etc.).")
+        if (
+            "security" in file_path.lower()
+            or "crypto" in file_path.lower()
+            or "auth" in file_path.lower()
+        ):
+            if not any(
+                kw in code_lower
+                for kw in [
+                    "bcrypt",
+                    "argon2",
+                    "passlib",
+                    "hash",
+                    "jwt",
+                    "jose",
+                    "jsonwebtoken",
+                ]
+            ):
+                return (
+                    False,
+                    f"{file_path}: Security file missing crypto/auth imports (bcrypt, jwt, etc.).",
+                )
         return (True, "")
 
     def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
         specs_lower = specs.lower()
-        if not any(kw in specs_lower for kw in ["auth", "login", "user", "password", "jwt", "security", "admin"]):
+        if not any(
+            kw in specs_lower
+            for kw in ["auth", "login", "user", "password", "jwt", "security", "admin"]
+        ):
             return []
         backend = stack_profile.get("backend", "node/express")
         if backend.startswith("python/"):
@@ -1475,9 +1591,10 @@ class Morpheus(Specialist):
 # =====================================================================
 class Tesla(Specialist):
     """
-    The Artificer.
-    Expert in Hardware/IOT/ROS integration (Unitree, Moorebot Scout).
-    Requires Nervos for heartbeat/connector infrastructure.
+    The Artificer & Robotics Lead.
+    Pioneer of hardware integration. Expert in ROS, Unitree/Moorebot
+    Scout connectivity, and IOT orchestration. Bridges the gap
+    between digital logic and physical substrate.
     """
 
     def __init__(self):
@@ -1537,9 +1654,13 @@ class Tesla(Specialist):
             - Error handling for hardware disconnects and sensor latency.
             - SOTA-compliant command orchestration for physical robotics.
             """
-            system = f"You are the {self.name}. Output ONLY industrial-grade robotics code."
+            system = (
+                f"You are the {self.name}. Output ONLY industrial-grade robotics code."
+            )
 
-        return await worker.generate(prompt, system_prompt=system, temperature=self.temperature)
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
 
 
 # =====================================================================
@@ -1547,9 +1668,10 @@ class Tesla(Specialist):
 # =====================================================================
 class Amodei(Specialist):
     """
-    The Orchestrator.
-    Expert in local LLM integration (Ollama), chatbot floaters, and AI-driven logic.
-    Requires Plumber (API shape) and Sculptor (UI components) for proper wiring.
+    The LLM Orchestrator & AI Engineer.
+    Architect of the intelligent core. Expert in Ollama client patterns,
+    Anthropic/Google/OpenAI service layers, and streaming inference
+    logic. Owns the AI brain of the application.
     """
 
     def __init__(self):
@@ -1613,11 +1735,16 @@ class Amodei(Specialist):
             """
             system = f"You are the {self.name}. Output ONLY high-fidelity AI code."
 
-        return await worker.generate(prompt, system_prompt=system, temperature=self.temperature)
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
 
     def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
         specs_lower = specs.lower()
-        if not any(kw in specs_lower for kw in ["ai", "llm", "chatbot", "ollama", "gpt", "assistant", "chat"]):
+        if not any(
+            kw in specs_lower
+            for kw in ["ai", "llm", "chatbot", "ollama", "gpt", "assistant", "chat"]
+        ):
             return []
         backend = stack_profile.get("backend", "node/express")
         if backend.startswith("python/"):
@@ -1626,12 +1753,67 @@ class Amodei(Specialist):
 
 
 # =====================================================================
+# Hawks -- Movie Director (cinematic temperature)
+# =====================================================================
+class Hawks(Specialist):
+    """
+    The Cinematic Director & Video Lead.
+    Master of temporal consistency and AI-driven cinematography.
+    Expert in Google Veo API, HLS/DASH streaming, and FFmpeg complex
+    orchestration. Creates high-fidelity video experiences.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Hawks",
+            owned_patterns=[
+                "src/services/video/*",
+                "src/components/video/*",
+                "public/videos/*",
+                "ffmpeg_config.json",
+            ],
+            requires=["Amodei", "Picasso"],
+            temperature=0.6,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        dep_context = self.get_dependency_context(shared_context)
+        prompt = f"""
+        {self.ANTI_GASLIGHTING_PROMPT}
+
+        Generate CINEMATIC video orchestration logic for: {file_path}
+        Expertises: Google Veo API, Temporal Consistency, Cinematic Prompting, HLS/Dash streaming, FFmpeg complex filters, Video.js integration.
+        
+        Specs Context: {specs[:50000]}
+        
+        UPSTREAM CONTEXT (Amodei's AI client & Picasso's visuals -- integrate here):
+        {dep_context}
+        
+        REQUIREMENTS:
+        - Implementation of high-fidelity video generation pipelines using Google Veo.
+        - Ensure temporal consistency across generated frames (Seed management).
+        - Robust video player components with custom controls (Video.js/Plyr).
+        - Efficient handling of large video assets and streaming manifests.
+        - Use Amodei's service for the actual API calls, but define the CINEMATIC parameters here.
+        """
+        return await worker.generate(
+            prompt,
+            system_prompt=f"You are the {self.name}, a SOTA AI Video Director. Output ONLY high-fidelity code.",
+            temperature=self.temperature,
+        )
+
+
+# =====================================================================
 # Generalist -- Catch-all (context-injecting from all)
 # =====================================================================
 class Generalist(Specialist):
     """
-    The Catch-all Specialist.
-    Handles any file not claimed by others.
+    The Synthesis Specialist & Edge-Case Guardian.
+    Architect of holistic integration. Handles any file not claimed by
+    domain-specific experts, ensuring that the final output is
+    consistent, high-fidelity, and fully grounded in the project specs.
     """
 
     def __init__(self):
@@ -1678,3 +1860,29 @@ class Generalist(Specialist):
             system_prompt=f"You are the {self.name}. Output ONLY code.",
             temperature=self.temperature,
         )
+
+
+def get_council() -> Dict[str, Specialist]:
+    """Returns an instantiated dictionary of all available specialists."""
+    return {
+        "Plumber": Plumber(),
+        "Sculptor": Sculptor(),
+        "Librarian": Librarian(),
+        "Registrar": Registrar(),
+        "Maestro": Maestro(),
+        "WebFinder": WebFinder(),
+        "Archivist": Archivist(),
+        "Raggy": Raggy(),
+        "Nervos": Nervos(),
+        "Auditor": Auditor(),
+        "Professor": Professor(),
+        "Picasso": Picasso(),
+        "Shakespeare": Shakespeare(),
+        "Propagandist": Propagandist(),
+        "Houdini": Houdini(),
+        "Morpheus": Morpheus(),
+        "Tesla": Tesla(),
+        "Amodei": Amodei(),
+        "Hawks": Hawks(),
+        "Generalist": Generalist(),
+    }

@@ -1,6 +1,6 @@
 # Dark App Factory Architecture
 
-**Last Updated**: 2026-02-08 | **Version**: 1.3
+**Last Updated**: 2026-02-09 | **Version**: 1.5
 
 Dark App Factory is an industrial-grade, parallelized generative engine designed to produce SOTA web applications from high-level "vibes" using local LLMs.
 
@@ -256,3 +256,38 @@ To add a new mock service:
 4. Add the env var instruction to Plumber's prompt in `council.py`.
 
 5. The generated app will automatically use the mock during testing.
+259: 
+260: ## 8. Monitoring & Progress Layer
+261: 
+262: The factory implements a thread-safe, singleton-based monitoring system via `src.utils.progress.ProgressTracker`.
+263: 
+264: ### Progress Tracking
+265: - **Milestones**: The pipeline registers major milestones (Planning, Building, Judging) with defined weighting.
+266: - **Specialist Tracking**: Each specialist reports its own status (PENDING, RUNNING, DONE, FAILED) and the files it generates.
+267: - **API Integration**: The `ProgressTracker` state is exposed via the `/api/progress` endpoint on the dashboard.
+268: 
+269: ### Dashboard Real-Time Feed
+270: The Dashboard UI (`web/index.html`) polls the progress API to provide a glassmorphic visualization of the "Factory Floor," showing exactly where the bottlenecks are in the specialist tiers.
+271: 
+272: ## 9. Operational Resilience
+273: 
+274: Dark App Factory is designed for high-industrial availability.
+275: 
+276: ### Industrial Startup Protocol
+277: - **Zombie Neutralization**: Before starting, the factory runs `scripts/cleanup_zombies.ps1` to force-kill any processes listening on the internal service ports (8001 for DTU, 8002 for Dashboard).
+278: - **Auto-Installer**: `start_factory.ps1` ensures all dependencies are present and the environment is clean before initializing the LLM engine.
+279: 
+280: ### Singleton Synchronization
+281: To prevent state fragmentation, the `DarkLogger` and `ProgressTracker` use a shared initialization pattern, ensuring that logs from sub-processes (Worker/Judge) are unified in the primary log files and available to the dashboard.
+
+## 10. Future Techniques (StrongDM-Inspired)
+
+### Pyramid Summaries (Deferred)
+
+**Source**: [factory.strongdm.ai/techniques/pyramid-summaries](https://factory.strongdm.ai/techniques/pyramid-summaries)
+
+Reversible summarization at multiple zoom levels. E.g. "Summarize this spec section in 2 words. Now 4. Now 8. Now 16." Each level preserves meaning while expanding/contracting detail. Agents survey many items at compressed level, expand only relevant ones. Combines with MapReduce + Clustering.
+
+**Current state**: We use flat 50k char injection for specs and 8k cap for dependency context. No multi-resolution compression.
+
+**When to add**: Context overflow, large specs (10+ pages), 50+ file outputs, or "survey N scenarios, run subset" without loading all N. See `docs/STRONGDM_ANALYSIS.md`.

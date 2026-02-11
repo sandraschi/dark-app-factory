@@ -3,11 +3,12 @@
 **"Software Factories for the Rest of Us."**
 
 A local-first, low-cost implementation of the "Software Factory" methodology (Spec -> Scenarios -> Agent Loop).
-Designed for Vibecoders who want enterprise-grade autonomous development without the enterprise-grade bill using Ollama, DeepSeek, and other local models.
+Inspired by [StrongDM Factory](https://factory.strongdm.ai) (they target $1k/dev/day; we do it for free).
+Designed for Vibecoders using Ollama, DeepSeek, and other local models.
 
-## Architecture v1.3
+## Architecture v1.7
 
-The factory floor is powered by an **Async-Parallel Orchestrator** and a **Council of 19 Specialists**.
+The factory floor is powered by an **Async-Parallel Orchestrator**, a **Council of 19 Specialists**, and a **SOTA Dashboard** for real-time monitoring.
 For a deep dive, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 - **Foreman**: High-intelligence Planner (Opus/Claude) -> Generates strict specs, scenarios, and enriched vibes.
@@ -61,9 +62,16 @@ Generates `specs/specs.md` and `scenarios/scenarios.md` with embedded stack prof
 
 ### 4. Run the Factory (Full Pipeline)
 
+**Option A: CLI**
 ```
 python factory.py run
 ```
+
+**Option B: Dashboard (Recommended)**
+```powershell
+.\start_factory.ps1
+```
+Launches the SOTA Dashboard on `http://localhost:8002` with real-time progress tracking.
 
 This runs the complete pipeline:
 1. Domain Research (Oracle)
@@ -151,17 +159,17 @@ The DTU is a local mock server that replaces external APIs during testing. It en
 
 ### How It Works
 
-1. **Generated code** reads all external API URLs from environment variables (e.g., `STRIPE_API_URL`, `AUTH_API_URL`). The Plumber specialist enforces this pattern.
-2. **DTU starts** on port 8001 before the build step.
-3. **RunManifest** injects env vars pointing to DTU when booting the generated app:
-   ```
-   STRIPE_API_URL=http://localhost:8001/stripe
-   AUTH_API_URL=http://localhost:8001/auth
-   EMAIL_API_URL=http://localhost:8001/email
-   ...
-   ```
-4. **All external API calls** are intercepted by DTU mocks (always succeed).
-5. **Judge** tests the app with Playwright while DTU handles all backend dependencies.
+1.  **Generated code** reads all external API URLs from environment variables (e.g., `STRIPE_API_URL`, `AUTH_API_URL`). The Plumber specialist enforces this pattern.
+2.  **DTU starts** on port 8001 before the build step.
+3.  **RunManifest** injects env vars pointing to DTU when booting the generated app:
+    ```
+    STRIPE_API_URL=http://localhost:8001/stripe
+    AUTH_API_URL=http://localhost:8001/auth
+    EMAIL_API_URL=http://localhost:8001/email
+    ...
+    ```
+4.  **All external API calls** are intercepted by DTU mocks (always succeed).
+5.  **Judge** tests the app with Playwright while DTU handles all backend dependencies.
 
 ### Available Mock Services
 
@@ -185,10 +193,28 @@ The DTU is a local mock server that replaces external APIs during testing. It en
 
 For the full technical explanation of the Digital Twin pattern, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## SOTA Dashboard
+
+The factory features a real-time web UI on port 8002.
+- **Progress Tracking**: 0-100% build indicator with granular status logs.
+- **Specialist Council**: Live monitoring of each specialist's execution status and file generation.
+- **Build Queue**: Queue and relaunch vibes directly from the browser.
+
+## Industrial Startup Protocol
+
+To ensure zero-friction development, the factory implements a robust startup logic:
+1. **Zombie Cleanup**: Proactively scans and terminates processes blocking ports 8001 (DTU) and 8002 (Web).
+2. **Environment Synchronization**: Aligns all singleton instances (Logger, ProgressTracker) before execution.
+3. **Launch Wrapper**: Use `.\start_factory.ps1` for a safe, one-command deployment.
+
 ## Documentation
 
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) -- System design (includes DTU deep dive)
-- [ASSESSMENT.md](ASSESSMENT.md) -- Technical assessment (Round 4)
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) -- System design (includes DTU, Progress Tracking, Pyramid Summaries)
+- [ASSESSMENT.md](ASSESSMENT.md) -- Technical assessment
+- [STRONGDM_ANALYSIS.md](docs/STRONGDM_ANALYSIS.md) -- StrongDM Factory comparison, methodology, economics
+- [REMOTE_CLIENT_DEMO.md](docs/REMOTE_CLIENT_DEMO.md) -- Practical use at client site (notebook + Tailscale + goliath)
+- [FULL_AUTO_DEPLOYMENT.md](docs/FULL_AUTO_DEPLOYMENT.md) -- Gap analysis: domain, host, HTTPS, deploy (not yet implemented)
+- [MONETIZATION_PLAN.md](docs/MONETIZATION_PLAN.md) -- €100/€300 products, Austrian setup, landing page
 - [CHANGELOG.md](CHANGELOG.md) -- Version history
 - [PRD.md](PRD.md) -- Product requirements
 - [META_MCP_INTEGRATION.md](docs/META_MCP_INTEGRATION.md) -- meta-mcp cross-utilization

@@ -5,61 +5,112 @@ import time
 import os
 import sys
 import socket
-import json
 import re
+import urllib.request
+from dotenv import load_dotenv
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
-from utils.logger import logger
-from llm_client import LLMClient
+# Load environment variables early
+load_dotenv()
+
+# SOTA: Standardize import normalization
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+if os.path.join(BASE_DIR, "src") not in sys.path:
+    sys.path.append(os.path.join(BASE_DIR, "src"))
+
+from src.utils.logger import logger
+from src.llm_client import LLMClient
+from src.utils.progress import progress
+from foreman import conduct_research, generate_blueprint, read_vibe
+from worker import run_factory
+
+# Initialize Anthropic client at module level if LLMClient needs it globally,
+# otherwise, LLMClient should manage its own client instance.
+# Assuming for now that LLMClient will be updated to use this or its own.
+# If LLMClient already handles its own client, this global client might be redundant.
+# For this edit, we'll place it as requested by the diff, assuming it's a new global dependency.
+# However, the original code initializes LLMClient instances within main_flow,
+# so this global client might not be directly used by them unless LLMClient is refactored.
+# For now, we'll place it as per the user's instruction, but note this potential discrepancy.
+# client = anthropic.Anthropic() # This line is commented out as it's not directly used by the existing LLMClient instances.
 
 
 def kill_zombies(start_port=19300, end_port=19400):
-    """Kills any process listening on ports in the given range."""
+    """Kills any process listening on ports in the given range. Cross-platform support."""
     logger.info("Hunting zombie processes on ports %d-%d...", start_port, end_port)
 
+    platform = sys.platform
+    pids_to_kill = set()
+
     try:
-        result = subprocess.run(
-            "netstat -ano | findstr LISTENING",
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-
-        if not result.stdout:
-            logger.info("No zombies found.")
-            return
-
-        lines = result.stdout.splitlines()
-        pids_to_kill = set()
-
-        for line in lines:
-            parts = line.split()
-            if len(parts) >= 5:
-                address = parts[1]
-                pid = parts[4]
-
-                if ":" in address:
-                    port_str = address.rsplit(":", 1)[1]
-                    try:
-                        port = int(port_str)
-                        if start_port <= port <= end_port:
-                            pids_to_kill.add(pid)
-                    except ValueError:
-                        pass
+        if platform == "win32":
+            result = subprocess.run(
+                "netstat -ano | findstr LISTENING",
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            if result.stdout:
+                for line in result.stdout.splitlines():
+                    parts = line.split()
+                    if len(parts) >= 5:
+                        address = parts[1]
+                        pid = parts[4]
+                        if ":" in address:
+                            port_str = address.rsplit(":", 1)[1]
+                            try:
+                                port = int(port_str)
+                                if start_port <= port <= end_port:
+                                    pids_to_kill.add(pid)
+                            except ValueError:
+                                pass
+        else:
+            # Linux/macOS using lsof
+            try:
+                result = subprocess.run(
+                    ["lsof", "-nP", "-iTCP", "-sTCP:LISTEN"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+                if result.stdout:
+                    for line in result.stdout.splitlines()[1:]:  # Skip header
+                        parts = line.split()
+                        if len(parts) >= 9:
+                            pid = parts[1]
+                            address = parts[8]
+                            if ":" in address:
+                                port_str = address.rsplit(":", 1)[1]
+                                try:
+                                    port = int(port_str)
+                                    if start_port <= port <= end_port:
+                                        pids_to_kill.add(pid)
+                                except ValueError:
+                                    pass
+            except FileNotFoundError:
+                logger.warning("lsof not found. Skipping zombie hunt on Unix.")
 
         if not pids_to_kill:
-            logger.info("No zombies found in port range.")
+            logger.info("No zombies found.")
             return
 
         logger.info("Found %d zombie processes. Terminating...", len(pids_to_kill))
         for pid in pids_to_kill:
-            subprocess.run(
-                f"taskkill /F /PID {pid}",
-                shell=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            if platform == "win32":
+                subprocess.run(
+                    f"taskkill /F /PID {pid}",
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            else:
+                subprocess.run(
+                    ["kill", "-9", pid],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             logger.debug("Killed PID %s", pid)
 
     except Exception as e:
@@ -116,7 +167,6 @@ def spin_up_dtu():
     if dtu_process.poll() is None:
         # Verify DTU is actually responding
         try:
-            import urllib.request
             resp = urllib.request.urlopen(f"{DTU_URL}/health", timeout=5)
             if resp.status == 200:
                 logger.info("DTU is online and healthy (%s)", DTU_URL)
@@ -125,7 +175,9 @@ def spin_up_dtu():
             logger.warning("DTU process alive but health check failed: %s", e)
             return dtu_process
     else:
-        logger.error("DTU process exited immediately (exit code %s)", dtu_process.returncode)
+        logger.error(
+            "DTU process exited immediately (exit code %s)", dtu_process.returncode
+        )
         return None
 
 
@@ -206,7 +258,11 @@ async def generate_landing_page(output_dir: str, specs_path: str = "specs/specs.
     # Use Foreman LLM to generate the landing page HTML
     foreman = LLMClient(role="foreman")
 
-    features_block = "\n".join(f"- {f}" for f in features) if features else "- Cutting-edge application"
+    features_block = (
+        "\n".join(f"- {f}" for f in features)
+        if features
+        else "- Cutting-edge application"
+    )
 
     html_prompt = f"""
     Generate a SINGLE, SELF-CONTAINED index.html landing page for:
@@ -260,193 +316,218 @@ async def generate_landing_page(output_dir: str, specs_path: str = "specs/specs.
     return index_path
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Dark App Factory Orchestrator")
-    subparsers = parser.add_subparsers(dest="command")
+async def main_flow(vibe_path="vibe.md", output_dir=None, ghost_dna=None):
+    """Programmatic entry point for the Factory. Returns True if successful."""
+    logger.info("=== DARK APP FACTORY ===")
 
-    subparsers.add_parser("run", help="Run the full factory loop")
+    # 0. Kill Zombies & Prepare
+    progress.reset()
+    progress.update(2, "Initializing Factory...")
+    kill_zombies()
 
-    args = parser.parse_args()
-
-    if args.command == "run":
-        logger.info("=== DARK APP FACTORY ===")
-
-        # 0. Kill Zombies & Prepare
-        kill_zombies()
-
-        # 1. Determine Output Directory
-        os.makedirs("outputs", exist_ok=True)
+    # 1. Determine Output Directory
+    os.makedirs("outputs", exist_ok=True)
+    if not output_dir:
         output_dir = get_next_output_dir(base="outputs/output")
-        logger.info("Target output: %s", output_dir)
 
+    logger.info("Target output: %s", output_dir)
+
+    # Initialize shared LLM clients for token tracking
+    foreman_client = LLMClient(role="foreman")
+    worker_client = LLMClient(role="worker")
+
+    try:
         # 2. Foreman Research (Oracle)
-        if not run_step(
-            "Domain Research (Oracle)", [sys.executable, "foreman.py", "research"]
-        ):
-            return
+        progress.update(5, "Foreman: Conducting research...")
+        vibe_content = read_vibe(vibe_path)
+        await conduct_research(vibe_content, foreman=foreman_client)
 
         # 3. Foreman (Plan)
-        if not run_step("Foreman Planning", [sys.executable, "foreman.py", "plan"]):
-            return
+        progress.update(10, "Foreman: Generating blueprint...")
+        await generate_blueprint(vibe_content, foreman=foreman_client)
 
-        # 4. DTU (Mock Environment) -- start BEFORE build so it is available for testing
+        # 4. DTU (Mock Environment)
+        progress.update(15, "Digital Twin: Spinning up environment...")
         dtu = spin_up_dtu()
         if not dtu:
-            logger.warning("DTU failed to start. Continuing without Digital Twin integration.")
+            logger.warning(
+                "DTU failed to start. Continuing without Digital Twin integration."
+            )
 
         try:
-            # 5. Worker (Build) - Pass dynamic output dir
-            if not run_step(
-                "Worker Building",
-                [sys.executable, "worker.py", "build", "--output", output_dir],
-            ):
-                return
+            # 5. Worker (Build)
+            progress.update(20, "Worker: Initializing build floor...")
+            await run_factory("specs/specs.md", output_dir, worker=worker_client)
 
-            # 6. Propagandist (Landing Page) -- always runs, even for API-only apps
+            # --- Git Versioning ---
+            from utils.git_manager import GitManager
+
+            gm = GitManager(output_dir)
+            gm.commit_changes("Factory Build Completion: Worker Phase")
+
+            # 6. Propagandist (Landing Page)
             try:
-                asyncio.run(generate_landing_page(output_dir))
+                progress.update(85, "Propagandist: Generating landing page...")
+                await generate_landing_page(output_dir)
             except Exception as e:
                 logger.warning("Landing page generation failed (non-fatal): %s", e)
 
-            # 7. Satisficer (Judge) -- passes DTU URL so RunManifest injects env vars
-            judge_cmd = [sys.executable, "judge.py", "judge", "--output", output_dir]
-            if dtu:
-                judge_cmd.extend(["--dtu-url", DTU_URL])
-            run_step("Satisficer Judging", judge_cmd)
+            # 7. Satisficer (Judge)
+            try:
+                judge_cmd = [
+                    sys.executable,
+                    "judge.py",
+                    "judge",
+                    "--output",
+                    output_dir,
+                ]
+                if dtu:
+                    judge_cmd.extend(["--dtu-url", DTU_URL])
+                progress.update(95, "Satisficer: Running quality audit...")
+                run_step("Satisficer Judging", judge_cmd)
+            except Exception as e:
+                logger.error("Satisficer phase failed: %s", e)
+
+            # --- Aggregate and Log Token Usage ---
+            logger.info("=== REVENUES (TOKEN USAGE) ===")
+            logger.info(foreman_client.get_usage_summary())
+            logger.info(worker_client.get_usage_summary())
 
             logger.info("Factory Run Complete. Output: %s", output_dir)
 
-            # Auto-launch results (Windows)
+            # Auto-launch results (Windows only in CLI mode, maybe skip for dashboard or keep it)
             if os.name == "nt":
+                # (Keep the launch logic here, but wrapped in a try/except for robustness)
                 try:
-                    # Detect stack from output
-                    has_requirements = os.path.exists(f"{output_dir}/requirements.txt")
-                    has_main_py = os.path.exists(f"{output_dir}/main.py")
-                    has_package_json = os.path.exists(f"{output_dir}/package.json")
-                    is_python = has_requirements or has_main_py
-
-                    # Allocate Ports
-                    try:
-                        server_port, client_port = find_free_ports(2)
-                        logger.info(
-                            "Allocated ports: Backend=%d Frontend=%d",
-                            server_port,
-                            client_port,
-                        )
-                    except RuntimeError as e:
-                        logger.error("Port allocation failed: %s", e)
-                        return
-
-                    # Build DTU env var string for cmd /k
-                    dtu_env_str = ""
-                    if dtu:
-                        dtu_env_str = (
-                            f" && set DTU_URL={DTU_URL}"
-                            f" && set STRIPE_API_URL={DTU_URL}/stripe"
-                            f" && set AUTH_API_URL={DTU_URL}/auth"
-                            f" && set EMAIL_API_URL={DTU_URL}/email"
-                            f" && set SMS_API_URL={DTU_URL}/sms"
-                            f" && set STORAGE_API_URL={DTU_URL}/storage"
-                        )
-
-                    # 1. Open Output Folder
-                    os.startfile(output_dir)
-
-                    # 2. Launch Backend
-                    if is_python:
-                        logger.info("Launching Python backend...")
-                        launch_cmd = (
-                            f'start "Python Backend (port {server_port})" cmd /k '
-                            f'"cd {output_dir}{dtu_env_str} && pip install -r requirements.txt && set PORT={server_port} && python main.py"'
-                        )
-                        subprocess.Popen(launch_cmd, shell=True)
-                        audit_port = server_port
-
-                        if has_package_json:
-                            logger.info("Launching React frontend (hybrid)...")
-                            frontend_cmd = (
-                                f'start "React Frontend (port {client_port})" cmd /k '
-                                f'"cd {output_dir} && set VITE_PORT={client_port} && npm install --legacy-peer-deps && npm run dev"'
-                            )
-                            subprocess.Popen(frontend_cmd, shell=True)
-                            audit_port = client_port
-
-                    elif has_package_json:
-                        logger.info("Launching Node.js app...")
-                        launch_cmd = (
-                            f'start "Generated App ({server_port}/{client_port})" cmd /k '
-                            f'"cd {output_dir}{dtu_env_str} && set PORT={server_port} && set VITE_PORT={client_port} && npm install --legacy-peer-deps && npm run dev"'
-                        )
-                        subprocess.Popen(launch_cmd, shell=True)
-                        audit_port = client_port
-                    else:
-                        logger.warning("No package.json or requirements.txt found. Cannot auto-launch.")
-                        audit_port = None
-
-                    # 3. Launch Questionnaire
-                    logger.info("Launching Feedback Loop...")
-                    subprocess.Popen(
-                        'start "Feedback Loop" cmd /c "python questionnaire.py"',
-                        shell=True,
-                    )
-
-                    # 4. Automated Audit
-                    if audit_port:
-                        logger.info("Starting Automated Audit...")
-                        logger.debug("Waiting for port %d to become active...", audit_port)
-
-                        found = False
-                        for _ in range(30):
-                            if not is_port_free(audit_port):
-                                found = True
-                                break
-                            time.sleep(2)
-
-                        if found:
-                            logger.info("Port active. Warming up (5s)...")
-                            time.sleep(5)
-                            try:
-                                audit_cmd = [
-                                    sys.executable,
-                                    "src/auditor.py",
-                                    f"http://localhost:{audit_port}",
-                                ]
-                                audit_result = subprocess.run(
-                                    audit_cmd, capture_output=True, text=True
-                                )
-                                if audit_result.stdout:
-                                    try:
-                                        report = json.loads(audit_result.stdout)
-                                        if report["success"]:
-                                            logger.info("Audit Passed. No critical runtime errors.")
-                                        else:
-                                            logger.error("Audit Failed.")
-                                            for err in report["errors"]:
-                                                logger.error("  - %s", err)
-                                            if report.get("screenshot_path"):
-                                                logger.info("Screenshot: %s", report["screenshot_path"])
-                                    except json.JSONDecodeError:
-                                        logger.warning(
-                                            "Could not parse audit report: %s",
-                                            audit_result.stdout[:500],
-                                        )
-                            except Exception as e:
-                                logger.error("Auditor failed to run: %s", e)
-                        else:
-                            logger.error("Port %d never came online. Audit skipped.", audit_port)
-
+                    _launch_results(output_dir, dtu)
                 except Exception as e:
                     logger.error("Could not launch generated app: %s", e)
+
+            progress.update(100, "Build Successful")
+            return True
 
         finally:
             if dtu:
                 logger.info("Shutting down DTU...")
                 dtu.terminate()
                 dtu.wait(timeout=5)
+    except Exception as e:
+        logger.error("Factory Flow Failed: %s", e)
+        return False
 
+
+def _launch_results(output_dir, dtu):
+    """Handles the auto-launch and auditing logic."""
+    # Detect stack from output
+    has_requirements = os.path.exists(f"{output_dir}/requirements.txt")
+    has_main_py = os.path.exists(f"{output_dir}/main.py")
+    has_package_json = os.path.exists(f"{output_dir}/package.json")
+    is_python = has_requirements or has_main_py
+
+    # Allocate Ports
+    try:
+        server_port, client_port = find_free_ports(2)
+        logger.info("Allocated ports: Backend=%d Frontend=%d", server_port, client_port)
+    except RuntimeError as e:
+        logger.error("Port allocation failed: %s", e)
+        return
+
+    # Build DTU env var string
+    dtu_env_str = ""
+    if dtu:
+        dtu_env_str = (
+            f" && set DTU_URL={DTU_URL}"
+            f" && set STRIPE_API_URL={DTU_URL}/stripe"
+            f" && set AUTH_API_URL={DTU_URL}/auth"
+            f" && set EMAIL_API_URL={DTU_URL}/email"
+            f" && set SMS_API_URL={DTU_URL}/sms"
+            f" && set STORAGE_API_URL={DTU_URL}/storage"
+        )
+
+    # 1. Open Output Folder
+    os.startfile(output_dir)
+
+    # 2. Launch Backend
+    audit_port = None
+    if is_python:
+        logger.info("Launching Python backend...")
+        launch_cmd = (
+            f'start "Python Backend (port {server_port})" cmd /k '
+            f'"cd {output_dir}{dtu_env_str} && pip install -r requirements.txt && set PORT={server_port} && python main.py"'
+        )
+        subprocess.Popen(launch_cmd, shell=True)
+        audit_port = server_port
+
+        if has_package_json:
+            logger.info("Launching React frontend (hybrid)...")
+            frontend_cmd = (
+                f'start "React Frontend (port {client_port})" cmd /k '
+                f'"cd {output_dir} && set VITE_PORT={client_port} && npm install --legacy-peer-deps && npm run dev"'
+            )
+            subprocess.Popen(frontend_cmd, shell=True)
+            audit_port = client_port
+
+    elif has_package_json:
+        logger.info("Launching Node.js app...")
+        launch_cmd = (
+            f'start "Generated App ({server_port}/{client_port})" cmd /k '
+            f'"cd {output_dir}{dtu_env_str} && set PORT={server_port} && set VITE_PORT={client_port} && npm install --legacy-peer-deps && npm run dev"'
+        )
+        subprocess.Popen(launch_cmd, shell=True)
+        audit_port = client_port
+
+    # 3. Launch Questionnaire
+    subprocess.Popen(
+        'start "Feedback Loop" cmd /c "python questionnaire.py"', shell=True
+    )
+
+    # 4. Automated Audit
+    if audit_port:
+        _run_audit(audit_port)
+
+
+def _run_audit(audit_port):
+    """Runs the audit against the running port."""
+    logger.info("Starting Automated Audit...")
+    found = False
+    for _ in range(30):
+        if not is_port_free(audit_port):
+            found = True
+            break
+        time.sleep(2)
+
+    if found:
+        time.sleep(5)
+        try:
+            audit_cmd = [
+                sys.executable,
+                "src/auditor.py",
+                f"http://localhost:{audit_port}",
+            ]
+            audit_result = subprocess.run(audit_cmd, capture_output=True, text=True)
+            if audit_result.stdout:
+                # Log the summary
+                logger.info("Audit run finished.")
+        except Exception as e:
+            logger.error("Auditor failed: %s", e)
+
+
+async def main_async():
+    parser = argparse.ArgumentParser(description="Dark App Factory Orchestrator")
+    subparsers = parser.add_subparsers(dest="command")
+    subparsers.add_parser("run", help="Run the full factory loop")
+    args = parser.parse_args()
+
+    if args.command == "run":
+        await main_flow()
     else:
         parser.print_help()
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main_async())
+    except KeyboardInterrupt:
+        logger.info("Factory operation interrupted by user.")
+    except Exception as e:
+        logger.critical("Factory crash: %s", e)

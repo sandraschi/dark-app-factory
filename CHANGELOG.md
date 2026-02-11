@@ -2,6 +2,43 @@
 
 All notable changes to the Dark App Factory will be documented in this file.
 
+## [1.7.0] - 2025-02-08
+
+### Added
+- **REMOTE_CLIENT_DEMO.md**: Practical guide for demo/build at client site. Notebook (16GB, no GPU) + Tailscale + goliath server running Ollama. Goliath setup, notebook env vars, demo workflow, troubleshooting, offline fallback.
+- **FULL_AUTO_DEPLOYMENT.md**: Gap analysis for full auto (domain, host, HTTPS, deploy). INWX API for .at, Hetzner API, Phase 1-3 roadmap. Not yet implemented.
+- **MONETIZATION_PLAN.md**: €100 "Make My App" and €300 "Dark Factory + Support" products. Austrian small-company setup (Einzelunternehmen, Kleinunternehmer, Gewerbe). Landing page via meta-mcp. Non-tech packaging (ZIP, install.bat).
+
+### Changed
+- **README.md**: Added REMOTE_CLIENT_DEMO, FULL_AUTO_DEPLOYMENT, MONETIZATION_PLAN to docs list.
+- **PRD.md**: Added Full Auto Deployment and Monetization to roadmap.
+- **ASSESSMENT.md**: Updated file inventory, maturity, Last Updated.
+
+## [1.6.0] - 2025-02-08
+
+### Added
+- **STRONGDM_ANALYSIS.md**: Documented analysis and comparison with [StrongDM Factory](https://factory.strongdm.ai). Methodology, economics ($1k/dev/day vs free), technique mapping, gaps (Pyramid Summaries, Semport).
+- **Pyramid Summaries**: Deferred technique from StrongDM. Reversible multi-level context compression (2w, 4w, 8w, 16w) for specs/dependency context. Added to roadmap and NEXTSTEPS.
+
+### Changed
+- **PRD.md**: Added StrongDM attribution, updated roadmap with Pyramid Summaries as v2.0+ candidate.
+- **ASSESSMENT.md**: Strategic positioning vs StrongDM, Pyramid Summaries gap, STRONGDM_ANALYSIS reference.
+- **NEXTSTEPS.md**: Added Pyramid Summaries to Priority 3 (Phase 3+), reference to STRONGDM_ANALYSIS.
+- **ARCHITECTURE.md**: Added Section 10 (Future Techniques) documenting Pyramid Summaries.
+- **README.md**: StrongDM attribution, STRONGDM_ANALYSIS in docs list.
+
+## [1.5.0] - 2025-02-08
+
+### Added
+- **SOTA Dashboard**: New web-based factory UI on `http://localhost:8002`. Features glassmorphic design, real-time status monitoring, and specialist execution visualization.
+- **Real-Time Progress Tracking**: Standardized `ProgressTracker` singleton that reports build milestones (0-100%) from both the factory orchestrator and individual specialists.
+- **Industrial Startup Protocol**: Robust implementation of `scripts/cleanup_zombies.ps1` integrated into `start_factory.ps1`. Automatically neutralizes processes blocking factory ports (8001, 8002) before launch.
+- **Improved Logging Sync**: Synchronized singleton Logger initialization across the entire process tree to ensure all diagnostic data reaches the dashboard.
+
+### Fixed
+- **Port Blocking Issues**: Resolved the common problem of "Address already in use" errors during rapid development cycles.
+- **Dashboard Progress Polling**: Implemented `/api/progress` endpoint for the frontend to reliably track long-running builds.
+
 ## [1.4.0] - 2026-02-08
 
 ### Added

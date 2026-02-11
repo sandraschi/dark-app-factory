@@ -9,6 +9,7 @@ from utils.logger import logger
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 from llm_client import LLMClient
 from utils.git_manager import GitManager
+from utils.progress import progress
 from utils.stack_profile import (
     extract_from_specs,
     describe_stack,
@@ -61,8 +62,16 @@ async def generate_specialist_files(
     )
 
     specialist_results = {}
-    for file_path in owned_files:
+    total_files = len(owned_files)
+    for idx, file_path in enumerate(owned_files):
         logger.info(f"{specialist.name} working on: {file_path}")
+        # Sub-status update without changing overall percentage
+        current_state = progress.get_state()
+        progress.update(
+            current_state["percentage"],
+            f"{specialist.name} generating {file_path} ({idx + 1}/{total_files})...",
+        )
+
         attempts, max_attempts, code = 0, 3, ""
         current_specs = specs
 
@@ -131,7 +140,11 @@ def _get_runt_threshold(file_path: str) -> int:
     return 500
 
 
-async def run_factory(specs_path: str = "specs/specs.md", output_dir: str = "output"):
+async def run_factory(
+    specs_path: str = "specs/specs.md",
+    output_dir: str = "output",
+    worker: LLMClient = None,
+):
     logger.info(f"Factory Floor Initialized (Target: {output_dir})")
     specs = read_file(specs_path)
     if not specs:
@@ -142,9 +155,11 @@ async def run_factory(specs_path: str = "specs/specs.md", output_dir: str = "out
     stack_desc = describe_stack(stack_profile)
     logger.info("Stack: %s", stack_desc)
 
-    worker = LLMClient(role="worker")
+    if not worker:
+        worker = LLMClient(role="worker")
 
     # 1. Planning -- stack-aware file list
+    progress.update(25, "Architect: Planning file structure...")
     file_list_prompt = (
         f"Read these specs and list ALL files needed for a STUNNING, SOTA, HIGH-FIDELITY implementation.\n"
         f"Tech stack: {stack_desc}\n"
@@ -261,6 +276,7 @@ async def run_factory(specs_path: str = "specs/specs.md", output_dir: str = "out
     generated_files = set()
 
     # 3. Dependency-Aware Parallel Execution
+    progress.update(30, "Architect: Resolving specialist dependencies...")
     levels = []
     remaining = set(council.keys())
     completed = set()
@@ -290,7 +306,15 @@ async def run_factory(specs_path: str = "specs/specs.md", output_dir: str = "out
             completed.add(name)
 
     # 4. Generate in Parallel Levels
-    for level_names in levels:
+    num_levels = len(levels)
+    level_inc = (70 - 30) / max(1, num_levels)
+
+    for i, level_names in enumerate(levels):
+        current_pct = 30 + int(i * level_inc)
+        progress.update(
+            current_pct, f"Specialists: Executing Level {i + 1}/{num_levels}..."
+        )
+
         tasks = []
         for name in level_names:
             tasks.append(
@@ -457,11 +481,35 @@ async def run_factory(specs_path: str = "specs/specs.md", output_dir: str = "out
                         generated_files.add(target_path)
                         next_crawl_batch.append(target_path)
 
+        progress.update(
+            70 + int(current_depth * (10 / max_crawl_depth)),
+            f"Deep-Crawl: Scanning depth {current_depth}...",
+        )
         pages_to_scan = next_crawl_batch
         if not pages_to_scan:
             break
 
-    # 6. Git Initialization (SOTA Surge: Automated Versioning)
+    # 6. Generate manifest.json (Priority 1: Critical Fix)
+    import json
+
+    manifest = {
+        "project_name": stack_profile.get("project_name", "Dark App"),
+        "stack": stack_desc,
+        "entry_points": {
+            "backend": "main.py"
+            if is_python_backend(stack_profile)
+            else ("server.js" if is_node_backend(stack_profile) else None),
+            "frontend": "index.html" if has_frontend(stack_profile) else None,
+            "react_entry": "src/App.tsx" if is_react_frontend(stack_profile) else None,
+        },
+        "files": list(generated_files),
+    }
+    manifest_path = os.path.join(output_dir, "manifest.json")
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=4)
+    logger.success(f"Manifest generated: {manifest_path}")
+
+    # 7. Git Initialization (SOTA Surge: Automated Versioning)
     git = GitManager(output_dir)
     git.initialize()
 

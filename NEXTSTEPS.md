@@ -1,30 +1,19 @@
 # Dark App Factory -- Next Steps (Gemini Handover)
 
-**Author**: Claude Opus 4.6 (Cursor)
-**Date**: 2026-02-08
-**Context**: Handing over to Gemini 3 (Antigravity) for continued development.
+**Author**: Gemini 3 (Antigravity)
+**Date**: 2026-02-09
+**Context**: Continuing the Dark App Factory build-out.
 
 ---
 
-## What Was Done Today (Opus Session)
+## What Was Done Recently (Gemini Session)
 
-### Round 4: Specialist Council Sophistication
-- Added `get_dependency_context()` to base.py -- specialists read upstream output
-- Added `validate()` hooks on Plumber, Sculptor, Registrar, Morpheus, Librarian
-- Added `declare_files()` on Plumber, Registrar, Nervos, Raggy, Morpheus, Amodei
-- Per-specialist temperature tuning (0.1 to 0.7)
-- Stack-aware prompts on all new specialists (Python + Node branches)
-- Worker retry logic: 3 attempts, validation failure injects error into retry prompt
-
-### Round 4b: Vibe Enrichment
-- `foreman enrich` subcommand: LLM expands terse vibe into rich domain brief
-- Writes `enriched_vibe.md` for user review before `foreman plan`
-- Fixed async/await bug in foreman.py (was calling async without await)
-
-### Round 4c: Propagandist
-- New 18th specialist: generates press release, blog, social media, email pitches, Reddit, Discord, Product Hunt posts
-- Requires Shakespeare + Librarian. Temperature 0.65
-- Landing page generation integrated into factory.py (Step 6)
+### Round 6: Factory Dashboard & Operational Resilience
+- **SOTA Dashboard**: Built `web/server.py` and `web/index.html` featuring real-time build monitoring.
+- **Progress Protocol**: Implemented thread-safe `ProgressTracker` singleton for high-fidelity build feedback.
+- **Zombie Cleanup**: Created `scripts/cleanup_zombies.ps1` to neutralize port-blocking processes.
+- **Industrial Startup**: Optimized `start_factory.ps1` for robust, one-command deployment.
+- **Unified Logging**: Synchronized `DarkLogger` across the orchestrator and dashboard.
 
 ### Round 5: DTU Integration (The Big Fix)
 - Rewrote `dtu/main.py` with 9 mock services + service registry + audit log
@@ -35,12 +24,11 @@
 - Full DTU pattern explained in ARCHITECTURE.md Section 7
 
 ### Documentation Updates
-- ASSESSMENT.md: Round 5 with progress matrix
-- CHANGELOG.md: v1.2, v1.3, v1.4 entries
-- README.md: Full rewrite with specialist table, DTU section, quick start
-- PRD.md: Updated to v1.3 architecture
-- ARCHITECTURE.md: Complete rewrite with 7 sections including DTU deep dive
-- mcp-central-docs: New `docs/projects/dark-app-factory/STATUS.md`
+- CHANGELOG.md: v1.5 entries for Dashboard and Startup Protocol.
+- README.md: v1.5 rewrite with Dashboard and Startup sections.
+- ARCHITECTURE.md: Added Section 8 (Monitoring) and Section 9 (Resilience).
+- WALKTHROUGH.md: Detailed guide for the progress tracking implementation.
+- **STRONGDM_ANALYSIS.md** (2026-02-09): Analysis of [StrongDM Factory](https://factory.strongdm.ai). Methodology, $1k/dev/day economics, technique mapping, Pyramid Summaries explained.
 
 ---
 
@@ -68,6 +56,11 @@ After judge PASS: `gm.commit_changes("Passed quality gate")`
 **Issue**: `LLMClient` tracks `tokens_used` dict but `get_usage()` / `get_usage_summary()` is never called.
 **Fix**: At end of `factory.py` run, collect usage from all LLMClient instances. Print summary with estimated cost.
 
+### 1.4 factory.py Still Uses subprocess for Worker/Judge
+**File**: `factory.py`
+**Issue**: Worker and Judge are invoked via `subprocess.run()`, which means token usage from their LLMClient instances is lost (separate processes).
+**Fix**: Import and call `worker.run_factory()` and `judge.run_judgement()` directly as async functions within factory.py. This enables shared state and aggregated token reporting.
+
 ---
 
 ## Priority 2: Important Improvements
@@ -92,82 +85,19 @@ After judge PASS: `gm.commit_changes("Passed quality gate")`
 **Issue**: `kill_zombies()` uses `netstat -ano | findstr LISTENING` and `taskkill /F /PID` -- Windows only.
 **Fix**: Add `sys.platform` check. On Linux/macOS use `lsof -i :PORT` and `kill -9 PID`.
 
-### 2.5 factory.py Still Uses subprocess for Worker/Judge
-**File**: `factory.py`
-**Issue**: Worker and Judge are invoked via `subprocess.run()`, which means token usage from their LLMClient instances is lost (separate processes).
-**Fix**: Import and call `worker.run_factory()` and `judge.run_judgement()` directly as async functions within factory.py. This enables shared state and aggregated token reporting.
-
----
-
-## Priority 2b: Factory Dashboard Web App (HIGH PRIORITY)
-
-**The repo has NO web UI.** Everything is CLI-only. This needs a beautiful webapp for demonstrating, testing, and monitoring the factory pipeline -- similar to the recently built `robotics-mcp/web/` dashboard.
-
-### Recommended Stack
-- **Backend**: FastAPI (already a dependency via DTU)
-- **Frontend**: Single `index.html` + `script.js` + `style.css` in `web/` folder (no build step, like robotics-mcp)
-- **Styling**: Tailwind CDN, dark theme, glassmorphism cards
-
-### Required Pages / Panels
-
-1. **Dashboard (Home)**
-   - Factory status (idle / running / complete / failed)
-   - Current step indicator (Research -> Plan -> DTU -> Build -> Landing -> Judge -> Launch)
-   - Token usage meter (input/output tokens, estimated cost)
-   - Last run summary (output dir, specialist count, file count, verdict)
-
-2. **Vibe Editor**
-   - Textarea for editing `vibe.md` live
-   - "Enrich" button -> calls `foreman enrich` -> shows `enriched_vibe.md` side-by-side
-   - Stack selector dropdowns (backend: fastapi/flask/django/express, frontend: react/htmx/none, db: postgres/sqlite/mongo)
-   - "Run Factory" button
-
-3. **Specialist Council View**
-   - Visual grid/table of all 19 specialists
-   - Shows: name, temperature, status (pending/running/done/failed), files generated, time taken
-   - Dependency graph visualization (which specialist feeds into which)
-
-4. **DTU Monitor**
-   - Live request log from `GET /dtu/log`
-   - Service registry table from `GET /dtu/services`
-   - Health status indicator
-
-5. **Output Browser**
-   - File tree of the generated output directory
-   - Click to view file contents (syntax highlighted)
-   - Open landing page in iframe
-
-6. **Judge Report**
-   - Playwright results (screenshots if available)
-   - Audit report
-   - LLM verdict (PASS/FAIL + critique)
-   - `critique.md` viewer
-
-### API Endpoints (FastAPI backend in `web/server.py`)
-```
-GET  /api/status              -- factory state, current step, last run
-POST /api/run                 -- trigger factory run (async, returns run ID)
-GET  /api/run/{id}/progress   -- poll run progress (SSE or polling)
-GET  /api/vibe                -- read vibe.md
-PUT  /api/vibe                -- write vibe.md
-POST /api/enrich              -- trigger foreman enrich
-GET  /api/enriched            -- read enriched_vibe.md
-GET  /api/specialists         -- list all specialists with metadata
-GET  /api/output/{dir}        -- list files in output dir
-GET  /api/output/{dir}/{path} -- read file from output dir
-GET  /api/dtu/services        -- proxy to DTU /dtu/services
-GET  /api/dtu/log             -- proxy to DTU /dtu/log
-GET  /api/judge/report        -- last judge verdict + critique
-```
-
-### Reference
-Look at `d:\Dev\repos\robotics-mcp\web\` for the pattern: single HTML+JS+CSS, FastAPI backend, Tailwind dark theme, WebSocket for live updates.
-
 ---
 
 ## Priority 3: Feature Enhancements
 
-### 3.1 Specialist: Registrar Writes manifest.json
+### 3.1 WebSocket Implementation
+**Issue**: Dashboard currently relies on HTTP polling for progress. Scalability and latency suboptimal.
+**Fix**: Switch to `WebSockets` or `Server-Sent Events (SSE)` for real-time log streaming and progress updates.
+
+### 3.2 Visual Dependency Graph
+**Issue**: Specialist Council tiers are hard to visualize.
+**Fix**: Implement a Mermaid.js or D3.js visualization in the dashboard showing the parallel tiers and dependency injection paths.
+
+### 3.3 Specialist: Registrar Writes manifest.json
 The Registrar already generates `package.json` / `requirements.txt`. It should also generate a `manifest.json` for RunManifest:
 ```json
 {
@@ -201,6 +131,19 @@ Automate: if judge FAILs, re-run foreman with critique, then re-run worker, up t
 
 ### 3.5 meta-mcp Agent Integration
 See `docs/META_MCP_INTEGRATION.md` for the plan. The idea: expose factory phases (plan, build, judge) as meta-mcp agents that can be started, polled, and awaited.
+
+### 3.6 Full Auto Deployment (Domain + Host + HTTPS)
+**Docs**: `docs/FULL_AUTO_DEPLOYMENT.md`
+**Gap**: Factory generates app only. No domain registration, no Hetzner provisioning, no SSL, no deploy.
+**Phase 1**: Output `deploy.sh` + `deploy_config.example.yaml`. User runs with INWX + Hetzner API keys.
+**Phase 2**: meta-mcp deploy tools. Optional auto-deploy.
+**Phase 3**: Full auto: INWX domain + Hetzner + Certbot/Cloudflare SSL. User provides keys once.
+
+### 3.7 Pyramid Summaries (StrongDM Technique)
+**Source**: [factory.strongdm.ai/techniques/pyramid-summaries](https://factory.strongdm.ai/techniques/pyramid-summaries)
+**What**: Reversible summarization at multiple zoom levels (2 words, 4, 8, 16, etc.). Agents survey hundreds of items at compressed level, expand only interesting ones. Combines with MapReduce + Clustering.
+**Where it helps**: Specs injection (when >50k chars), dependency context (when >8k chars), scenarios (survey many, run subset). We use flat 50k injection today.
+**When to implement**: When hitting context overflow, or building apps with 50+ files. See `docs/STRONGDM_ANALYSIS.md`.
 
 ---
 
