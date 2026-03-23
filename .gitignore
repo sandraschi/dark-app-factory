@@ -36,9 +36,15 @@ dist-ssr/
 # Factory Production
 output/
 output_*/
+outputs/
 blueprint/
 specs/specs.md_backup
 scenarios/scenarios.md_backup
+
+# Demo artifacts (tracked, but screenshots in output dirs are transient)
+# demos/ -- intentionally tracked for verifiable proof-of-work
+# Rodney Chrome data
+.rodney/
 
 # OS / IDE
 .vscode/
@@ -50,3 +56,5 @@ Thumbs.db
 .gemini/
 brain/
 logs/
+# Rust / Zed IDE — rust-analyzer may create target/ at repo root
+target/
