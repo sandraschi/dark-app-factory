@@ -5,8 +5,65 @@ import time
 from typing import Dict, Optional
 
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
-from utils.logger import logger
+
+# Normalize import paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+if os.path.join(BASE_DIR, "src") not in sys.path:
+    sys.path.insert(1, os.path.join(BASE_DIR, "src"))
+
+from src.utils.logger import logger
+
+
+def write_manifest_from_output(output_dir: str) -> Optional[str]:
+    """Write manifest.json into output_dir based on detected stack.
+
+    Call after worker build completes so RunManifest finds it instead of
+    falling back to heuristic detection. Uses entry_points format for
+    compatibility with _manifest_to_components.
+
+    Returns the manifest path if written, else None.
+    """
+    manifest_path = os.path.join(output_dir, "manifest.json")
+    has_requirements = os.path.exists(os.path.join(output_dir, "requirements.txt"))
+    has_main_py = os.path.exists(os.path.join(output_dir, "main.py"))
+    has_app_py = os.path.exists(os.path.join(output_dir, "app.py"))
+    has_package_json = os.path.exists(os.path.join(output_dir, "package.json"))
+    has_server_js = os.path.exists(os.path.join(output_dir, "server.js"))
+
+    is_python = has_requirements or has_main_py or has_app_py
+    is_node = has_package_json or has_server_js
+
+    entry_points = {}
+
+    if is_python:
+        backend = "main.py" if has_main_py else ("app.py" if has_app_py else "main.py")
+        entry_points["backend"] = backend
+
+    if is_node and not is_python:
+        entry_points["backend"] = "server.js" if has_server_js else "npm start"
+
+    if is_python and has_package_json:
+        entry_points["react_entry"] = "index.html"
+
+    if not entry_points:
+        logger.warning("No bootable components detected; writing minimal manifest.")
+        entry_points = {"backend": "main.py"}
+
+    manifest_data = {
+        "entry_points": entry_points,
+        "generated_by": "Dark App Factory",
+    }
+
+    try:
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            json.dump(manifest_data, f, indent=2)
+        logger.info("Wrote manifest.json -> %s", manifest_path)
+        return manifest_path
+    except OSError as e:
+        logger.warning("Failed to write manifest.json: %s", e)
+        return None
 
 
 # DTU service registry: env var -> DTU endpoint mapping.
@@ -22,6 +79,13 @@ DTU_ENV_VARS = {
     "SLACK_WEBHOOK_URL": "/slack",
     "WEATHER_API_URL": "/weather",
     "WEBHOOK_URL": "/webhook",
+    "OPENAI_BASE_URL": "/llm",
+    "GOOGLE_CALENDAR_API_URL": "/calendar",
+    "GOOGLE_MAPS_API_URL": "/maps",
+    "ANALYTICS_API_URL": "/analytics",
+    "PUZZLE_API_URL": "/puzzles",
+    "TIKTOK_API_URL": "/tiktok",
+    "YOUTUBE_API_URL": "/youtube",
 }
 
 
@@ -66,51 +130,104 @@ class RunManifest:
 
         return is_python, is_node
 
-    def load_manifest(self):
-        if not os.path.exists(self.manifest_path):
-            logger.warning(
-                "No manifest.json found in %s. Detecting stack...", self.output_dir
+    def _manifest_to_components(self, manifest_data: dict) -> dict:
+        """Convert worker-generated manifest.json (entry_points format)
+        into the components format RunManifest expects.
+
+        Worker writes: {"entry_points": {"backend": "main.py", "frontend": "index.html"}, ...}
+        RunManifest needs: {"components": [{"name": "backend", "command": "python main.py", "cwd": "."}]}
+        """
+        entry_points = manifest_data.get("entry_points", {})
+        components = []
+
+        backend_entry = entry_points.get("backend")
+        if backend_entry:
+            if backend_entry.endswith(".py"):
+                components.append(
+                    {"name": "backend", "command": f"python {backend_entry}", "cwd": "."}
+                )
+            elif backend_entry.endswith(".js"):
+                components.append(
+                    {"name": "backend", "command": f"node {backend_entry}", "cwd": "."}
+                )
+            else:
+                components.append(
+                    {"name": "backend", "command": f"npm start", "cwd": "."}
+                )
+            logger.info("Manifest: backend entry -> %s", backend_entry)
+
+        react_entry = entry_points.get("react_entry")
+        if react_entry:
+            components.append(
+                {"name": "frontend", "command": "npm run dev", "cwd": "."}
             )
-            is_python, is_node = self._detect_stack()
-            components = []
+            logger.info("Manifest: React frontend detected -> %s", react_entry)
 
-            if is_python:
-                # Determine entry file
-                entry = "main.py"
-                if not os.path.exists(os.path.join(self.output_dir, "main.py")):
-                    if os.path.exists(os.path.join(self.output_dir, "app.py")):
-                        entry = "app.py"
-                components.append(
-                    {"name": "backend", "command": f"python {entry}", "cwd": "."}
+        return {"components": components} if components else None
+
+    def load_manifest(self):
+        if os.path.exists(self.manifest_path):
+            with open(self.manifest_path, "r", encoding="utf-8") as f:
+                manifest_data = json.load(f)
+
+            # Worker-generated manifest has "entry_points" key; convert it
+            if "entry_points" in manifest_data:
+                converted = self._manifest_to_components(manifest_data)
+                if converted and converted["components"]:
+                    logger.info(
+                        "Loaded manifest.json from %s (%d components).",
+                        self.output_dir, len(converted["components"]),
+                    )
+                    return converted
+                logger.warning(
+                    "manifest.json found but no bootable entry_points. Falling back to detection."
                 )
-                logger.info("Detected Python backend (entry: %s).", entry)
-            elif is_node:
-                components.append(
-                    {"name": "backend", "command": "npm start", "cwd": "."}
-                )
-                logger.info("Detected Node.js backend.")
 
-            # Hybrid: Python backend + React frontend
-            if is_python and os.path.exists(os.path.join(self.output_dir, "package.json")):
-                components.append(
-                    {"name": "frontend", "command": "npm run dev", "cwd": "."}
-                )
-                logger.info("Detected hybrid stack: Python backend + Node frontend.")
-            elif not is_python and is_node:
-                components = [
-                    {"name": "app", "command": "npm run dev", "cwd": "."}
-                ]
+            # Legacy format with "components" key -- use directly
+            if "components" in manifest_data:
+                logger.info("Loaded legacy manifest.json from %s.", self.output_dir)
+                return manifest_data
 
-            if not components:
-                logger.error("Could not detect any bootable components.")
-                components = [
-                    {"name": "backend", "command": "npm start", "cwd": "."}
-                ]
+        # Fallback: auto-detect stack from files
+        logger.warning(
+            "No usable manifest.json in %s. Detecting stack...", self.output_dir
+        )
+        is_python, is_node = self._detect_stack()
+        components = []
 
-            return {"components": components}
+        if is_python:
+            entry = "main.py"
+            if not os.path.exists(os.path.join(self.output_dir, "main.py")):
+                if os.path.exists(os.path.join(self.output_dir, "app.py")):
+                    entry = "app.py"
+            components.append(
+                {"name": "backend", "command": f"python {entry}", "cwd": "."}
+            )
+            logger.info("Detected Python backend (entry: %s).", entry)
+        elif is_node:
+            components.append(
+                {"name": "backend", "command": "npm start", "cwd": "."}
+            )
+            logger.info("Detected Node.js backend.")
 
-        with open(self.manifest_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        # Hybrid: Python backend + React frontend
+        if is_python and os.path.exists(os.path.join(self.output_dir, "package.json")):
+            components.append(
+                {"name": "frontend", "command": "npm run dev", "cwd": "."}
+            )
+            logger.info("Detected hybrid stack: Python backend + Node frontend.")
+        elif not is_python and is_node:
+            components = [
+                {"name": "app", "command": "npm run dev", "cwd": "."}
+            ]
+
+        if not components:
+            logger.error("Could not detect any bootable components.")
+            components = [
+                {"name": "backend", "command": "npm start", "cwd": "."}
+            ]
+
+        return {"components": components}
 
     def boot(self):
         manifest = self.load_manifest()

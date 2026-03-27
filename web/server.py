@@ -5,6 +5,8 @@ from typing import List, Optional
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+import subprocess
+from pathlib import Path
 
 from src.utils.logger import logger
 from src.llm_client import LLMClient
@@ -37,11 +39,11 @@ class SuggestRequest(BaseModel):
 class GhostRequest(BaseModel):
     url: str
 
-
-class StatusResponse(BaseModel):
-    status: str
-    active_builds: int
     last_verdict: Optional[str] = None
+
+
+class FleetLaunchRequest(BaseModel):
+    repo_path: str
 
 
 # In-memory state tracking
@@ -161,6 +163,59 @@ async def launch_factory(vibe: str, ghost_blueprint_path: str = None):
         state["last_verdict"] = f"Failed: {str(e)}"
     finally:
         state["active_builds"] -= 1
+
+
+@app.get("/api/v1/health")
+async def health_v1():
+    """Standardized health check for fleet discovery."""
+    return {"status": "ok", "server": "dark-app-factory-sota", "version": "2026.2.17"}
+
+
+@app.post("/api/v1/fleet/launch")
+@app.post("/api/fleet/launch")
+async def fleet_launch(request: FleetLaunchRequest):
+    """Launch another MCP app via its start.ps1 script."""
+    path = Path(request.repo_path)
+    if not path.exists():
+        raise HTTPException(
+            status_code=404, detail=f"Path {request.repo_path} does not exist"
+        )
+
+    # Security check: Ensure path is within D:/Dev/repos
+    # Normalizing paths for reliable comparison
+    try:
+        allowed_base = Path("D:/Dev/repos").resolve()
+        target_path = path.resolve()
+        target_path.relative_to(allowed_base)
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Look for start.ps1 in web_sota or web
+    start_script = path / "web_sota" / "start.ps1"
+    if not start_script.exists():
+        start_script = path / "web" / "start.ps1"
+        if not start_script.exists():
+            # Try root start.ps1 as last resort
+            start_script = path / "start.ps1"
+            if not start_script.exists():
+                raise HTTPException(status_code=400, detail="No start.ps1 found")
+
+    try:
+        subprocess.Popen(
+            [
+                "powershell.exe",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(start_script),
+            ],
+            cwd=str(path),
+            creationflags=subprocess.CREATE_NEW_CONSOLE,
+        )
+        return {"success": True, "message": f"Launched {path.name}"}
+    except Exception as e:
+        logger.error(f"Launch failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/launch")

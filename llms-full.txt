@@ -1,0 +1,1825 @@
+# dark-app-factory
+> **"Software Factories for the Rest of Us."** A local-first, low-cost implementation of the "Software Factory" methodology (Spec -> Scenarios -> Agent Loop). Inspired by [StrongDM Factory](https://fact...
+
+Generated on: 2026-03-02 23:58:53
+
+## Docs - Full Content
+
+### Readme
+Source: README.md
+```
+# Dark App Factory
+
+**"Software Factories for the Rest of Us."**
+
+A local-first, low-cost implementation of the "Software Factory" methodology (Spec -> Scenarios -> Agent Loop).
+Inspired by [StrongDM Factory](https://factory.strongdm.ai) (they target $1k/dev/day; we do it for free).
+Designed for Vibecoders using Ollama, DeepSeek, and other local models.
+
+## Architecture v1.7
+
+The factory floor is powered by an **Async-Parallel Orchestrator**, a **Council of 19 Specialists**, and a **SOTA Dashboard** for real-time monitoring.
+For a deep dive, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+- **Foreman**: High-intelligence Planner (Opus/Claude) -> Generates strict specs, scenarios, and enriched vibes.
+- **Specialist Council**: 18 domain specialists + Generalist working in dependency-resolved parallel tiers.
+- **Multi-Stack**: Python (FastAPI/Flask/Django) or Node.js (Express) backends. React, HTMX, or API-only frontends.
+- **Propagandist**: Auto-generates marketing kit (press release, blog, social media, Reddit, Discord, Product Hunt, landing page).
+- **Satisficer (Judge)**: Playwright-based live UI/API auditing.
+- **DTU-Lite**: Digital Twin Universe for local mocks (Stripe, Auth, etc.).
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.12+
+- Ollama running locally (`ollama serve`)
+- **MANDATORY**: Set context window to 64k+ tokens:
+  ```
+  set OLLAMA_CONTEXT_LENGTH=65536
+  ```
+
+### 1. Define your Vibe
+
+Edit `vibe.md` with your idea. Specify the stack:
+```markdown
+## Tech Stack
+- **Backend**: python/fastapi
+- **Frontend**: react
+- **Database**: postgresql
+```
+
+Valid options:
+- **Backend**: `python/fastapi`, `python/flask`, `python/django`, `node/express`
+- **Frontend**: `react`, `htmx`, `none`
+- **Database**: `postgresql`, `mysql`, `sqlite`, `mongodb`
+
+### 2. Enrich the Vibe (Optional but Recommended)
+
+```
+python foreman.py enrich --vibe vibe.md
+```
+
+LLM expands your terse vibe into a rich brief with domain-specific features, integrations, and branding suggestions. Review `enriched_vibe.md`, edit as needed.
+
+### 3. Run the Foreman
+
+```
+python foreman.py plan --vibe enriched_vibe.md
+```
+
+Generates `specs/specs.md` and `scenarios/scenarios.md` with embedded stack profile.
+
+### 4. Run the Factory (Full Pipeline)
+
+**Option A: CLI**
+```
+python factory.py run
+```
+
+**Option B: Dashboard (Recommended)**
+```powershell
+.\start_factory.ps1
+```
+Launches the SOTA Dashboard on `http://localhost:8002` with real-time progress tracking.
+
+This runs the complete pipeline:
+1. Domain Research (Oracle)
+2. Foreman Planning
+3. Worker Building (parallel specialists)
+4. Landing Page Generation
+5. DTU Mock Environment
+6. Satisficer Judging
+7. Auto-launch + Audit
+
+Or run the worker directly:
+```
+python worker.py build --specs specs/specs.md --output output_001
+```
+
+### 5. Help & Logs
+
+```
+python foreman.py help --level advanced --topic dtu
+python foreman.py log --tail 50
+python foreman.py log --export
+```
+
+## Specialist Council (19 Members)
+
+| Specialist | Domain | Temperature | Requires |
+|---|---|---|---|
+| Professor | Skill battery | 0.2 | - |
+| Plumber | Backend (Python/Node) | 0.15 | Professor |
+| Sculptor | Frontend (React/HTMX) | 0.4 | Professor |
+| Registrar | Infrastructure (deps, Docker) | 0.1 | - |
+| Nervos | Heartbeat, messaging, plugins | 0.2 | - |
+| Raggy | RAG, vector search | 0.2 | - |
+| WebFinder | Web scraping, APIs | 0.2 | - |
+| Archivist | ePub/PDF/Mobi parsing | 0.2 | - |
+| Maestro | Audio, music | 0.3 | - |
+| Auditor | Excel/Word, data validation | 0.2 | - |
+| Picasso | SVG, illustrations | 0.5 | - |
+| Shakespeare | Marketing copy, content | 0.7 | - |
+| Librarian | Documentation, README | 0.6 | Plumber |
+| Morpheus | Security, auth, encryption | 0.1 | Plumber |
+| Tesla | Robotics, IOT, ROS | 0.15 | Nervos |
+| Amodei | AI/LLM integration, Ollama | 0.3 | Plumber, Sculptor |
+| Houdini | Animations, Three.js | 0.45 | Sculptor |
+| Propagandist | Marketing distribution | 0.65 | Shakespeare, Librarian |
+| Generalist | Catch-all | 0.3 | All above |
+
+## Configuration
+
+Configure models via environment variables or `.env`:
+
+```
+# Foreman (The Brains) -- expensive, used sparingly
+FOREMAN_MODEL=llama3.1:latest
+FOREMAN_BASE_URL=http://localhost:11434/v1
+
+# Workers (The Labor) -- cheap, used extensively
+WORKER_MODEL=qwen2.5-coder:latest
+WORKER_BASE_URL=http://localhost:11434/v1
+
+# MANDATORY: Context window
+OLLAMA_CONTEXT_LENGTH=65536
+```
+
+## Generated Output
+
+Each factory run produces:
+
+```
+output_XXX/
+  main.py / server.js     # Backend entry point
+  requirements.txt / package.json  # Dependencies
+  src/                     # Frontend components (if applicable)
+  routers/ schemas/ ...    # Backend modules (Python)
+  routes/ models/ ...      # Backend modules (Node)
+  README.md                # Auto-generated documentation
+  marketing/               # Press release, blog, social, emails, Reddit, Discord, PH
+  www/                     # Landing page (index.html)
+  Dockerfile               # Production container
+```
+
+## Digital Twin Universe (DTU)
+
+The DTU is a local mock server that replaces external APIs during testing. It enables the Satisficer (Judge) to boot and test the generated app without real API keys, credentials, or network calls.
+
+### How It Works
+
+1.  **Generated code** reads all external API URLs from environment variables (e.g., `STRIPE_API_URL`, `AUTH_API_URL`). The Plumber specialist enforces this pattern.
+2.  **DTU starts** on port 8001 before the build step.
+3.  **RunManifest** injects env vars pointing to DTU when booting the generated app:
+    ```
+    STRIPE_API_URL=http://localhost:8001/stripe
+    AUTH_API_URL=http://localhost:8001/auth
+    EMAIL_API_URL=http://localhost:8001/email
+    ...
+    ```
+4.  **All external API calls** are intercepted by DTU mocks (always succeed).
+5.  **Judge** tests the app with Playwright while DTU handles all backend dependencies.
+
+### Available Mock Services
+
+| Service | Endpoint | Env Var |
+|---|---|---|
+| Stripe | `/stripe/v1/payment_intents`, `/stripe/v1/charges`, `/stripe/v1/balance` | `STRIPE_API_URL` |
+| Auth | `/auth/login`, `/auth/register`, `/auth/verify`, `/auth/me` | `AUTH_API_URL` |
+| Email | `/email/send` | `EMAIL_API_URL` |
+| SMS | `/sms/send` | `SMS_API_URL` |
+| Storage | `/storage/upload`, `/storage/files/{key}` | `STORAGE_API_URL` |
+| Discord | `/discord/webhooks/{id}/{token}` | `DISCORD_WEBHOOK_URL` |
+| Slack | `/slack/hooks/{id}` | `SLACK_WEBHOOK_URL` |
+| Weather | `/weather/current`, `/weather/forecast` | `WEATHER_API_URL` |
+| Webhook | `/webhook/{path}` (generic) | `WEBHOOK_URL` |
+
+### Debugging
+
+- Service registry: `GET http://localhost:8001/dtu/services`
+- Request log: `GET http://localhost:8001/dtu/log?limit=50`
+- Health check: `GET http://localhost:8001/health`
+
+For the full technical explanation of the Digital Twin pattern, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## SOTA Dashboard
+
+The factory features a real-time web UI on port 8002.
+- **Progress Tracking**: 0-100% build indicator with granular status logs.
+- **Specialist Council**: Live monitoring of each specialist's execution status and file generation.
+- **Build Queue**: Queue and relaunch vibes directly from the browser.
+
+## Industrial Startup Protocol
+
+To ensure zero-friction development, the factory implements a robust startup logic:
+1. **Zombie Cleanup**: Proactively scans and terminates processes blocking ports 8001 (DTU) and 8002 (Web).
+2. **Environment Synchronization**: Aligns all singleton instances (Logger, ProgressTracker) before execution.
+3. **Launch Wrapper**: Use `.\start_factory.ps1` for a safe, one-command deployment.
+
+## Documentation
+
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) -- System design (includes DTU, Progress Tracking, Pyramid Summaries)
+- [ASSESSMENT.md](ASSESSMENT.md) -- Technical assessment
+- [STRONGDM_ANALYSIS.md](docs/STRONGDM_ANALYSIS.md) -- StrongDM Factory comparison, methodology, economics
+- [REMOTE_CLIENT_DEMO.md](docs/REMOTE_CLIENT_DEMO.md) -- Practical use at client site (notebook + Tailscale + goliath)
+- [FULL_AUTO_DEPLOYMENT.md](docs/FULL_AUTO_DEPLOYMENT.md) -- Gap analysis: domain, host, HTTPS, deploy (not yet implemented)
+- [MONETIZATION_PLAN.md](docs/MONETIZATION_PLAN.md) -- €100/€300 products, Austrian setup, landing page
+- [CHANGELOG.md](CHANGELOG.md) -- Version history
+- [PRD.md](PRD.md) -- Product requirements
+- [META_MCP_INTEGRATION.md](docs/META_MCP_INTEGRATION.md) -- meta-mcp cross-utilization
+
+
+## 🚀 Installation
+
+### Prerequisites
+- [uv](https://docs.astral.sh/uv/) installed (RECOMMENDED)
+- Python 3.12+
+
+### 📦 Quick Start
+Run immediately via `uvx`:
+```bash
+uvx foreman
+```
+
+### 🎯 Claude Desktop Integration
+Add to your `claude_desktop_config.json`:
+```json
+"mcpServers": {
+  "foreman": {
+    "command": "uv",
+    "args": ["--directory", "D:/Dev/repos/dark-app-factory", "run", "foreman"]
+  }
+}
+```
+```
+
+### Strongdm Analysis
+Source: docs\STRONGDM_ANALYSIS.md
+```
+# StrongDM Factory: Analysis & Inspiration
+
+**Source**: [factory.strongdm.ai](https://factory.strongdm.ai)
+**Analysis Date**: 2026-02-08
+**Dark App Factory**: Local-first, low-cost implementation inspired by this methodology.
+
+---
+
+## TL;DR
+
+StrongDM built a **Software Factory** where specs + scenarios drive agents that write code and converge without human review. Their approach is correct and compelling. Their economics are not: they explicitly target **$1,000 per developer per day** in API tokens. Dark App Factory replicates the methodology for **free** using Ollama and local models.
+
+---
+
+## The $1,000 Quote
+
+> "If you haven't spent at least **$1,000 on tokens today** per human engineer, your software factory has room for improvement."
+> — StrongDM Factory, [factory.strongdm.ai](https://factory.strongdm.ai)
+
+This is their stated benchmark. For a team of 10 engineers, that's $10,000/day, $50,000/week, $200,000+/month — in API costs alone.
+
+Our reaction: *spit out the coffee, then think: we can do this for free.*
+
+---
+
+## What StrongDM Factory Is
+
+### Core Definition
+
+A **Software Factory** is non-interactive development where:
+
+1. **Specs + Scenarios** drive the process (not human-written code)
+2. **Agents** write code, run harnesses, and converge
+3. **No human review** — code must not be written or reviewed by humans
+4. **Validation** is empirical (externally observable behavior), not semantic (reading source)
+
+### Their Rules (Kōan Form)
+
+- *Why am I doing this?* (implied: the model should be doing this instead)
+- **Code must not be written by humans**
+- **Code must not be reviewed by humans**
+
+### The Loop
+
+1. **Seed** — PRD, spec, few sentences, screenshot, or existing codebase
+2. **Validation** — End-to-end harness, as close to real environment as possible
+3. **Feedback** — Sample of output fed back into inputs. Closed loop until holdout scenarios pass.
+
+### Key Concepts We Adopted
+
+| StrongDM Term | Our Equivalent | Notes |
+|---------------|----------------|-------|
+| **Seed** | `vibe.md` + `foreman plan` | Our Foreman expands vibe into specs |
+| **Scenarios** | `scenarios/scenarios.md` | End-to-end user stories, LLM-validated |
+| **Satisfaction** | Satisficer (Judge) | Probabilistic/empirical verdict |
+| **Digital Twin Universe (DTU)** | `dtu/main.py` | Behavioral clones of external APIs |
+| **Validation harness** | Playwright + RunManifest | Boot app, run scenarios, LLM verdict |
+
+### Their Digital Twin Universe
+
+StrongDM built behavioral clones of:
+
+- Okta (auth)
+- Jira (ticketing)
+- Google Docs
+- Google Drive
+- Google Sheets
+- Slack
+
+Purpose: Validate at volumes and rates far exceeding production limits. No rate limits, no API costs, no abuse detection. Thousands of scenarios per hour.
+
+**Our DTU**: Stripe, Auth, Email, SMS, Storage, Discord, Slack, Weather, generic webhook. Same idea, smaller surface area, fully local.
+
+---
+
+## Their Techniques (We Implemented a Subset)
+
+| Technique | StrongDM | Dark App Factory |
+|-----------|----------|------------------|
+| **DTU** | Okta, Jira, Docs, Drive, Sheets, Slack | Stripe, Auth, Email, SMS, Storage, Discord, Slack, Weather |
+| **Gene Transfusion** | Point agents at exemplars | `skills/` battery, Professor specialist |
+| **Filesystem** | Models navigate repos, read/write | Worker writes to output dir, Deep-Crawl scans imports |
+| **Shift Work** | Specs complete → agent runs E2E | `foreman plan` → `worker build` → `judge` pipeline |
+| **Pyramid Summaries** | Reversible multi-level compression | Not implemented |
+| **Semport** | Semantic porting between languages | Multi-stack (Python/Node, React/HTMX) via stack profile |
+
+---
+
+## The Validation Constraint
+
+StrongDM's constraint (given zero hand-written code, zero traditional review):
+
+1. **Grow from cascades of natural-language specifications**
+2. **Be validated automatically without semantic inspection of source**
+
+Code is treated like an ML model snapshot: **opaque weights** whose correctness is inferred **exclusively from externally observable behavior**. Internal structure is opaque.
+
+We follow this. Our Judge uses Playwright (observable UI/API) and an LLM verdict. We do not semantically inspect generated Python/TSX for "correctness" — we run it and check if it satisfies scenarios.
+
+---
+
+## Economics: The Main Divergence
+
+| Dimension | StrongDM | Dark App Factory |
+|-----------|----------|------------------|
+| **Token budget** | $1,000+/dev/day target | ~$0 (Ollama local) |
+| **Models** | Claude, frontier cloud APIs | qwen2.5-coder, deepseek-coder, llama (local) |
+| **Planning** | Presumably frontier models | Foreman: Opus or local (configurable) |
+| **Coding** | Frontier models, high volume | Workers: local models only |
+| **Validation** | LLM-as-judge, scenarios | Same pattern, local or cheap model |
+| **DTU** | Custom clones of Okta, Jira, etc. | Generic mocks (Stripe, Auth, etc.) |
+
+**Our thesis**: The methodology (specs → scenarios → agents → validation) is model-agnostic. The economic model (spend $1k/day) is optional. We can run the same loop on local hardware with zero marginal cost per run.
+
+---
+
+## References They Cite
+
+- Luke PM — ["The Software Factory"](https://lukepm.com/blog/the-software-factory/)
+- Sam Schillace — ["I Have Seen the Compounding Teams"](https://sundaylettersfromsam.substack.com/p/i-have-seen-the-compounding-teams)
+- Dan Shapiro — ["Five Levels from Spicy Autocomplete to the Software Factory"](https://www.danshapiro.com/blog/2026/01/the-five-levels-from-spicy-autocomplete-to-the-software-factory/)
+- Other factories: Devin, 8090, Factory (Matan Grinberg), Superconductor, Superpowers (Jesse Vincent)
+
+---
+
+## What We Left Out (For Now)
+
+1. **Pyramid Summaries** — Reversible summarization at multiple zoom levels (inspired by Pyramid TIFF, map tiles). E.g. "Summarize this bug report in 2 words. Now 4. Now 8. Now 16." Each level preserves meaning while expanding/contracting detail. Agents can survey hundreds of items at 2-word level, identify interesting ones, expand only those. Combines with MapReduce + Clustering: Map (generate pyramid summaries in parallel) -> Cluster (group by compressed reps) -> Reduce (synthesize, expand where needed). Context windows are finite; this lets you see forest and trees, not all at once. We use flat 50k char injection instead.
+2. **Semport** — Semantic porting between langs/frameworks. We have multi-stack generation but not automated migration.
+3. **Enterprise DTU targets** — Okta, Jira, Google Workspace. Our DTU is generic (auth, payments, storage, webhooks). Could extend.
+4. **Synthetic scenario curation UI** — StrongDM has a "shaping interface" for scenarios. We have `scenarios/scenarios.md` as plain text.
+
+---
+
+## Summary
+
+StrongDM Factory validated the core methodology: specs + scenarios → agents → validation harness → feedback loop. Their Digital Twin Universe, shift work, and validation constraint are sound. Their economics ($1k/dev/day) are a non-starter for vibecoders and indie teams.
+
+Dark App Factory is the same methodology, run on local models, for free.
+
+```
+
+### Assessment
+Source: ASSESSMENT.md
+```
+# Dark App Factory -- Deep Technical Assessment
+
+**Assessor**: Claude Opus 4.6 (Cursor)
+**Last Updated**: 2025-02-08
+**Rounds Completed**: 6
+
+---
+
+## Executive Summary
+
+Dark App Factory is a local-first software factory scaffold that uses cheap/local LLMs (Ollama) for code generation and expensive models for planning. The architecture is sound: Foreman plans, Worker Council generates in parallel, Satisficer judges with Playwright verification.
+
+After 4 rounds of iterative improvement (Gemini 3 in Antigravity + Claude Opus 4.6 in Cursor), the project has evolved from a working prototype to a sophisticated multi-stack, multi-specialist system with proper logging, async execution, dependency-aware context injection, per-specialist validation, temperature tuning, self-declaring file generation, vibe enrichment, and a full marketing/distribution pipeline.
+
+**Current maturity**: v1.7 -- Full pipeline with DTU, Dashboard, remote client demo docs, full auto deployment gap analysis, monetization plan.
+
+**Strategic positioning**: Inspired by [StrongDM Factory](https://factory.strongdm.ai) (specs + scenarios -> agents -> validation). They target $1,000/dev/day in API tokens; we replicate the methodology for ~$0 using Ollama. See [STRONGDM_ANALYSIS.md](docs/STRONGDM_ANALYSIS.md).
+
+---
+
+## CRITICAL: Ollama Context Window Configuration
+
+**Default Ollama context is 4,096 tokens. This is unusable for code generation.**
+
+The specialists now inject up to 50,000 characters (~12,500 tokens) of specs plus up to 8,000 characters of upstream dependency context into prompts. With system prompt, anti-gaslighting protocol, skill data, and retry warnings, a single specialist call can easily exceed 20,000 tokens input.
+
+**Minimum recommended**: 64,000 tokens (`num_ctx 65536`)
+**Ideal for production**: 128,000 tokens if VRAM allows
+
+### Configuration Methods
+
+**Method 1: Environment variable (recommended for dev)**
+```
+set OLLAMA_CONTEXT_LENGTH=65536
+ollama serve
+```
+
+**Method 2: Modelfile (recommended for reproducibility)**
+```
+FROM qwen2.5-coder:latest
+PARAMETER num_ctx 65536
+```
+Then: `ollama create qwen2.5-coder-64k -f Modelfile`
+
+### VRAM Budget (RTX 4090, 24GB)
+
+| Model | Params | num_ctx 64k VRAM est. |
+|-------|--------|-----------------------|
+| qwen2.5-coder:7b | 7B | ~8-10 GB |
+| qwen2.5-coder:14b | 14B | ~14-18 GB |
+| llama3.1:8b | 8B | ~9-11 GB |
+| deepseek-coder-v2:16b | 16B | ~16-20 GB |
+
+---
+
+## Architecture Overview (v1.3)
+
+```
+vibe.md  -->  [foreman enrich]  -->  enriched_vibe.md (user reviews)
+                                        |
+                                        v
+          [foreman plan]  -->  specs/specs.md + scenarios/scenarios.md
+                                        |
+                                        v
+                                 Worker (build)
+                                   Tier 0: Professor (skills)
+                                   Tier 1: Plumber, Sculptor, Nervos, Raggy, WebFinder,
+                                           Archivist, Maestro, Auditor, Picasso, Registrar
+                                   Tier 2: Librarian, Shakespeare, Morpheus, Tesla,
+                                           Amodei, Houdini
+                                   Tier 3: Propagandist (marketing/distribution)
+                                   Tier 4: Generalist (catch-all)
+                                   Deep-Crawl (missing imports, Python + TSX)
+                                        |
+                                        v
+                                 Propagandist (landing page in factory.py)
+                                        |
+                                        v
+                                 Judge (judge)
+                                   |-- File inventory (os.walk)
+                                   |-- Auditor specialist (static)
+                                   |-- PlaywrightVerifier (runtime)
+                                   |-- LLM verdict (PASS/FAIL)
+                                        |
+                                        v
+                                 critique.md  -->  feeds back into next Foreman run
+```
+
+---
+
+## What Works Well
+
+1. **Economic split** -- Expensive model plans once, cheap model codes N times.
+2. **Specialist Council** -- 18 domain specialists + Generalist with topological dependency ordering and parallel execution via `asyncio.gather`.
+3. **Context Injection** -- Specialists with `requires` now read upstream dependency output via `get_dependency_context()`. Morpheus reads Plumber's routes; Houdini reads Sculptor's components; Amodei reads both.
+4. **Validation Hooks** -- Domain-specific quality checks (Plumber: health endpoint, Sculptor: export statement, Registrar: JSON parse, Morpheus: crypto imports, Librarian: markdown headers). Failed validation triggers retry with error injected into prompt.
+5. **Self-Declaration** -- Specialists declare files they need based on specs keywords via `declare_files()`. Ensures Morpheus fires if specs mention "auth", Raggy fires for "vector search", etc.
+6. **Per-Specialist Temperature** -- Precision specialists (Plumber: 0.15, Morpheus: 0.1) get low temperature; creative specialists (Shakespeare: 0.7, Propagandist: 0.65, Picasso: 0.5) get high temperature.
+7. **Multi-Stack** -- Python (FastAPI/Flask/Django), Node (Express), React, HTMX, or API-only. Stack parsed from `vibe.md`, embedded in `specs.md`, and routed through all specialists.
+8. **Stack-Aware Specialists** -- All 7 new specialists (Nervos, Raggy, WebFinder, Archivist, Maestro, Morpheus, Tesla, Amodei, Auditor) branch Python vs Node prompts with framework-specific library recommendations.
+9. **Deep-Crawl** -- Scans both TSX imports and Python imports. Skips stdlib and known third-party packages.
+10. **Vibe Enrichment** -- `foreman enrich` uses LLM to expand terse vibe into rich domain brief. User reviews before proceeding.
+11. **Propagandist** -- Full marketing pipeline: press release, blog post, social media kit, email pitches, Reddit/Discord/ProductHunt posts, landing page HTML. All grounded in actual specs.
+12. **Landing Page** -- Factory step generates self-contained `www/index.html` with dark theme, glassmorphism, responsive design. Runs even for API-only apps.
+13. **Async Throughout** -- All foreman/worker/judge functions are properly async with `asyncio.run()` at CLI entry points. Fixed pre-existing bug where foreman called async without await.
+14. **Health Endpoints** -- Plumber mandates `/health` endpoint for both Python and Node backends.
+15. **API Docs** -- FastAPI apps must keep `/docs` and `/redoc` active.
+
+---
+
+## Known Issues (Ordered by Severity)
+
+### ~~HIGH: DTU Not Connected~~ FIXED (2026-02-08)
+
+DTU v0.2 now has 9 mock services, a service registry (`/dtu/services`), and a request audit log (`/dtu/log`). Factory starts DTU before the build step. Plumber enforces env-var-based API URLs. RunManifest injects DTU env vars when booting the generated app. Judge passes `--dtu-url` to RunManifest.
+
+### HIGH: RunManifest Default Layout Mismatch
+
+`run_manifest.py` defaults to `npm start` in `server/` and `client/` subdirectories. But the factory generates flat structures. If no manifest.json exists in the output, `boot()` may fail.
+
+### MEDIUM: Token Usage Never Reported
+
+`LLMClient.get_usage()` exists but is never called. No aggregated cost reporting.
+
+### MEDIUM: GitManager Exists But Is Unwired
+
+`src/utils/git_manager.py` has `initialize()` and `commit_changes()` but nothing in the pipeline calls them.
+
+### LOW: foreman.py Import Path Inconsistency
+
+`foreman.py` uses `from utils.logger import logger` (relies on sys.path.append) while `worker.py` uses `from src.specialists.council import ...` (uses src. prefix).
+
+### DEFERRED: Kitchen-Sink Dependencies
+
+The Registrar hardcodes many npm/pip dependency groups regardless of vibe. Acceptable during dev. Must be whittled down before release.
+
+### DEFERRED: Full Auto Deployment
+
+Factory generates app only. No domain (INWX/nic.at), no Hetzner provisioning, no SSL, no deploy. See [FULL_AUTO_DEPLOYMENT.md](docs/FULL_AUTO_DEPLOYMENT.md). Phase 1: output deploy.sh. Phase 2: meta-mcp deploy tools. Phase 3: full auto.
+
+### DEFERRED: Pyramid Summaries (StrongDM Technique)
+
+StrongDM uses **Pyramid Summaries**: reversible summarization at multiple zoom levels (2 words, 4, 8, 16, etc.). Agents survey hundreds of items at compressed level, expand only interesting ones. Combines with MapReduce + Clustering. We use flat 50k char injection; no multi-resolution context. Would help when specs or file lists grow beyond context window.
+
+---
+
+## Round-by-Round Progress
+
+| Issue | R1 | R2 | R3 | R4 | R5 | R6 |
+|-------|----|----|-----|-----|-----|-----|
+| Async LLM | Blocking | AsyncOpenAI | AsyncOpenAI | AsyncOpenAI + fixed await | AsyncOpenAI | Same |
+| Parallel specialists | Sequential | asyncio.gather | asyncio.gather | asyncio.gather | asyncio.gather | Same |
+| Specialist count | 12 | 12 | 12 | 19 | 19 | 19 |
+| Context injection | None | None | None | **get_dependency_context()** | Same | Same |
+| Validation hooks | None | None | None | **5 specialists** | Same | Same |
+| Self-declaration | None | None | None | **7 specialists** | Same | Same |
+| Temperature tuning | Fixed 0.2 | Fixed 0.2 | Fixed 0.2 | **Per-specialist** | Same | Same |
+| Stack support | Node only | Node only | **Multi-stack** | Multi-stack | Multi-stack | Same |
+| Vibe enrichment | None | None | None | **foreman enrich** | Same | Same |
+| Marketing pipeline | None | None | None | **Propagandist** | Same | Same |
+| Landing page | None | None | None | **www/index.html** | Same | Same |
+| Token tracking | None | Tracked | Tracked | Tracked, not reported | Tracked, not reported | Same |
+| Judge executes app | Fake | File list | **Playwright** | Playwright | **Playwright + DTU** | Same |
+| Logging | None | None | **DarkLogger** | DarkLogger | DarkLogger | Same |
+| Health endpoints | None | None | None | **Mandatory** | Mandatory | Same |
+| API docs | None | None | None | **Mandatory** | Mandatory | Same |
+| DTU connected | No | No | No | No | **Yes** | Yes |
+| DTU services | 3 endpoints | 3 | 3 | 3 | **9 + registry** | Same |
+| Kitchen-sink deps | Yes | Yes | Yes | Yes | Yes | Yes (deferred) |
+| Remote client docs | No | No | No | No | No | **REMOTE_CLIENT_DEMO** |
+| Full auto deploy | No | No | No | No | No | **Gap doc (roadmap)** |
+| Monetization plan | No | No | No | No | No | **MONETIZATION_PLAN** |
+
+---
+
+## File Inventory
+
+```
+dark-app-factory/
+  factory.py           # Orchestrator (async, landing page step)
+  foreman.py           # Planner + enrich subcommand (async)
+  worker.py            # Execution engine (async, parallel, validation, declare_files)
+  judge.py             # Quality gate (Playwright, RunManifest)
+  run_manifest.py      # Process orchestrator for generated apps
+  questionnaire.py     # Human feedback loop
+  vibe.md              # User intent input
+  PRD.md               # Product requirements
+  ASSESSMENT.md        # This file
+  CHANGELOG.md         # Version history
+  README.md            # Usage documentation
+  .gitignore           # Comprehensive
+  pyproject.toml       # Hatchling build system
+  requirements.txt     # Python deps
+  src/
+    llm_client.py      # AsyncOpenAI with token tracking + temperature param
+    auditor.py         # Playwright-based runtime auditor
+    specialists/
+      base.py          # Abstract Specialist (context injection, validation, declare_files, temperature)
+      council.py       # 19 specialist implementations
+    utils/
+      logger.py        # DarkLogger singleton
+      help_oracle.py   # Tiered help system
+      git_manager.py   # Git init/commit (unwired)
+      stack_profile.py # Multi-stack parsing/embedding
+  dtu/
+    main.py            # Digital Twin Universe (9 mocks, registry, audit log)
+  docs/
+    ARCHITECTURE.md    # System architecture doc
+    META_MCP_INTEGRATION.md  # meta-mcp cross-utilization plan
+    STRONGDM_ANALYSIS.md    # StrongDM Factory comparison, methodology, economics
+    REMOTE_CLIENT_DEMO.md   # Practical use at client (notebook + Tailscale + goliath)
+    FULL_AUTO_DEPLOYMENT.md # Gap: domain, host, HTTPS, deploy (roadmap)
+    MONETIZATION_PLAN.md    # €100/€300 products, Austrian setup
+  specs/               # Generated specs and research
+  scenarios/           # Generated test scenarios
+  skills/              # Domain knowledge files
+  outputs/             # Generated app directories
+```
+
+```
+
+### Nextsteps
+Source: NEXTSTEPS.md
+```
+# Dark App Factory -- Next Steps (Gemini Handover)
+
+**Author**: Gemini 3 (Antigravity)
+**Date**: 2026-02-09
+**Context**: Continuing the Dark App Factory build-out.
+
+---
+
+## What Was Done Recently (Gemini Session)
+
+### Round 6: Factory Dashboard & Operational Resilience
+- **SOTA Dashboard**: Built `web/server.py` and `web/index.html` featuring real-time build monitoring.
+- **Progress Protocol**: Implemented thread-safe `ProgressTracker` singleton for high-fidelity build feedback.
+- **Zombie Cleanup**: Created `scripts/cleanup_zombies.ps1` to neutralize port-blocking processes.
+- **Industrial Startup**: Optimized `start_factory.ps1` for robust, one-command deployment.
+- **Unified Logging**: Synchronized `DarkLogger` across the orchestrator and dashboard.
+
+### Round 5: DTU Integration (The Big Fix)
+- Rewrote `dtu/main.py` with 9 mock services + service registry + audit log
+- Plumber now mandates env-var-based external API URLs (Python + Node)
+- RunManifest accepts `dtu_url`, injects env vars into child processes
+- Factory starts DTU BEFORE build, passes `--dtu-url` to judge
+- Judge passes DTU URL to RunManifest during Playwright testing
+- Full DTU pattern explained in ARCHITECTURE.md Section 7
+
+### Documentation Updates
+- CHANGELOG.md: v1.5 entries for Dashboard and Startup Protocol.
+- README.md: v1.5 rewrite with Dashboard and Startup sections.
+- ARCHITECTURE.md: Added Section 8 (Monitoring) and Section 9 (Resilience).
+- WALKTHROUGH.md: Detailed guide for the progress tracking implementation.
+- **STRONGDM_ANALYSIS.md** (2026-02-09): Analysis of [StrongDM Factory](https://factory.strongdm.ai). Methodology, $1k/dev/day economics, technique mapping, Pyramid Summaries explained.
+
+---
+
+## Priority 1: Critical (Must Fix)
+
+### 1.1 RunManifest Default Layout
+**File**: `run_manifest.py`
+**Issue**: When no `manifest.json` exists, RunManifest detects Python or Node but the entry file assumptions may be wrong. Currently checks `main.py`, `app.py`, `server.js` but the actual generated entry point depends on which files the Plumber generated.
+**Fix**: After worker build completes, write a `manifest.json` into the output dir with the correct entry points. Worker knows what it generated.
+
+### 1.2 Wire GitManager
+**File**: `src/utils/git_manager.py`, `factory.py`
+**Issue**: `GitManager` has `initialize()` and `commit_changes()` but nothing calls them.
+**Fix**: In `factory.py`, after successful worker build:
+```python
+from src.utils.git_manager import GitManager
+gm = GitManager(output_dir)
+gm.initialize()
+gm.commit_changes("Initial factory build")
+```
+After judge PASS: `gm.commit_changes("Passed quality gate")`
+
+### 1.3 Token Usage Reporting
+**File**: `src/llm_client.py`, `factory.py`
+**Issue**: `LLMClient` tracks `tokens_used` dict but `get_usage()` / `get_usage_summary()` is never called.
+**Fix**: At end of `factory.py` run, collect usage from all LLMClient instances. Print summary with estimated cost.
+
+### 1.4 factory.py Still Uses subprocess for Worker/Judge
+**File**: `factory.py`
+**Issue**: Worker and Judge are invoked via `subprocess.run()`, which means token usage from their LLMClient instances is lost (separate processes).
+**Fix**: Import and call `worker.run_factory()` and `judge.run_judgement()` directly as async functions within factory.py. This enables shared state and aggregated token reporting.
+
+---
+
+## Priority 2: Important Improvements
+
+### 2.1 DTU Request Verification in Judge
+**File**: `judge.py`
+**Issue**: DTU logs all requests to `/dtu/log`, but judge never checks if the generated app actually called the expected endpoints.
+**Fix**: After Playwright testing, query `GET {dtu_url}/dtu/log`. Check that expected services were called (e.g., if specs mention payments, verify Stripe endpoints were hit). Include in audit report.
+
+### 2.2 Dynamic Dependency Selection (Registrar)
+**File**: `src/specialists/council.py` (Registrar class)
+**Issue**: Registrar hardcodes 35+ npm packages / pip packages for every app regardless of vibe. Wastes bandwidth and install time.
+**Fix**: Analyze specs keywords to select relevant dependency groups. E.g., if no "3D" or "three" in specs, skip Three.js. If no "audio", skip Tone.js/pydub.
+
+### 2.3 Normalize Import Paths
+**Files**: All Python files
+**Issue**: `foreman.py` uses `sys.path.append` + `from utils.logger import logger`. `worker.py` uses `from src.specialists.council import ...`. Inconsistent.
+**Fix**: Pick one convention. Recommended: always use `src.` prefix and ensure `PYTHONPATH` or `sys.path` is set once at entry point.
+
+### 2.4 Cross-Platform Kill Zombies
+**File**: `factory.py`
+**Issue**: `kill_zombies()` uses `netstat -ano | findstr LISTENING` and `taskkill /F /PID` -- Windows only.
+**Fix**: Add `sys.platform` check. On Linux/macOS use `lsof -i :PORT` and `kill -9 PID`.
+
+---
+
+## Priority 3: Feature Enhancements
+
+### 3.1 WebSocket Implementation
+**Issue**: Dashboard currently relies on HTTP polling for progress. Scalability and latency suboptimal.
+**Fix**: Switch to `WebSockets` or `Server-Sent Events (SSE)` for real-time log streaming and progress updates.
+
+### 3.2 Visual Dependency Graph
+**Issue**: Specialist Council tiers are hard to visualize.
+**Fix**: Implement a Mermaid.js or D3.js visualization in the dashboard showing the parallel tiers and dependency injection paths.
+
+### 3.3 Specialist: Registrar Writes manifest.json
+The Registrar already generates `package.json` / `requirements.txt`. It should also generate a `manifest.json` for RunManifest:
+```json
+{
+  "components": [
+    {"name": "backend", "command": "python main.py", "cwd": "."},
+    {"name": "frontend", "command": "npm run dev", "cwd": "."}
+  ]
+}
+```
+
+### 3.2 DTU Extension: More Services
+Add mocks for:
+- **Google Maps / Geocoding** -- `MAPS_API_URL`
+- **OpenAI / Ollama** -- `LLM_API_URL` (for apps that themselves call LLMs)
+- **AWS SES / SendGrid** -- `SENDGRID_API_URL`
+- **Twilio** -- `TWILIO_API_URL`
+- **Firebase Auth** -- `FIREBASE_AUTH_URL`
+
+### 3.3 Feedback Loop Automation
+`questionnaire.py` currently requires human input. Make it optional:
+- `factory.py run --auto` skips questionnaire
+- `factory.py run --feedback` launches it
+
+### 3.4 Multi-Run Convergence
+The PRD mentions iterative convergence (critique -> fix loop). Currently:
+- Judge writes `critique.md` on FAIL
+- Foreman can read `critique.md` to adjust specs
+- But this loop is manual
+
+Automate: if judge FAILs, re-run foreman with critique, then re-run worker, up to N iterations.
+
+### 3.5 meta-mcp Agent Integration
+See `docs/META_MCP_INTEGRATION.md` for the plan. The idea: expose factory phases (plan, build, judge) as meta-mcp agents that can be started, polled, and awaited.
+
+### 3.6 Full Auto Deployment (Domain + Host + HTTPS)
+**Docs**: `docs/FULL_AUTO_DEPLOYMENT.md`
+**Gap**: Factory generates app only. No domain registration, no Hetzner provisioning, no SSL, no deploy.
+**Phase 1**: Output `deploy.sh` + `deploy_config.example.yaml`. User runs with INWX + Hetzner API keys.
+**Phase 2**: meta-mcp deploy tools. Optional auto-deploy.
+**Phase 3**: Full auto: INWX domain + Hetzner + Certbot/Cloudflare SSL. User provides keys once.
+
+### 3.7 Pyramid Summaries (StrongDM Technique)
+**Source**: [factory.strongdm.ai/techniques/pyramid-summaries](https://factory.strongdm.ai/techniques/pyramid-summaries)
+**What**: Reversible summarization at multiple zoom levels (2 words, 4, 8, 16, etc.). Agents survey hundreds of items at compressed level, expand only interesting ones. Combines with MapReduce + Clustering.
+**Where it helps**: Specs injection (when >50k chars), dependency context (when >8k chars), scenarios (survey many, run subset). We use flat 50k injection today.
+**When to implement**: When hitting context overflow, or building apps with 50+ files. See `docs/STRONGDM_ANALYSIS.md`.
+
+---
+
+## Priority 4: Polish
+
+### 4.1 Whittling Kitchen-Sink Imports
+Once the factory is stable, audit all specialist imports and remove unused ones. The `base.py` import of `json` and `re` is fine (used in validation). But council.py imports should be reviewed.
+
+### 4.2 .env.example
+Create a `.env.example` with all required/recommended env vars:
+```
+FOREMAN_MODEL=llama3.1:latest
+FOREMAN_BASE_URL=http://localhost:11434/v1
+WORKER_MODEL=qwen2.5-coder:latest
+WORKER_BASE_URL=http://localhost:11434/v1
+OLLAMA_CONTEXT_LENGTH=65536
+DTU_PORT=8001
+```
+
+### 4.3 Test Suite
+No tests exist. Priority for testing:
+1. `stack_profile.py` -- pure functions, easy to test
+2. `base.py` -- `can_handle()`, `get_dependency_context()`, `validate()`
+3. `dtu/main.py` -- start server, hit endpoints, verify responses
+4. `run_manifest.py` -- `_detect_stack()` with mock directories
+
+### 4.4 Remaining Rich Markup in Logs
+Check for any remaining `[bold yellow]...[/bold yellow]` Rich markup tags in logger calls. They should be plain text. One known instance was in `judge.py` (fixed) but scan all files.
+
+---
+
+## File Map (Quick Reference)
+
+```
+factory.py           -- Pipeline orchestrator (DTU lifecycle, subprocess calls)
+foreman.py           -- Planner (plan, enrich, research, help, log subcommands)
+worker.py            -- Execution engine (specialist council, parallel, validation)
+judge.py             -- Quality gate (Playwright, RunManifest, LLM verdict)
+run_manifest.py      -- Process boot orchestrator (DTU env injection)
+questionnaire.py     -- Human feedback loop
+dtu/main.py          -- Digital Twin Universe (9 mock services)
+src/llm_client.py    -- AsyncOpenAI wrapper (temperature, token tracking)
+src/auditor.py       -- Playwright-based runtime auditor
+src/specialists/
+  base.py            -- Abstract Specialist (context injection, validation, declare_files)
+  council.py         -- 19 specialist implementations
+src/utils/
+  logger.py          -- DarkLogger singleton
+  help_oracle.py     -- Tiered help system
+  git_manager.py     -- Git init/commit (UNWIRED -- see 1.2)
+  stack_profile.py   -- Multi-stack parsing/embedding
+```
+
+---
+
+## Notes for Gemini
+
+- All Python files parse cleanly (verified with `py_compile`).
+- No test suite exists yet. Be careful with refactors.
+- The `logger.success()` and `logger.audit()` methods are custom extensions on the DarkLogger. Standard logging does not have these.
+- Worker calls specialists via `specialist.generate(file_path, specs, shared_context, worker_llm)`. The signature is `(self, file_path, specs, shared_context, worker)` where worker is the LLMClient.
+- Specialist `generate()` in base.py has a DIFFERENT signature `(self, specs, shared_context)` from the actual implementations. The base class abstract method is not enforced. This is a known inconsistency -- the actual implementations all use the 4-arg signature.
+- `OLLAMA_CONTEXT_LENGTH=65536` is mandatory. Default 4096 will cause truncated/garbage output.
+- DTU is on port 8001 by default. Change via `DTU_PORT` env var.
+
+```
+
+### Changelog
+Source: CHANGELOG.md
+```
+# Changelog
+
+All notable changes to the Dark App Factory will be documented in this file.
+
+## [1.7.0] - 2025-02-08
+
+### Added
+- **REMOTE_CLIENT_DEMO.md**: Practical guide for demo/build at client site. Notebook (16GB, no GPU) + Tailscale + goliath server running Ollama. Goliath setup, notebook env vars, demo workflow, troubleshooting, offline fallback.
+- **FULL_AUTO_DEPLOYMENT.md**: Gap analysis for full auto (domain, host, HTTPS, deploy). INWX API for .at, Hetzner API, Phase 1-3 roadmap. Not yet implemented.
+- **MONETIZATION_PLAN.md**: €100 "Make My App" and €300 "Dark Factory + Support" products. Austrian small-company setup (Einzelunternehmen, Kleinunternehmer, Gewerbe). Landing page via meta-mcp. Non-tech packaging (ZIP, install.bat).
+
+### Changed
+- **README.md**: Added REMOTE_CLIENT_DEMO, FULL_AUTO_DEPLOYMENT, MONETIZATION_PLAN to docs list.
+- **PRD.md**: Added Full Auto Deployment and Monetization to roadmap.
+- **ASSESSMENT.md**: Updated file inventory, maturity, Last Updated.
+
+## [1.6.0] - 2025-02-08
+
+### Added
+- **STRONGDM_ANALYSIS.md**: Documented analysis and comparison with [StrongDM Factory](https://factory.strongdm.ai). Methodology, economics ($1k/dev/day vs free), technique mapping, gaps (Pyramid Summaries, Semport).
+- **Pyramid Summaries**: Deferred technique from StrongDM. Reversible multi-level context compression (2w, 4w, 8w, 16w) for specs/dependency context. Added to roadmap and NEXTSTEPS.
+
+### Changed
+- **PRD.md**: Added StrongDM attribution, updated roadmap with Pyramid Summaries as v2.0+ candidate.
+- **ASSESSMENT.md**: Strategic positioning vs StrongDM, Pyramid Summaries gap, STRONGDM_ANALYSIS reference.
+- **NEXTSTEPS.md**: Added Pyramid Summaries to Priority 3 (Phase 3+), reference to STRONGDM_ANALYSIS.
+- **ARCHITECTURE.md**: Added Section 10 (Future Techniques) documenting Pyramid Summaries.
+- **README.md**: StrongDM attribution, STRONGDM_ANALYSIS in docs list.
+
+## [1.5.0] - 2025-02-08
+
+### Added
+- **SOTA Dashboard**: New web-based factory UI on `http://localhost:8002`. Features glassmorphic design, real-time status monitoring, and specialist execution visualization.
+- **Real-Time Progress Tracking**: Standardized `ProgressTracker` singleton that reports build milestones (0-100%) from both the factory orchestrator and individual specialists.
+- **Industrial Startup Protocol**: Robust implementation of `scripts/cleanup_zombies.ps1` integrated into `start_factory.ps1`. Automatically neutralizes processes blocking factory ports (8001, 8002) before launch.
+- **Improved Logging Sync**: Synchronized singleton Logger initialization across the entire process tree to ensure all diagnostic data reaches the dashboard.
+
+### Fixed
+- **Port Blocking Issues**: Resolved the common problem of "Address already in use" errors during rapid development cycles.
+- **Dashboard Progress Polling**: Implemented `/api/progress` endpoint for the frontend to reliably track long-running builds.
+
+## [1.4.0] - 2026-02-08
+
+### Added
+- **DTU v0.2**: Complete rewrite of Digital Twin Universe with 9 mock services (Stripe, Auth, Email, SMS, Storage, Discord, Slack, Weather, Generic Webhook). Service registry at `/dtu/services`. Request audit log at `/dtu/log`. Deterministic always-succeed behavior.
+- **DTU Integration Pipeline**: Factory starts DTU before Worker build. Judge receives `--dtu-url` argument. RunManifest injects DTU env vars (`STRIPE_API_URL`, `AUTH_API_URL`, etc.) into generated app's process environment.
+- **DTU-Aware Code Generation**: Plumber specialist prompts now mandate env-var-based external API URLs for both Python (`os.environ.get(...)`) and Node (`process.env.X || default`). Generated apps never hardcode external URLs.
+- **DTU Health Check**: Factory verifies DTU is actually responding (`/health`) after spinning it up, not just checking if the process is alive.
+
+### Fixed
+- **DTU completely disconnected from pipeline** (was HIGH severity, now resolved).
+- **RunManifest stack detection**: Now detects `app.py` as Python entry point (previously only `main.py`).
+- **DTU process cleanup**: Factory now calls `dtu.wait(timeout=5)` after terminate for clean shutdown.
+
+## [1.3.0] - 2026-02-08
+
+### Added
+- **Propagandist Specialist**: New council member (18th specialist) that generates a full marketing/distribution kit: press release, blog post, social media kit (Twitter/LinkedIn/Instagram/Bluesky/Mastodon), email pitches (journalist/YouTuber/newsletter), Reddit posts, Discord announcements, Product Hunt launch kit, and a landing page HTML. Requires Shakespeare (copy) + Librarian (docs).
+- **Vibe Enrichment**: New `foreman enrich` subcommand. LLM expands a terse vibe into a rich, domain-aware brief with suggested features, integrations, branding, pages, and workflows. User reviews `enriched_vibe.md` before proceeding to plan.
+- **Landing Page Generation**: Factory pipeline now auto-generates `www/index.html` for every build (Step 5). Self-contained dark theme, glassmorphism, responsive. Runs even for API-only apps.
+- **Context Injection**: `get_dependency_context()` in base Specialist. All specialists with `requires` now read upstream dependency output and inject it into their prompts (capped at 8000 chars).
+- **Validation Hooks**: `validate()` method on base Specialist with domain-specific overrides: Plumber (server startup + /health), Sculptor (export statement), Registrar (JSON parse + package count), Morpheus (crypto imports), Librarian (markdown headers). Failed validation triggers retry with error injected.
+- **Self-Declaration**: `declare_files()` method lets specialists inject files based on specs keywords. Plumber, Registrar, Nervos, Raggy, Morpheus, Amodei now declare their mandatory files.
+- **Per-Specialist Temperature**: Each specialist has a tuned temperature (Plumber 0.15, Morpheus 0.1, Sculptor 0.4, Shakespeare 0.7, Propagandist 0.65, etc.). `LLMClient.generate()` accepts optional `temperature` parameter.
+- **Stack-Aware New Specialists**: Nervos, Raggy, WebFinder, Archivist, Maestro, Auditor, Morpheus, Tesla, Amodei all branch Python vs Node prompts with framework-specific library recommendations.
+- **Health Endpoint Mandate**: Plumber now requires GET /health for both Python (FastAPI) and Node (Express) backends.
+- **API Docs Mandate**: FastAPI apps must keep /docs and /redoc active.
+
+### Fixed
+- **Async Foreman Bug**: `foreman.py` was calling `async generate()` without `await`. All three LLM functions are now properly `async def` with `await`, wrapped in `asyncio.run()`.
+- **judge.py Indentation**: Fixed indentation error at line 62.
+- **Validation retry**: Worker now has 3 attempts (up from 2) to accommodate both runt and validation retries.
+
+### Changed
+- **Worker retry logic**: Restructured to gate on runt detection first, then validation hook, using `continue` for cleaner flow.
+- **Specialist count**: 12 -> 19 (18 domain specialists + Generalist).
+- **Dependency graph**: 4 tiers -> Professor (0), bulk specialists (1), downstream specialists (2), Propagandist (3), Generalist (4).
+
+## [1.2.0] - 2026-02-08
+
+### Added
+- **Multi-Stack Factory**: Vibe.md `## Tech Stack` section parsed into stack profile. Backend (python/fastapi, python/flask, python/django, node/express), Frontend (react, htmx, none), Database (postgresql, mysql, sqlite, mongodb).
+- **Stack Profile Utilities**: `src/utils/stack_profile.py` with `parse_stack_from_vibe()`, `embed_in_specs()`, `extract_from_specs()`, `describe_stack()`.
+- **Plumber dual-mode**: Python (FastAPI/Flask/Django) and Node (Express) prompts.
+- **Sculptor dual-mode**: React and HTMX generation.
+- **Registrar dual-mode**: requirements.txt/pyproject.toml for Python, package.json for Node, Dockerfile for both.
+- **Deep-Crawl Python**: Scans Python imports (`from X import`, `import X`) in addition to TSX imports.
+
+## [1.1.0] - 2026-02-08
+
+### Added
+- **Selectable App Stack**: Support for Python (FastAPI, Flask, Django) and Node.js backends.
+- **Frontend Diversity**: Support for React, HTMX, and Svelte frontends.
+- **HelpOracle**: Multilevel CLI help system (`foreman help`).
+- **Advanced Logging**: Automated rotation and zip export components (`foreman log`).
+- **Playwright Satisficer**: Live UI/API execution-based judging in `judge.py`.
+- **Run Manifest**: Automated multi-component orchestration (`run_manifest.py`).
+- **Git Manager**: Automated `git init` and initial commits for all builds.
+- **Crawl v2**: Refined Deep-Crawl logic for component discovery.
+- **GitHub Sync**: Initialized factory repo and linked to `sandraschi/dark-app-factory`.
+
+### Changed
+- **Async Council**: Specialist execution is now fully parallelized per dependency level.
+- **Spec Injection**: Specialists now receive up to 50k chars of context to prevent skeletons.
+- **Auditor Specialist**: Updated with advanced verification logic for Playwright integration.
+
+### Fixed
+- Specialist Council import regressions.
+- File system "runt" detection (skeleton code prevention).
+- Vibe-to-Stack parsing reliability.
+
+## [1.0.0] - 2026-01-15
+- Initial public release of the Dark App Factory methodology.
+
+```
+
+### Prd
+Source: PRD.md
+```
+# Dark App Factory: The "Lights Out" Dev Scaffold for Vibecoders
+
+> **Mission**: Democratize "Software Factory" methodology for the vibecoder community using low-cost/local models (Ollama/DeepSeek) with strategic injection of high-intelligence compute (Opus 4.6).
+
+**Inspired by**: [StrongDM Factory](https://factory.strongdm.ai) (specs + scenarios -> agents -> validation). They target $1,000/dev/day in API tokens. We do it for free. See [STRONGDM_ANALYSIS.md](docs/STRONGDM_ANALYSIS.md).
+
+## Abstract
+The **Dark App Factory** is an open-source scaffold and workflow engine designed to replicate the "Factory" methodology (Specs + Scenarios -> Agents -> Code) without the enterprise price tag. It decouples **Intelligence (Planning)** from **Labor (Coding)** to optimize for cost and speed.
+
+## Business & Monetization
+
+See [MONETIZATION_PLAN.md](docs/MONETIZATION_PLAN.md). Two product legs: €100 "Make My App", €300 "Dark Factory + Support". Remote client demo: [REMOTE_CLIENT_DEMO.md](docs/REMOTE_CLIENT_DEMO.md). Full auto deployment (domain, host, HTTPS): [FULL_AUTO_DEPLOYMENT.md](docs/FULL_AUTO_DEPLOYMENT.md) — not yet implemented.
+
+## Core Philosophy
+1.  **Find Knobs, Turn to Eleven**: If testing is good, 1000 tests are better. If mocks are good, full Digital Twins are better.
+2.  **Unconventional Economics**: Use "smart" models (Opus 4.6) *only* for architectural/spec definition (< 1% of tokens). Use "dark" models (Ollama/DeepSeek/Qwen) for implementation loops (> 99% of tokens).
+3.  **Physical Grounding**: Real-world file-system audits and logical verification replace hallucinated test results.
+4.  **Distribution by Default**: Every app gets a marketing kit and landing page, not just code.
+
+## Architecture v1.3
+
+### 1. The Enricher (New in v1.3)
+*   **Command**: `foreman enrich`
+*   **Role**: LLM-augmented expansion of terse vibes into rich domain briefs.
+*   **Output**: `enriched_vibe.md` for user review before planning.
+
+### 2. The Foreman (Intelligence Layer)
+*   **Model**: Opus 4.6 / Llama 3.1 (configurable).
+*   **Role**: Generates the **Blueprint** (`specs.md`, `scenarios.md`) with embedded stack profile.
+
+### 3. The Factory Floor (Labor Layer)
+*   **Engine**: **Async-Parallel Orchestrator** with dependency-resolved tiers.
+*   **Workers**: 18 Specialized agents + Generalist catch-all.
+*   **Sophistication Features**:
+    -   **Context Injection**: Downstream specialists read upstream output.
+    -   **Validation Hooks**: Domain-specific quality gates with retry.
+    -   **Self-Declaration**: Specialists inject files they need based on specs keywords.
+    -   **Temperature Tuning**: Precision (0.1) to creative (0.7) per specialist.
+    -   **Multi-Stack**: Python/Node backend, React/HTMX/none frontend.
+
+### 4. The Propagandist (Distribution Layer, New in v1.3)
+*   **Role**: Generates marketing/distribution assets for every build.
+*   **Council Member**: Shakespeare writes copy, Propagandist formats for platforms.
+*   **Output**: Press release, blog, social media kit, email pitches, Reddit/Discord/PH posts, landing page HTML.
+*   **Factory Step**: Auto-generates `www/index.html` landing page.
+
+### 5. The Digital Twin Universe (DTU)
+*   **Role**: Provides local clones of external APIs (Stripe, Discord, etc.) for non-blocking integration testing.
+
+### 6. The Satisficer (SOTA Judge)
+*   **Role**: Performs **Empirical Verification**.
+*   **Audit**: Live UI/API audits using **Playwright**.
+*   **Verdict**: PASS/FAIL with `critique.md` feedback loop.
+
+### 7. The Help Oracle & Logging
+*   **Role**: On-demand documentation and log diagnostic layer.
+*   **Leveling**: Basic to Expert help system.
+*   **Diagnostics**: DarkLogger with rotation and export.
+
+## Workflow: The "Dark Logic"
+
+```
+1. vibe.md          -- User defines intent + tech stack
+2. foreman enrich   -- LLM expands vibe (user reviews)
+3. foreman plan     -- Specs + scenarios generated
+4. factory run      -- Full pipeline:
+   a. Research (Oracle)
+   b. Plan (Foreman)
+   c. Build (Worker Council, parallel)
+   d. Distribute (Propagandist, landing page)
+   e. Mock (DTU)
+   f. Judge (Satisficer, Playwright)
+   g. Launch + Audit
+```
+
+## Roadmap Status
+- [x] **v0.1-v0.4**: Prototype development.
+- [x] **v1.0**: Architectural Hardening (Async Parallelism).
+- [x] **v1.1**: System Surge (Playwright Judging, Help Oracle, Logging, Git).
+- [x] **v1.2**: Multi-Stack Factory (Python/Node, React/HTMX).
+- [x] **v1.3**: Council Sophistication + Vibe Enrichment + Marketing Pipeline.
+- [x] **v1.4**: DTU integration (9 mocks, env var injection, pipeline wiring).
+- [x] **v1.5**: Dashboard, Progress Protocol, Industrial Startup.
+- [x] **v1.6**: Remote client demo doc, full auto deployment gap analysis, monetization plan.
+- [ ] **v1.7**: Token usage reporting. GitManager integration. RunManifest manifest.json.
+- [ ] **v2.0**: Multi-agent recursive self-healing. meta-mcp agent lifecycle. **Pyramid Summaries** (StrongDM technique).
+- [ ] **v2.1**: Full auto deployment (Phase 1: deploy.sh + config. Phase 2: meta-mcp deploy tools. Phase 3: INWX + Hetzner + HTTPS).
+
+```
+
+### Vibe Current
+Source: vibe_current.md
+```
+i am beekeeper julius stich located in hollabrunn, i want a nice webshop and also a site for myself where i can do the books, supervise the hive with hivecams and temperature probes, have a swarming calendar. can you do this dear robot ?
+```
+
+### Jury Room Plan
+Source: docs\JURY_ROOM_PLAN.md
+```
+# Jury Room Plan — Expert Panel Meta-Judge
+
+**Status**: Planned for March implementation  
+**Inspiration**: *12 Angry Men* (1957) — deliberation, persuasion, bias, diverse perspectives  
+**Current State**: Single "Judge Dee" superjudge (LLM verdict on audit evidence)
+
+---
+
+## Concept
+
+Replace or augment the single LLM verdict with a **panel of 12 expert personas** that deliberate over the same evidence (audit report, scenario results, satisfaction score, lint report, DTU logs). Each expert has distinct domain focus, temperament, and preconceptions. They argue, challenge, and surface different concerns. Instead of a binary GUILTY/NOT GUILTY vote, they produce **elaborated analysis** across dimensions (usability, aesthetics, correctness, security, performance, maintainability). The Judge (meta-layer) synthesizes the analysis into a final go/no-go and critique.
+
+---
+
+## Architecture
+
+```
+Evidence Docket (input)
+  ├── Auditor report
+  ├── Satisfaction report (scenario execution)
+  ├── Ruffy lint report
+  ├── UI/Execution report (Rodney/Playwright)
+  ├── DTU logs
+  └── Files generated (summary)
+
+        │
+        ▼
+┌─────────────────────────────────────┐
+│    EXPERT PANEL (12 Personas)       │
+│  Simulated deliberation via LLM     │
+│  Each produces domain-specific      │
+│  analysis (UX, security, perf, etc) │
+└─────────────────────────────────────┘
+        │
+        ▼
+  Elaborated Analysis (structured report)
+  - What works / what's weak / what to fix
+  - Per-dimension assessments
+  - Final recommendation (go / no-go / conditional)
+        │
+        ▼
+┌─────────────────────────────────────┐
+│   JUDGE (synthesis + critique)      │
+│   Converts analysis -> critique.md  │
+│   Passes gate (PASS/FAIL)           │
+└─────────────────────────────────────┘
+```
+
+---
+
+## The 12 Expert Personas — Spec
+
+| # | Name / Archetype | Domain Focus | Temperament | Output |
+|---|------------------|--------------|-------------|--------|
+| 1 | **Foreman** | Orchestration | Procedural, seeks consensus | Summarizes panel findings, synthesizes |
+| 2 | **Reasonable Doubt** (Fonda) | Cross-cutting | "What if we're wrong?" | Surfaces risks, questions assumptions |
+| 3 | **UX Advocate** | Usability, flows | User-first, empathetic | Usability analysis, user-journey gaps |
+| 4 | **Analyst** | Correctness, data | Logic, evidence-only | Scenario pass rates, data consistency |
+| 5 | **Designer** | Aesthetics, layout | Opinionated, visual | UI/UX assessment, accessibility notes |
+| 6 | **Skeptic** | Quality bar | "Prove it works" | Scenario evidence, edge cases |
+| 7 | **Security** | Auth, data handling | Paranoid | Security concerns, validation gaps |
+| 8 | **Pedant** | Standards, lint | Detail-oriented | Ruff/mypy, formatting, conventions |
+| 9 | **Performance** | Speed, scalability | Engineering-minded | Bottlenecks, lazy-loading, caching |
+| 10 | **Cynic** | Reality check | "Apps always fail" | Worst-case, failure modes |
+| 11 | **Architect** | Structure, maintainability | Holistic | Code organization, coupling, future-proofing |
+| 12 | **Pragmatist** | Ship decision | Cost/benefit | Go / no-go recommendation, priorities |
+
+---
+
+## Deliberation Protocol
+
+1. **Evidence distribution**  
+   Each expert receives the full evidence docket (truncated/summarized for token budget).
+
+2. **Initial assessments**  
+   Each expert writes a short domain-specific analysis: strengths, weaknesses, concerns. Structured fields (e.g. UX score 1–5, issues list, recommendation).
+
+3. **Rounds of debate**  
+   - Rounds 1–2: Experts challenge, rebut, cite evidence. Persona 2 (Reasonable Doubt) must surface at least one "what if we're wrong?" angle.  
+   - Constraint: Max N tokens per expert per round; max K rounds.
+
+4. **Elaborated analysis (output)**  
+   Each expert finalizes:
+   - **Domain assessment** (e.g. Usability: 4/5, "Good flows but login unclear")
+   - **Top issues** (ranked, actionable)
+   - **Recommendation** (approve / conditional / reject)
+
+5. **Foreman synthesis**  
+   Aggregates into structured report: per-dimension scores, consolidated issues, final go/no-go with rationale.
+
+6. **Judge critique**  
+   Single LLM call: Given the panel report, Judge writes critique.md and gate decision (PASS/FAIL).
+
+---
+
+## Implementation Sketch (March)
+
+- **Mode**: Optional. `judge.py --mode panel` vs `--mode single` (current).
+- **LLM usage**: 12 personas = 12 system prompts. Debate:
+  - **Parallel**: Each expert responds to same evidence in one batch; aggregate; next round. (Faster.)
+  - **Sequential**: Expert 1 → 2 → … → 12, each sees prior analyses. (Slower, more realistic.)
+- **Persona prompts**: Structured: "You are Expert N (UX Advocate). Domain: usability. Evidence: … Output: domain_assessment, top_issues, recommendation."
+- **Output format**: JSON or markdown sections per expert; Foreman aggregates into final report.
+- **Token budget**: ~50k for evidence; ~2k per expert per round × 12 × 2 rounds = ~48k. Summarization if needed.
+
+---
+
+## Risks & Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Token cost 12× | Use cheap/small model for experts; Judge only for final synthesis |
+| Degenerate debate (all agree immediately) | Inject contrarian prompts; require minimum rounds; diverse persona instructions |
+| Unpredictable output format | Structured JSON/markdown schema; validation before Judge step |
+| Slow (minutes) | Parallel expert calls; cap rounds; optional mode |
+
+---
+
+## Relation to Current Judge Dee
+
+- **Judge Dee** = single strict QA Lead LLM. Fast, deterministic given model.
+- **Expert Panel** = meta-layer: 12 domain experts produce elaborated analysis, then Judge synthesizes into critique and gate.
+- **Hybrid**: Run both; panel report informs Judge's tone and priorities (e.g. "Panel flagged UX and security; focus critique there").
+
+---
+
+## References
+
+- *12 Angry Men* (1957), dir. Sidney Lumet — deliberation, persuasion, diverse temperaments
+- Henry Fonda as Juror 8 — reasonable doubt, persistent questioning (adapted as "Reasonable Doubt" persona)
+
+```
+
+### Feedback
+Source: feedback.md
+```
+
+        
+        ## Feedback (Rating: 1/10)
+        - **Missing**: start page crashes with vite error, store page not correctly made or pointed to
+        - **Broken**: see above
+        
+```
+
+### Vibe
+Source: vibe.md
+```
+# The Vibe: Joe Painlessdriller's Dentist App 🦷
+
+> "I want a dentist website for my friend Joe Painlessdriller in Hollabrunn, Schlossgasse 1. It must meet strict Austrian standards but be totally non-intimidating."
+
+## Customer Requirements
+1.  **Public Website**:
+## Technical Constraints
+-   **MUST WORK**: No placeholders, no empty pages.
+
+
+> **User Feedback**: start page crashes with vite error, store page not correctly made or pointed to. Fix: see above.
+```
+
+## Api - Full Content
+
+### Verify Docs Api
+Source: verify_docs_api.py
+```
+import requests
+import json
+
+
+def test_specialists_api():
+    try:
+        response = requests.get("http://localhost:8002/api/specialists")
+        data = response.json()
+        if data.get("success"):
+            print("API Success: Received specialists list")
+            for spec in data.get("specialists", []):
+                print(f"Specialist: {spec['name']}")
+                if "docs" in spec:
+                    print(f"  Docs found: {len(spec['docs'])} chars")
+                    print(f"  Snippet: {spec['docs'][:50]}...")
+                else:
+                    print(f"  Error: docs missing for {spec['name']}")
+        else:
+            print(f"API Failure: {data}")
+    except Exception as e:
+        print(f"Connection failed: {e}")
+
+
+if __name__ == "__main__":
+    test_specialists_api()
+
+```
+
+## Examples - Full Content
+
+### Remote Client Demo
+Source: docs\REMOTE_CLIENT_DEMO.md
+```
+# Dark App Factory: Practical Use at Client Site
+
+**Scenario**: Demo or build at a customer location using a portable notebook, with LLM inference running on a remote server (goliath) over Tailscale.
+
+**Last Updated**: 2026-02-09
+
+---
+
+## Architecture
+
+```
+Client Site (Notebook)                    Home/Office (Goliath Server)
+---------------------                    -----------------------------
+- Dark App Factory (orchestrator)   -->   Ollama (port 11434)
+- Dashboard (port 8002)                    RTX 4090, 24GB VRAM
+- DTU (port 8001)                         qwen2.5-coder, deepseek-coder, etc.
+- Generated app (varies)
+           |
+           v
+     Tailscale VPN (encrypted, low-latency)
+```
+
+The notebook does **not** run any LLM. It sends all inference requests to goliath over Tailscale. The notebook acts as a thin client: orchestration, HTTP calls, dashboard, DTU, and running the generated app.
+
+---
+
+## Notebook Requirements
+
+| Spec | Minimum | Notes |
+|------|---------|-------|
+| RAM | 16 GB | Plenty for factory + dashboard + DTU + generated app |
+| GPU | None | Inference is remote |
+| Storage | 2 GB free | Repo, deps, output dirs |
+| Python | 3.12+ | Factory runtime |
+| Network | Tailscale | Must reach goliath |
+
+---
+
+## Goliath Server Setup
+
+### 1. Ollama Listen on All Interfaces
+
+By default Ollama binds to `127.0.0.1` only. For remote access:
+
+**Windows (PowerShell)**:
+```powershell
+$env:OLLAMA_HOST = "0.0.0.0"
+ollama serve
+```
+
+**Linux/macOS**:
+```bash
+OLLAMA_HOST=0.0.0.0 ollama serve
+```
+
+Or set `OLLAMA_HOST=0.0.0.0` in system environment variables before starting Ollama.
+
+### 2. Context Window
+
+Ensure 64k context for code generation:
+```powershell
+$env:OLLAMA_CONTEXT_LENGTH = "65536"
+```
+
+### 3. Firewall
+
+Allow inbound TCP 11434 from Tailscale network (or from the notebook's Tailscale IP).
+
+### 4. Tailscale
+
+Install Tailscale on goliath. Note the Tailscale IP: `tailscale ip -4`
+
+### 5. Required Models
+
+Pull before the demo:
+```bash
+ollama pull qwen2.5-coder:latest
+ollama pull llama3.1:latest
+```
+
+---
+
+## Notebook Setup (At Client)
+
+### 1. Prerequisites
+
+- Python 3.12+
+- Tailscale installed and logged in
+- Git (to clone repo)
+
+### 2. Clone and Install
+
+```powershell
+git clone https://github.com/sandraschi/dark-app-factory.git
+cd dark-app-factory
+pip install -r requirements.txt
+```
+
+### 3. Environment Variables
+
+Replace `GOLIATH_TAILSCALE_IP` with goliath's Tailscale IP (e.g. `100.64.1.5`):
+
+```powershell
+$env:WORKER_BASE_URL = "http://GOLIATH_TAILSCALE_IP:11434/v1"
+$env:FOREMAN_BASE_URL = "http://GOLIATH_TAILSCALE_IP:11434/v1"
+$env:WORKER_MODEL = "qwen2.5-coder:latest"
+$env:FOREMAN_MODEL = "llama3.1:latest"
+$env:OLLAMA_CONTEXT_LENGTH = "65536"
+```
+
+### 4. Verify Connection
+
+```powershell
+curl http://GOLIATH_TAILSCALE_IP:11434/api/tags
+```
+
+Should return JSON with available models.
+
+---
+
+## Demo Workflow
+
+### Before the Meeting
+
+1. Start goliath's Ollama with `OLLAMA_HOST=0.0.0.0`
+2. On notebook: connect Tailscale, verify `curl` to goliath works
+3. Prepare `vibe.md` in advance or draft with the client live
+
+### During the Demo
+
+1. **Optional**: Start dashboard for visual feedback:
+   ```powershell
+   python web/server.py
+   ```
+   Open `http://localhost:8002` in browser.
+
+2. **Enrich** (optional): Expand the vibe with LLM
+   ```powershell
+   python foreman.py enrich --vibe vibe.md
+   ```
+
+3. **Plan**: Generate specs and scenarios
+   ```powershell
+   python foreman.py plan
+   ```
+
+4. **Build**: Run the full factory
+   ```powershell
+   python factory.py run
+   ```
+
+5. **Show**: Factory outputs to `outputs/output_001/`. Run the generated app, show the landing page, walk through the code.
+
+### Latency Expectations
+
+- Each specialist call: 5–60 seconds (depends on model, context, goliath load)
+- Full build: 10–30 minutes for a typical app (dentist, beekeeper, etc.)
+- Tailscale adds ~10–50 ms per request. Acceptable.
+
+---
+
+## Building for the Client
+
+### Same Setup
+
+Use the same notebook + Tailscale + goliath configuration. The client's vibe defines the app; everything else is identical.
+
+### Output Delivery
+
+- **Option A**: Copy `outputs/output_XXX/` to USB or cloud. Client runs it on their machine.
+- **Option B**: Run the generated app on the notebook during the session, show it live. Leave the output folder with the client.
+- **Option C**: Copy output to goliath, run there, expose via Tailscale or ngrok for client to access.
+
+### Client's Machine
+
+The generated app needs Python 3.12+ (for FastAPI) or Node 18+ (for React). If the client has neither, deliver a Dockerized build (Registrar generates Dockerfile) or a static export.
+
+---
+
+## Troubleshooting
+
+| Issue | Check |
+|-------|-------|
+| `Connection refused` to goliath | Ollama on goliath has `OLLAMA_HOST=0.0.0.0`? Firewall allows 11434? |
+| Tailscale not connected | Both machines on same Tailscale network? `tailscale status` |
+| Timeout on LLM calls | Large context (64k) can take 60s+. Increase HTTP timeout in llm_client if needed. |
+| Generated app won't start | `pip install -r requirements.txt` or `npm install` in output dir. Check `main.py` vs `app.py` entry. |
+| Dashboard shows no progress | ProgressTracker may not sync if subprocess. Check dashboard logs. |
+
+---
+
+## Offline / No Tailscale Fallback
+
+If the client site has no network and you cannot use Tailscale:
+
+1. **Run Ollama locally on the notebook**:
+   - Use a small model (7B) in CPU mode
+   - Expect 8–10 GB RAM for the model alone
+   - 16 GB RAM may be borderline; smaller models (3B) or quantized variants help
+   - Generation will be slow (minutes per file)
+
+2. **Pre-build**:
+   - Run the full factory at home/office before the meeting
+   - Bring the output on USB, demo the result only
+
+3. **Spec-only demo**:
+   - Run only `foreman plan` at home (with goliath)
+   - Bring `specs.md` and `scenarios.md` to the client
+   - Show the plan, explain the methodology; build later remotely
+
+---
+
+## Checklist
+
+**Before leaving for client**:
+- [ ] Goliath Ollama running with `OLLAMA_HOST=0.0.0.0`
+- [ ] Models pulled (qwen2.5-coder, llama3.1)
+- [ ] Tailscale on both machines
+- [ ] Notebook repo cloned, deps installed
+- [ ] Env vars set (or in `.env`)
+
+**At client**:
+- [ ] Tailscale connected
+- [ ] `curl http://GOLIATH_IP:11434/api/tags` works
+- [ ] `vibe.md` ready (or drafted with client)
+
+```
+
+## Configuration - Full Content
+
+### Pyproject
+Source: pyproject.toml
+```
+[project]
+name = "dark-app-factory"
+version = "0.1.0"
+description = "Software Factory scaffold for local AI models"
+dependencies = [
+    "openai>=1.52.0",
+    "pydantic>=2.9.0",
+    "rich>=13.9.0",
+    "tenacity>=9.0.0",
+    "python-dotenv>=1.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+]
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "httpx>=0.27.0",
+]
+judge = [
+    "playwright>=1.40.0",
+]
+verify = [
+    "showboat",
+    "rodney",
+]
+
+[project.scripts]
+foreman = "dark_app_factory.foreman:main"
+factory = "dark_app_factory.factory:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+```
+
+### Package
+Source: package.json
+```
+{
+  "dependencies": {
+    "@langchain/core": "^1.1.20"
+  }
+}
+
+```
+
+### Config
+Source: .git\config
+```
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = false
+	logallrefupdates = true
+	symlinks = false
+	ignorecase = true
+[remote "origin"]
+	url = https://github.com/sandraschi/dark-app-factory.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "master"]
+	remote = origin
+	merge = refs/heads/master
+	vscode-merge-base = origin/master
+
+```
+
+## Optional - Full Content
+
+### Changelog
+Source: CHANGELOG.md
+```
+# Changelog
+
+All notable changes to the Dark App Factory will be documented in this file.
+
+## [1.7.0] - 2025-02-08
+
+### Added
+- **REMOTE_CLIENT_DEMO.md**: Practical guide for demo/build at client site. Notebook (16GB, no GPU) + Tailscale + goliath server running Ollama. Goliath setup, notebook env vars, demo workflow, troubleshooting, offline fallback.
+- **FULL_AUTO_DEPLOYMENT.md**: Gap analysis for full auto (domain, host, HTTPS, deploy). INWX API for .at, Hetzner API, Phase 1-3 roadmap. Not yet implemented.
+- **MONETIZATION_PLAN.md**: €100 "Make My App" and €300 "Dark Factory + Support" products. Austrian small-company setup (Einzelunternehmen, Kleinunternehmer, Gewerbe). Landing page via meta-mcp. Non-tech packaging (ZIP, install.bat).
+
+### Changed
+- **README.md**: Added REMOTE_CLIENT_DEMO, FULL_AUTO_DEPLOYMENT, MONETIZATION_PLAN to docs list.
+- **PRD.md**: Added Full Auto Deployment and Monetization to roadmap.
+- **ASSESSMENT.md**: Updated file inventory, maturity, Last Updated.
+
+## [1.6.0] - 2025-02-08
+
+### Added
+- **STRONGDM_ANALYSIS.md**: Documented analysis and comparison with [StrongDM Factory](https://factory.strongdm.ai). Methodology, economics ($1k/dev/day vs free), technique mapping, gaps (Pyramid Summaries, Semport).
+- **Pyramid Summaries**: Deferred technique from StrongDM. Reversible multi-level context compression (2w, 4w, 8w, 16w) for specs/dependency context. Added to roadmap and NEXTSTEPS.
+
+### Changed
+- **PRD.md**: Added StrongDM attribution, updated roadmap with Pyramid Summaries as v2.0+ candidate.
+- **ASSESSMENT.md**: Strategic positioning vs StrongDM, Pyramid Summaries gap, STRONGDM_ANALYSIS reference.
+- **NEXTSTEPS.md**: Added Pyramid Summaries to Priority 3 (Phase 3+), reference to STRONGDM_ANALYSIS.
+- **ARCHITECTURE.md**: Added Section 10 (Future Techniques) documenting Pyramid Summaries.
+- **README.md**: StrongDM attribution, STRONGDM_ANALYSIS in docs list.
+
+## [1.5.0] - 2025-02-08
+
+### Added
+- **SOTA Dashboard**: New web-based factory UI on `http://localhost:8002`. Features glassmorphic design, real-time status monitoring, and specialist execution visualization.
+- **Real-Time Progress Tracking**: Standardized `ProgressTracker` singleton that reports build milestones (0-100%) from both the factory orchestrator and individual specialists.
+- **Industrial Startup Protocol**: Robust implementation of `scripts/cleanup_zombies.ps1` integrated into `start_factory.ps1`. Automatically neutralizes processes blocking factory ports (8001, 8002) before launch.
+- **Improved Logging Sync**: Synchronized singleton Logger initialization across the entire process tree to ensure all diagnostic data reaches the dashboard.
+
+### Fixed
+- **Port Blocking Issues**: Resolved the common problem of "Address already in use" errors during rapid development cycles.
+- **Dashboard Progress Polling**: Implemented `/api/progress` endpoint for the frontend to reliably track long-running builds.
+
+## [1.4.0] - 2026-02-08
+
+### Added
+- **DTU v0.2**: Complete rewrite of Digital Twin Universe with 9 mock services (Stripe, Auth, Email, SMS, Storage, Discord, Slack, Weather, Generic Webhook). Service registry at `/dtu/services`. Request audit log at `/dtu/log`. Deterministic always-succeed behavior.
+- **DTU Integration Pipeline**: Factory starts DTU before Worker build. Judge receives `--dtu-url` argument. RunManifest injects DTU env vars (`STRIPE_API_URL`, `AUTH_API_URL`, etc.) into generated app's process environment.
+- **DTU-Aware Code Generation**: Plumber specialist prompts now mandate env-var-based external API URLs for both Python (`os.environ.get(...)`) and Node (`process.env.X || default`). Generated apps never hardcode external URLs.
+- **DTU Health Check**: Factory verifies DTU is actually responding (`/health`) after spinning it up, not just checking if the process is alive.
+
+### Fixed
+- **DTU completely disconnected from pipeline** (was HIGH severity, now resolved).
+- **RunManifest stack detection**: Now detects `app.py` as Python entry point (previously only `main.py`).
+- **DTU process cleanup**: Factory now calls `dtu.wait(timeout=5)` after terminate for clean shutdown.
+
+## [1.3.0] - 2026-02-08
+
+### Added
+- **Propagandist Specialist**: New council member (18th specialist) that generates a full marketing/distribution kit: press release, blog post, social media kit (Twitter/LinkedIn/Instagram/Bluesky/Mastodon), email pitches (journalist/YouTuber/newsletter), Reddit posts, Discord announcements, Product Hunt launch kit, and a landing page HTML. Requires Shakespeare (copy) + Librarian (docs).
+- **Vibe Enrichment**: New `foreman enrich` subcommand. LLM expands a terse vibe into a rich, domain-aware brief with suggested features, integrations, branding, pages, and workflows. User reviews `enriched_vibe.md` before proceeding to plan.
+- **Landing Page Generation**: Factory pipeline now auto-generates `www/index.html` for every build (Step 5). Self-contained dark theme, glassmorphism, responsive. Runs even for API-only apps.
+- **Context Injection**: `get_dependency_context()` in base Specialist. All specialists with `requires` now read upstream dependency output and inject it into their prompts (capped at 8000 chars).
+- **Validation Hooks**: `validate()` method on base Specialist with domain-specific overrides: Plumber (server startup + /health), Sculptor (export statement), Registrar (JSON parse + package count), Morpheus (crypto imports), Librarian (markdown headers). Failed validation triggers retry with error injected.
+- **Self-Declaration**: `declare_files()` method lets specialists inject files based on specs keywords. Plumber, Registrar, Nervos, Raggy, Morpheus, Amodei now declare their mandatory files.
+- **Per-Specialist Temperature**: Each specialist has a tuned temperature (Plumber 0.15, Morpheus 0.1, Sculptor 0.4, Shakespeare 0.7, Propagandist 0.65, etc.). `LLMClient.generate()` accepts optional `temperature` parameter.
+- **Stack-Aware New Specialists**: Nervos, Raggy, WebFinder, Archivist, Maestro, Auditor, Morpheus, Tesla, Amodei all branch Python vs Node prompts with framework-specific library recommendations.
+- **Health Endpoint Mandate**: Plumber now requires GET /health for both Python (FastAPI) and Node (Express) backends.
+- **API Docs Mandate**: FastAPI apps must keep /docs and /redoc active.
+
+### Fixed
+- **Async Foreman Bug**: `foreman.py` was calling `async generate()` without `await`. All three LLM functions are now properly `async def` with `await`, wrapped in `asyncio.run()`.
+- **judge.py Indentation**: Fixed indentation error at line 62.
+- **Validation retry**: Worker now has 3 attempts (up from 2) to accommodate both runt and validation retries.
+
+### Changed
+- **Worker retry logic**: Restructured to gate on runt detection first, then validation hook, using `continue` for cleaner flow.
+- **Specialist count**: 12 -> 19 (18 domain specialists + Generalist).
+- **Dependency graph**: 4 tiers -> Professor (0), bulk specialists (1), downstream specialists (2), Propagandist (3), Generalist (4).
+
+## [1.2.0] - 2026-02-08
+
+### Added
+- **Multi-Stack Factory**: Vibe.md `## Tech Stack` section parsed into stack profile. Backend (python/fastapi, python/flask, python/django, node/express), Frontend (react, htmx, none), Database (postgresql, mysql, sqlite, mongodb).
+- **Stack Profile Utilities**: `src/utils/stack_profile.py` with `parse_stack_from_vibe()`, `embed_in_specs()`, `extract_from_specs()`, `describe_stack()`.
+- **Plumber dual-mode**: Python (FastAPI/Flask/Django) and Node (Express) prompts.
+- **Sculptor dual-mode**: React and HTMX generation.
+- **Registrar dual-mode**: requirements.txt/pyproject.toml for Python, package.json for Node, Dockerfile for both.
+- **Deep-Crawl Python**: Scans Python imports (`from X import`, `import X`) in addition to TSX imports.
+
+## [1.1.0] - 2026-02-08
+
+### Added
+- **Selectable App Stack**: Support for Python (FastAPI, Flask, Django) and Node.js backends.
+- **Frontend Diversity**: Support for React, HTMX, and Svelte frontends.
+- **HelpOracle**: Multilevel CLI help system (`foreman help`).
+- **Advanced Logging**: Automated rotation and zip export components (`foreman log`).
+- **Playwright Satisficer**: Live UI/API execution-based judging in `judge.py`.
+- **Run Manifest**: Automated multi-component orchestration (`run_manifest.py`).
+- **Git Manager**: Automated `git init` and initial commits for all builds.
+- **Crawl v2**: Refined Deep-Crawl logic for component discovery.
+- **GitHub Sync**: Initialized factory repo and linked to `sandraschi/dark-app-factory`.
+
+### Changed
+- **Async Council**: Specialist execution is now fully parallelized per dependency level.
+- **Spec Injection**: Specialists now receive up to 50k chars of context to prevent skeletons.
+- **Auditor Specialist**: Updated with advanced verification logic for Playwright integration.
+
+### Fixed
+- Specialist Council import regressions.
+- File system "runt" detection (skeleton code prevention).
+- Vibe-to-Stack parsing reliability.
+
+## [1.0.0] - 2026-01-15
+- Initial public release of the Dark App Factory methodology.
+
+```
+
+### Mobile Roadmap
+Source: docs\MOBILE_ROADMAP.md
+```
+# Mobile Roadmap — Android, iOS, Capacitor, AltStore
+
+**Status**: Plan (not yet implemented)  
+**PWA**: Done (manifest, service worker, icons, meta injection)  
+**Environment**: Mac, Xcode 26.3, Apple Dev account
+
+---
+
+## Current State
+
+| Output | Status |
+|--------|--------|
+| Web app (React/HTMX, FastAPI/Node) | Done |
+| PWA (manifest, sw, icons, add-to-home-screen) | Done |
+| Native Android APK | Not implemented |
+| Native iOS IPA | Not implemented |
+| Capacitor wrapper | Not implemented |
+
+---
+
+## Phase 1: PWA — Done
+
+- manifest.json, sw.js, icons, theme-color, apple-mobile-web-app-capable
+- Add-to-home-screen on iPhone and Android
+- No store submission required
+
+---
+
+## Phase 2: Capacitor Wrapper (WebView + Native Shell)
+
+**Goal**: Package the web app as a native shell (Android APK, iOS IPA) via Capacitor.
+
+**Flow**:
+1. Factory builds web app as today (React/HTMX + backend)
+2. New specialist or post-step: run `npx cap init` in output
+3. Add Capacitor config (app ID, name)
+4. Copy web build (or serve from URL) into Capacitor `www/`
+5. Add `capacitor.config.ts` with backend URL for API
+6. Run `npx cap add android` and `npx cap add ios`
+
+**Requirements**:
+- Node/npm in factory environment
+- For iOS: macOS + Xcode (we have both)
+- For Android: Android SDK / Android Studio (or run on Mac via Capacitor CLI)
+
+**Output**:
+- `android/` and `ios/` folders in output
+- User runs `npx cap sync` and opens in Xcode/Android Studio to build
+
+**Complexity**: Medium. Capacitor CLI is well-documented. Main work: wiring into factory, handling hybrid vs static-only stacks.
+
+---
+
+## Phase 3: Automated iOS Build (Xcode + AltStore)
+
+**Goal**: Produce IPA from factory run, distributable via AltStore.
+
+**Flow**:
+1. Capacitor output present (Phase 2)
+2. Run `npx cap sync ios`
+3. Use `xcodebuild` (or Fastlane) to archive and export IPA
+4. Sign with Apple Dev account (provisioning profile, certificate)
+5. Output: `output_001/builds/MyApp.ipa`
+
+**Requirements**:
+- Mac with Xcode 26.3 — we have
+- Apple Developer account — we have
+- Provisioning profile + signing cert (configurable)
+- Optional: Fastlane for automation
+
+**AltStore**:
+- AltStore accepts standard IPA files
+- User installs AltServer on Mac/PC, adds device, sideloads IPA
+- No change to build output — same IPA works for TestFlight, AltStore, or ad-hoc
+
+**Complexity**: High. Signing and provisioning are fiddly. Recommend Fastlane match for cert management.
+
+---
+
+## Phase 4: Automated Android Build
+
+**Goal**: Produce APK/AAB from factory run.
+
+**Flow**:
+1. Capacitor output present (Phase 2)
+2. Run `npx cap sync android`
+3. Run `./gradlew assembleRelease` (or bundleRelease for AAB)
+4. Sign with keystore (user-provided or generated)
+5. Output: `output_001/builds/MyApp.apk`
+
+**Requirements**:
+- Android SDK (Android Studio or cmdline-tools)
+- Keystore for release signing
+
+**Complexity**: Medium. Gradle builds are scriptable. Keystore handling is the main config item.
+
+---
+
+## Suggested Implementation Order
+
+| Phase | Content | Effort |
+|-------|---------|--------|
+| 1 | PWA | Done |
+| 2a | Capacitor init + android/ios folders | 1–2 days |
+| 2b | Factory flag: `--mobile` to enable Capacitor step | 0.5 day |
+| 3 | iOS build script (xcodebuild or Fastlane) | 2–3 days |
+| 4 | Android build script (Gradle) | 1–2 days |
+| 5 | AltStore distribution doc (how to sideload) | 0.5 day |
+
+---
+
+## File Layout (Target)
+
+```
+output_001/
+  ...existing app...
+  android/           # Capacitor
+  ios/               # Capacitor
+  capacitor.config.ts
+  builds/            # After build step
+    MyApp.ipa
+    MyApp.apk
+```
+
+---
+
+## References
+
+- [Capacitor](https://capacitorjs.com/docs)
+- [AltStore](https://altstore.io/)
+- [Fastlane](https://fastlane.tools/)
+- [Xcode build for export](https://developer.apple.com/documentation/xcode/distributing-your-app-for-testing)
+
+```

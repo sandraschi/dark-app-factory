@@ -3,14 +3,19 @@ import argparse
 import sys
 import asyncio
 import re
-from utils.logger import logger
 
-# Add src to path if needed or structure correctly
-sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
-from llm_client import LLMClient
-from utils.git_manager import GitManager
-from utils.progress import progress
-from utils.stack_profile import (
+# Normalize import paths: ensure project root is on sys.path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+if os.path.join(BASE_DIR, "src") not in sys.path:
+    sys.path.insert(1, os.path.join(BASE_DIR, "src"))
+
+from src.utils.logger import logger
+from src.llm_client import LLMClient
+from src.utils.git_manager import GitManager
+from src.utils.progress import progress
+from src.utils.stack_profile import (
     extract_from_specs,
     describe_stack,
     is_python_backend,

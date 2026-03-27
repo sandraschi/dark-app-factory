@@ -1,0 +1,32 @@
+# dark-app-factory
+> **"Software Factories for the Rest of Us."** A local-first, low-cost implementation of the "Software Factory" methodology (Spec -> Scenarios -> Agent Loop). Inspired by [StrongDM Factory](https://fact...
+
+This project includes automated llms.txt generation for AI accessibility.
+
+## Docs
+- [Readme](README.md): **"Software Factories for the Rest of Us."**
+- [Strongdm Analysis](docs\STRONGDM_ANALYSIS.md): **Source**: [factory.strongdm.ai](https://factory.strongdm.ai)
+- [Assessment](ASSESSMENT.md): **Assessor**: Claude Opus 4.6 (Cursor)
+- [Nextsteps](NEXTSTEPS.md): **Author**: Gemini 3 (Antigravity)
+- [Changelog](CHANGELOG.md): All notable changes to the Dark App Factory will be documented in this file.
+- [Prd](PRD.md): > **Mission**: Democratize "Software Factory" methodology for the vibecoder community using low-cost...
+- [Vibe Current](vibe_current.md): i am beekeeper julius stich located in hollabrunn, i want a nice webshop and also a site for myself ...
+- [Jury Room Plan](docs\JURY_ROOM_PLAN.md): **Status**: Planned for March implementation
+- [Feedback](feedback.md): - **Missing**: start page crashes with vite error, store page not correctly made or pointed to
+- [Vibe](vibe.md): > "I want a dentist website for my friend Joe Painlessdriller in Hollabrunn, Schlossgasse 1. It must...
+
+## Api
+- [Verify Docs Api](verify_docs_api.py): Api definitions and implementations
+
+## Examples
+- [Demos](demos/): Demo code and implementations
+- [Remote Client Demo](docs\REMOTE_CLIENT_DEMO.md): Demo usage and code samples
+
+## Configuration
+- [Pyproject](pyproject.toml): Python project configuration and dependencies
+- [Package](package.json): Node.js project configuration and dependencies
+- [Config](.git\config): Application configuration files
+
+## Optional
+- [Changelog](CHANGELOG.md): Project changelog information
+- [Mobile Roadmap](docs\MOBILE_ROADMAP.md): Project roadmap information

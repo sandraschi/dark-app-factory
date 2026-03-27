@@ -218,3 +218,27 @@ To ensure zero-friction development, the factory implements a robust startup log
 - [CHANGELOG.md](CHANGELOG.md) -- Version history
 - [PRD.md](PRD.md) -- Product requirements
 - [META_MCP_INTEGRATION.md](docs/META_MCP_INTEGRATION.md) -- meta-mcp cross-utilization
+
+
+## 🚀 Installation
+
+### Prerequisites
+- [uv](https://docs.astral.sh/uv/) installed (RECOMMENDED)
+- Python 3.12+
+
+### 📦 Quick Start
+Run immediately via `uvx`:
+```bash
+uvx foreman
+```
+
+### 🎯 Claude Desktop Integration
+Add to your `claude_desktop_config.json`:
+```json
+"mcpServers": {
+  "foreman": {
+    "command": "uv",
+    "args": ["--directory", "D:/Dev/repos/dark-app-factory", "run", "foreman"]
+  }
+}
+```

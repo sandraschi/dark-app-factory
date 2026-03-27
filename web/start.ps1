@@ -1,20 +1,38 @@
-# Dark App Factory Web Dashboard (reservoir port 10738 per WEBAPP_PORTS.md)
+# Dark App Factory web launcher (FastAPI + static index.html)
 $WebPort = 10738
-$ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
 
-try {
-    $conn = Get-NetTCPConnection -LocalPort $WebPort -ErrorAction SilentlyContinue
-    if ($conn) {
-        $conn.OwningProcess | Select-Object -Unique | ForEach-Object {
-            if ($_ -gt 0) { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
+function Get-PidsOnPort([int]$Port) {
+    $matches = netstat -ano -p tcp | Select-String -Pattern "LISTENING\s+(\d+)$" | Select-Object -ExpandProperty Line
+    $pids = @()
+    foreach ($line in $matches) {
+        if ($line -match "^\s*TCP\s+\S+:$Port\s+\S+\s+LISTENING\s+(\d+)\s*$") {
+            $procId = [int]$Matches[1]
+            if ($procId -gt 4) { $pids += $procId }
         }
-        Start-Sleep -Seconds 1
     }
-} catch { }
+    return $pids | Select-Object -Unique
+}
 
-$env:PYTHONPATH = $ProjectRoot
-$env:PORT = $WebPort
+Write-Host "Checking for port squatters on $WebPort..." -ForegroundColor Yellow
+foreach ($p in (Get-PidsOnPort -Port $WebPort)) {
+    Write-Host "Found squatter (PID: $p). Terminating..." -ForegroundColor Red
+    try { Stop-Process -Id $p -Force -ErrorAction Stop } catch { Write-Host "Warning: Could not terminate PID $p." -ForegroundColor Gray }
+}
+
 Set-Location $ProjectRoot
-Write-Host "Starting Dark App Factory Dashboard on port $WebPort..." -ForegroundColor Green
-Write-Host "Dashboard: http://localhost:$WebPort" -ForegroundColor Cyan
-python web/server.py
+$env:PYTHONPATH = "$ProjectRoot;$ProjectRoot\src"
+$env:PORT = "$WebPort"
+
+Write-Host "Starting Dark App Factory web server on http://127.0.0.1:$WebPort ..." -ForegroundColor Green
+# Project packaging is currently not hatch-configured for editable install; use uv no-project runtime deps.
+uv run --no-project `
+    --with fastapi `
+    --with uvicorn `
+    --with pydantic `
+    --with openai `
+    --with rich `
+    --with tenacity `
+    --with python-dotenv `
+    python ".\web\server.py"
+

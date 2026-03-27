@@ -35,11 +35,19 @@ class Specialist(abc.ABC):
 
     @abc.abstractmethod
     async def generate(
-        self, specs: str, shared_context: Dict[str, Any]
-    ) -> Dict[str, str]:
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
         """
-        Produce code based on specs and context from previous workers.
-        Returns a dictionary of {file_path: content}.
+        Generate code for a single file based on specs and upstream context.
+
+        Args:
+            file_path: Target file path to generate.
+            specs: Full specification text.
+            shared_context: Accumulated outputs from upstream specialists.
+            worker: LLMClient instance for code generation.
+
+        Returns:
+            Generated source code as a string.
         """
         pass
 

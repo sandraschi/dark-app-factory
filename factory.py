@@ -22,6 +22,7 @@ if os.path.join(BASE_DIR, "src") not in sys.path:
 from src.utils.logger import logger
 from src.llm_client import LLMClient
 from src.utils.progress import progress
+from src.verification import showboat_runner
 from foreman import conduct_research, generate_blueprint, read_vibe
 from worker import run_factory
 
@@ -359,11 +360,46 @@ async def main_flow(vibe_path="vibe.md", output_dir=None, ghost_dna=None):
             progress.update(20, "Worker: Initializing build floor...")
             await run_factory("specs/specs.md", output_dir, worker=worker_client)
 
+            # --- manifest.json for RunManifest (judge phase) ---
+            from run_manifest import write_manifest_from_output
+
+            write_manifest_from_output(output_dir)
+
+            # --- Ruffy: ruff + mypy lint report ---
+            lint_report = ""
+            try:
+                from src.verification.ruffy_runner import run_ruffy
+
+                progress.update(70, "Ruffy: Running ruff + mypy...")
+                lint_report, _ = run_ruffy(output_dir)
+            except Exception as e:
+                logger.warning("Ruffy lint step failed (non-fatal): %s", e)
+
             # --- Git Versioning ---
-            from utils.git_manager import GitManager
+            from src.utils.git_manager import GitManager
 
             gm = GitManager(output_dir)
-            gm.commit_changes("Factory Build Completion: Worker Phase")
+            gm.initialize()
+
+            # 5b. Showboat Build Demo Artifact
+            try:
+                progress.update(75, "Showboat: Generating build demo artifact...")
+                demos_dir = os.path.join(output_dir, "demos")
+                # Count generated files
+                file_count = sum(
+                    len(files) for _, _, files in os.walk(output_dir)
+                )
+                demo_path = showboat_runner.create_build_demo(
+                    output_dir=output_dir,
+                    demo_dir=demos_dir,
+                    project_name=os.path.basename(output_dir),
+                    files_generated=file_count,
+                    stack_desc="",  # stack_desc not available here
+                )
+                if demo_path:
+                    logger.info("Build demo artifact: %s", demo_path)
+            except Exception as e:
+                logger.warning("Showboat demo generation failed (non-fatal): %s", e)
 
             # 6. Propagandist (Landing Page)
             try:
@@ -372,19 +408,42 @@ async def main_flow(vibe_path="vibe.md", output_dir=None, ghost_dna=None):
             except Exception as e:
                 logger.warning("Landing page generation failed (non-fatal): %s", e)
 
-            # 7. Satisficer (Judge)
+            # 6a. PWA artifacts (manifest, sw, icons, meta injection)
             try:
-                judge_cmd = [
-                    sys.executable,
-                    "judge.py",
-                    "judge",
-                    "--output",
-                    output_dir,
-                ]
-                if dtu:
-                    judge_cmd.extend(["--dtu-url", DTU_URL])
+                from src.pwa import add_pwa_artifacts
+
+                data = _extract_landing_page_data("specs/specs.md")
+                progress.update(86, "PWA: Adding manifest, service worker, icons...")
+                add_pwa_artifacts(output_dir, project_name=data["project_name"])
+            except Exception as e:
+                logger.warning("PWA artifact generation failed (non-fatal): %s", e)
+
+            # 6b. Deploy artifacts (Phase 1: deploy.sh, deploy_config.example.yaml)
+            try:
+                from src.deployment import generate_deploy_artifacts
+
+                progress.update(88, "Deploy: Generating deploy artifacts...")
+                generate_deploy_artifacts(output_dir)
+            except Exception as e:
+                logger.warning("Deploy artifact generation failed (non-fatal): %s", e)
+
+            # 7. Satisficer (Judge) -- direct async call, no subprocess
+            try:
+                from judge import run_judgement
+
                 progress.update(95, "Satisficer: Running quality audit...")
-                run_step("Satisficer Judging", judge_cmd)
+                dtu_url_for_judge = DTU_URL if dtu else None
+                judge_passed = await run_judgement(
+                    scenarios_path="scenarios/scenarios.md",
+                    output_dir=output_dir,
+                    dtu_url=dtu_url_for_judge,
+                    llm_client=foreman_client,
+                    lint_report=lint_report,
+                )
+                if judge_passed:
+                    gm.commit_changes("Passed quality gate")
+                else:
+                    logger.warning("Quality gate FAILED. See critique.md.")
             except Exception as e:
                 logger.error("Satisficer phase failed: %s", e)
 
@@ -432,17 +491,15 @@ def _launch_results(output_dir, dtu):
         logger.error("Port allocation failed: %s", e)
         return
 
-    # Build DTU env var string
+    # Build DTU env var string (source of truth: run_manifest.DTU_ENV_VARS)
     dtu_env_str = ""
     if dtu:
-        dtu_env_str = (
-            f" && set DTU_URL={DTU_URL}"
-            f" && set STRIPE_API_URL={DTU_URL}/stripe"
-            f" && set AUTH_API_URL={DTU_URL}/auth"
-            f" && set EMAIL_API_URL={DTU_URL}/email"
-            f" && set SMS_API_URL={DTU_URL}/sms"
-            f" && set STORAGE_API_URL={DTU_URL}/storage"
-        )
+        from run_manifest import DTU_ENV_VARS
+
+        parts = [f" && set DTU_URL={DTU_URL}"]
+        for var, path in DTU_ENV_VARS.items():
+            parts.append(f" && set {var}={DTU_URL}{path}")
+        dtu_env_str = "".join(parts)
 
     # 1. Open Output Folder
     os.startfile(output_dir)

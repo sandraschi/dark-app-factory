@@ -3,13 +3,18 @@ import asyncio
 import json
 import sys
 import os
-from utils.logger import logger
 
-# Add src to path if needed or structure correctly
-sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
-from llm_client import LLMClient
-from utils.help_oracle import oracle
-from utils.stack_profile import (
+# Normalize import paths: ensure project root is on sys.path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+if os.path.join(BASE_DIR, "src") not in sys.path:
+    sys.path.insert(1, os.path.join(BASE_DIR, "src"))
+
+from src.utils.logger import logger
+from src.llm_client import LLMClient
+from src.utils.help_oracle import oracle
+from src.utils.stack_profile import (
     parse_stack_from_vibe,
     embed_in_specs,
     describe_stack,
@@ -72,6 +77,9 @@ async def enrich_vibe(
        - A beekeeper app needs: hive health monitoring, swarm calendar,
          queen tracking, harvest logging, webshop for honey/products,
          weather integration, apiary map.
+       - An MCP + webapp for controlling a Windows app (VLC, 7-Zip, etc.) needs:
+         FastMCP tools mirroring control actions, shared service layer (subprocess),
+         FastAPI routes for the webapp, pyproject.toml + PyPI packaging.
     3. **Suggest Tech Integrations**: What real-world APIs or services would
        make this app genuinely useful? (e.g., payment gateway, calendar sync,
        weather API, camera feeds, notification services)
@@ -241,11 +249,20 @@ Output format: Markdown checklist."""
     ---
     
     Generate a `scenarios.md` file containing a list of testable user stories.
-    Format each scenario with:
+    
+    FORMAT each scenario EXACTLY as:
     - [ ] **Title**: Description
       - GIVEN: Context
-      - WHEN: Action
-      - THEN: Expected Result
+      - WHEN: Action (use "Submit a GET/POST/PUT/DELETE request to \`/path\`" for API scenarios)
+      - THEN: Expected Result (include status codes when relevant, e.g. "A 404 Not Found error is returned")
+    
+    PREFER standard flows from these domains when the app matches:
+    - E-commerce: registration, login, product list, add to cart, checkout, orders. Use paths like /products, /cart, /orders.
+    - SaaS auth: signup, verify email, login, logout, forgot/reset password, protected endpoints. Use paths like /api/auth/*.
+    - CRUD resources: create, list, get by ID, update, delete, validation errors. Use GIVEN/WHEN/THEN format.
+    
+    The Satisficer parses WHEN clauses to run real HTTP requests. Ensure WHEN lines match:
+    "Submit a POST request to \`/users\` with valid JSON payload." or "Submit a GET request to \`/products\`."
     """
 
     logger.info("Generating Scenarios...")

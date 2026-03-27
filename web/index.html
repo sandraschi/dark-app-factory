@@ -25,8 +25,8 @@
 
         .glass {
             background: var(--glass);
-            backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
             border: 1px solid var(--glass-border);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
@@ -100,6 +100,14 @@
             <a href="#" id="nav-specialists" onclick="showSection('specialists')"
                 class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
                 <span>🧰</span> Specialist Hub
+            </a>
+            <a href="#" id="nav-apps" onclick="showSection('apps')"
+                class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
+                <span>📱</span> Fleet Navigation
+            </a>
+            <a href="#" id="nav-tools" onclick="showSection('tools')"
+                class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
+                <span>🔧</span> Platform Tools
             </a>
             <a href="#" id="nav-settings" onclick="showSection('settings')"
                 class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
@@ -314,8 +322,8 @@
                         </div>
                         <div class="w-full h-2 bg-black/40 rounded-full overflow-hidden border border-white/5">
                             <div id="progress-bar"
-                                class="h-full bg-indigo-600 shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-500"
-                                style="width: 0%"></div>
+                                class="h-full bg-indigo-600 shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-500 w-0">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -451,8 +459,191 @@
 
             if (sectionId === 'specialists') {
                 fetchSpecialists();
+            } else if (sectionId === 'apps') {
+                renderFleet();
             }
             appendLog(`Navigated to ${sectionId}.`, 'text-slate-500 italic');
+        }
+
+        const FLEET_REGISTRY = [
+            {
+                id: "blender-mcp",
+                name: "Blender Control",
+                description: "3D visualization and geometry orchestration.",
+                port: 10848,
+                repo_path: "D:/Dev/repos/blender-mcp",
+                icon: "📦",
+                category: "Creative"
+            },
+            {
+                id: "avatar-mcp",
+                name: "Avatar Control",
+                description: "VRM avatar management and animation orchestration.",
+                port: 10792,
+                repo_path: "D:/Dev/repos/avatar-mcp",
+                icon: "👤",
+                category: "Creative"
+            },
+            {
+                id: "alexa-mcp",
+                name: "Alexa Control",
+                description: "Acoustic bridge and voice command orchestration.",
+                port: 10800,
+                repo_path: "D:/Dev/repos/alexa-mcp",
+                icon: "🎙️",
+                category: "Control"
+            },
+            {
+                id: "vienna-live-mcp",
+                name: "Vienna Live MCP",
+                description: "Transit and location-aware services in Vienna.",
+                port: 10878,
+                repo_path: "D:/Dev/repos/vienna-live-mcp",
+                icon: "🚇",
+                category: "Transit"
+            },
+            {
+                id: "handbrake-mcp",
+                name: "Handbrake MCP",
+                description: "Automated media transcoding and pipeline management.",
+                port: 10874,
+                repo_path: "D:/Dev/repos/handbrake-mcp",
+                icon: "🎬",
+                category: "Media"
+            },
+            {
+                id: "virtualdj-mcp",
+                name: "VirtualDJ MCP",
+                description: "SOTA VJing and audio orchestration.",
+                port: 10876,
+                repo_path: "D:/Dev/repos/virtualdj-mcp",
+                icon: "🎶",
+                category: "Media"
+            },
+            {
+                id: "openfang",
+                name: "OpenFang",
+                description: "Fleet supervisor and modular agentic node controller.",
+                port: 10870,
+                repo_path: "D:/Dev/repos/openfang",
+                icon: "🛡️",
+                category: "Infra"
+            },
+            {
+                id: "osc-mcp",
+                name: "OSC MCP",
+                description: "Real-time control protocol bridge for high-end gear.",
+                port: 10766,
+                repo_path: "D:/Dev/repos/osc-mcp",
+                icon: "🌊",
+                category: "Control"
+            },
+            {
+                id: "rustdesk-mcp",
+                name: "RustDesk MCP",
+                description: "Secure remote access and fleet management.",
+                port: 10804,
+                repo_path: "D:/Dev/repos/rustdesk-mcp",
+                icon: "🖥️",
+                category: "Infra"
+            },
+            {
+                id: "vroidstudio-mcp",
+                name: "VroidStudio MCP",
+                description: "Avatar creation and VR character pipeline.",
+                port: 10880,
+                repo_path: "D:/Dev/repos/vroidstudio-mcp",
+                icon: "👤",
+                category: "Creative"
+            },
+            {
+                id: "obsidian-mcp",
+                name: "Obsidian MCP",
+                description: "Knowledge graph and second brain integration.",
+                port: 10704,
+                repo_path: "D:/Dev/repos/obsidian-mcp",
+                icon: "📖",
+                category: "Knowledge"
+            },
+            {
+                id: "mcp-central-docs",
+                name: "Docs MCP",
+                description: "Standardized MCP documentation and fleet registry.",
+                port: 10720,
+                repo_path: "D:/Dev/repos/mcp-central-docs",
+                icon: "📚",
+                category: "Knowledge"
+            }
+        ];
+
+        function renderFleet() {
+            const grid = document.getElementById('fleet-grid');
+            grid.innerHTML = '';
+
+            FLEET_REGISTRY.forEach(app => {
+                const card = document.createElement('div');
+                card.className = 'glass p-6 rounded-2xl border border-white/5 hover:border-indigo-500/50 hover:scale-[1.02] transition-all group flex flex-col h-full';
+
+                const isCurrent = app.id === 'dark-app-factory';
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-4xl bg-white/5 w-16 h-16 rounded-xl flex items-center justify-center group-hover:bg-indigo-500/10 transition-colors">
+                            ${app.icon}
+                        </div>
+                        <span class="text-[10px] bg-white/5 text-slate-400 px-2 py-1 rounded border border-white/10">
+                            ${app.category}
+                        </span>
+                    </div>
+                    
+                    <h3 class="font-bold text-lg mb-2 group-hover:text-indigo-400 transition-colors">${app.name}</h3>
+                    <p class="text-xs text-slate-400 mb-6 flex-1">${app.description}</p>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono">
+                            <span>PORT</span>
+                            <span class="text-indigo-400">${app.port}</span>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                             ${isCurrent ?
+                        `<div class="flex-1 bg-indigo-500/20 text-indigo-400 text-center py-2 rounded-lg text-xs font-bold border border-indigo-500/30">
+                                    Current App
+                                 </div>` :
+                        `<button onclick="launchFleetApp('${app.repo_path}', '${app.name}')" 
+                                         class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 rounded-lg transition-all shadow-lg shadow-indigo-500/20">
+                                    Launch App
+                                 </button>
+                                 <a href="http://localhost:${app.port}" target="_blank"
+                                    class="w-10 h-9 bg-white/5 hover:bg-white/10 flex items-center justify-center rounded-lg border border-white/10 transition-all">
+                                    🌐
+                                 </a>`
+                    }
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function launchFleetApp(path, name) {
+            appendLog(`Initiating launch for ${name}...`, 'text-indigo-400');
+            try {
+                const res = await fetch(`${API_BASE}/fleet/launch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo_path: path })
+                });
+
+                if (res.ok) {
+                    appendLog(`Launch signal accepted for ${name}. Check console.`, 'text-emerald-400');
+                } else {
+                    const data = await res.json();
+                    appendLog(`Launch failed: ${data.detail}`, 'text-rose-400');
+                }
+            } catch (e) {
+                appendLog(`Connection error during launch: ${e.message}`, 'text-rose-400');
+            }
         }
 
         async function fetchSpecialists() {

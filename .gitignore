@@ -1,6 +1,7 @@
 # Dark App Factory - Git Ignore
 
 # Python
+.venv/
 __pycache__/
 *.py[cod]
 *$py.class

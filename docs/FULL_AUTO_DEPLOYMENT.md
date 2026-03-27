@@ -2,9 +2,9 @@
 
 **Question**: Can Dark App Factory do the complete web setup — HTTPS site, Austrian registrar, Hetzner host — fully automatic?
 
-**Short answer**: **No.** Not today. The factory generates the app and a static landing page. Domain registration, hosting provisioning, SSL, and deployment are outside its scope. This doc outlines the gap and what would be needed.
+**Short answer**: **Phase 1 done.** The factory now outputs deploy artifacts (`deploy.sh`, `deploy_config.example.yaml`, `docker-compose.prod.yml`, `nginx.conf`). User runs `deploy.sh` with API keys for Hetzner/INWX. Phases 2–3 (meta-mcp integration, auto domain registration) are planned.
 
-**Last Updated**: 2026-02-09
+**Last Updated**: 2026-02-11
 
 ---
 
@@ -17,6 +17,11 @@
 | `Dockerfile` | Done |
 | `requirements.txt` / `package.json` | Done |
 | Marketing kit (press, blog, social) | Done |
+| **Phase 1 deploy artifacts** | **Done** |
+| `deploy.sh` | Done |
+| `deploy_config.example.yaml` | Done |
+| `docker-compose.prod.yml` | Done (if missing) |
+| `nginx.conf` | Done (template) |
 
 ---
 
@@ -163,9 +168,15 @@ User runs the script with their API keys. Not fully automatic, but one command f
 
 ---
 
-## Recommendation
+## Phase 1 Usage (Implemented)
 
-**Phase 1 (MVP)**: Output `deploy.sh` + `deploy_config.example.yaml`. User runs manually with their keys. Document in REMOTE_CLIENT_DEMO or new DEPLOY_GUIDE.
+1. Run the factory. Output contains `deploy.sh`, `deploy_config.example.yaml`, `docker-compose.prod.yml`, `nginx.conf`.
+2. Copy `deploy_config.example.yaml` to `deploy_config.yaml`, fill in Hetzner/INWX API keys (optional for minimal deploy).
+3. Copy the output directory to your Hetzner server (scp/rsync).
+4. SSH into the server, run `./deploy.sh`. Script installs Docker if needed, builds and runs containers.
+5. For SSL: run `certbot certonly --standalone -d yourdomain.at` and update nginx.conf, then reload nginx.
+
+## Recommendation
 
 **Phase 2**: Integrate with meta-mcp. Factory can optionally call `deploy_to_cloudflare_pages` or `deploy_to_hetzner` if user has configured meta-mcp with keys. No domain in Phase 2 — use free subdomain.
 

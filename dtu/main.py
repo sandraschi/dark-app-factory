@@ -9,10 +9,10 @@ Provides deterministic, always-succeeding mock endpoints for:
 - Discord/Slack webhooks
 - Weather API
 - Generic webhook receiver
-
-The DTU runs on a configurable port (default 8001) and exposes a
-service registry at /dtu/services so generated apps can discover
-which mocks are available.
+- LLM (OpenAI/Anthropic compatible)
+- Google Calendar, Maps, Analytics
+- PuzzlePhil / puzzle API
+- TikTok, YouTube
 """
 
 import logging
@@ -33,7 +33,7 @@ DTU_PORT = int(os.environ.get("DTU_PORT", "8001"))
 app = FastAPI(
     title="Dark App Factory - Digital Twin Universe",
     description="Local mock server for external API dependencies.",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 # =====================================================================
@@ -106,6 +106,41 @@ SERVICE_REGISTRY = {
         "env_var": "WEBHOOK_URL",
         "description": "Generic webhook receiver (logs all calls)",
     },
+    "llm": {
+        "base_url": f"http://localhost:{DTU_PORT}/llm",
+        "env_var": "OPENAI_BASE_URL",
+        "description": "LLM mock (OpenAI/Anthropic compatible)",
+    },
+    "calendar": {
+        "base_url": f"http://localhost:{DTU_PORT}/calendar",
+        "env_var": "GOOGLE_CALENDAR_API_URL",
+        "description": "Google Calendar mock (events)",
+    },
+    "maps": {
+        "base_url": f"http://localhost:{DTU_PORT}/maps",
+        "env_var": "GOOGLE_MAPS_API_URL",
+        "description": "Google Maps geocoding mock",
+    },
+    "analytics": {
+        "base_url": f"http://localhost:{DTU_PORT}/analytics",
+        "env_var": "ANALYTICS_API_URL",
+        "description": "Analytics track mock (pageview, event)",
+    },
+    "puzzles": {
+        "base_url": f"http://localhost:{DTU_PORT}/puzzles",
+        "env_var": "PUZZLE_API_URL",
+        "description": "PuzzlePhil-style puzzle API mock",
+    },
+    "tiktok": {
+        "base_url": f"http://localhost:{DTU_PORT}/tiktok",
+        "env_var": "TIKTOK_API_URL",
+        "description": "TikTok upload/video mock",
+    },
+    "youtube": {
+        "base_url": f"http://localhost:{DTU_PORT}/youtube",
+        "env_var": "YOUTUBE_API_URL",
+        "description": "YouTube upload/videos mock",
+    },
 }
 
 
@@ -113,7 +148,7 @@ SERVICE_REGISTRY = {
 async def get_service_registry():
     """Returns the full service registry so generated apps can discover mock URLs."""
     return {
-        "dtu_version": "0.2.0",
+        "dtu_version": "0.3.0",
         "port": DTU_PORT,
         "services": SERVICE_REGISTRY,
         "env_vars": {v["env_var"]: v["base_url"] for v in SERVICE_REGISTRY.values()},
@@ -130,7 +165,7 @@ async def get_request_log(limit: int = 50):
 async def health():
     return {
         "status": "ok",
-        "version": "dtu-0.2.0",
+        "version": "dtu-0.3.0",
         "services": list(SERVICE_REGISTRY.keys()),
         "port": DTU_PORT,
     }
@@ -339,6 +374,186 @@ async def generic_webhook(path: str, request: Request):
         body = {"raw": (await request.body()).decode("utf-8", errors="replace")[:500]}
     logger.info("DTU webhook /%s: %s", path, str(body)[:100])
     return {"received": True, "path": path}
+
+
+# =====================================================================
+# LLM Mock (OpenAI/Anthropic compatible)
+# =====================================================================
+@app.post("/llm/v1/chat/completions")
+async def llm_chat(request: Request):
+    body = await request.json()
+    messages = body.get("messages", [])
+    last = messages[-1]["content"] if messages else ""
+    return {
+        "id": f"chatcmpl_{uuid.uuid4().hex[:12]}",
+        "object": "chat.completion",
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": f"[DTU Mock] Echo: {last[:100]}...",
+                },
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+    }
+
+
+# =====================================================================
+# Google Calendar Mock
+# =====================================================================
+@app.get("/calendar/events")
+async def list_events(calendar_id: str = "primary", max_results: int = 10):
+    return {
+        "items": [
+            {
+                "id": f"evt_{uuid.uuid4().hex[:8]}",
+                "summary": "Mock Event",
+                "start": {"dateTime": "2026-02-15T10:00:00Z"},
+                "end": {"dateTime": "2026-02-15T11:00:00Z"},
+                "status": "confirmed",
+            }
+            for _ in range(min(max_results, 3))
+        ],
+        "nextPageToken": None,
+    }
+
+
+@app.post("/calendar/events")
+async def create_event(request: Request):
+    body = await request.json()
+    return {
+        "id": f"evt_{uuid.uuid4().hex[:8]}",
+        "summary": body.get("summary", "Mock Event"),
+        "start": body.get("start", {"dateTime": "2026-02-15T10:00:00Z"}),
+        "end": body.get("end", {"dateTime": "2026-02-15T11:00:00Z"}),
+        "status": "confirmed",
+    }
+
+
+# =====================================================================
+# Google Maps / Geocoding Mock
+# =====================================================================
+@app.get("/maps/geocode")
+async def geocode(address: str = "Vienna, Austria"):
+    return {
+        "results": [
+            {
+                "place_id": f"mock_{uuid.uuid4().hex[:8]}",
+                "formatted_address": address,
+                "geometry": {"location": {"lat": 48.2082, "lng": 16.3738}},
+                "address_components": [],
+            }
+        ],
+        "status": "OK",
+    }
+
+
+@app.get("/maps/reverse")
+async def reverse_geocode(lat: float = 48.2082, lng: float = 16.3738):
+    return {
+        "results": [
+            {
+                "place_id": f"mock_{uuid.uuid4().hex[:8]}",
+                "formatted_address": "Mock Street 1, Vienna, Austria",
+                "geometry": {"location": {"lat": lat, "lng": lng}},
+            }
+        ],
+        "status": "OK",
+    }
+
+
+# =====================================================================
+# Analytics Mock
+# =====================================================================
+@app.post("/analytics/track")
+async def analytics_track(request: Request):
+    body = await request.json()
+    logger.info("DTU Analytics: %s", str(body)[:100])
+    return {"event_id": f"evt_{uuid.uuid4().hex[:12]}", "status": "tracked"}
+
+
+@app.post("/analytics/pageview")
+async def analytics_pageview(request: Request):
+    body = await request.json()
+    return {"status": "ok"}
+
+
+# =====================================================================
+# Puzzle API Mock (PuzzlePhil-style)
+# =====================================================================
+MOCK_PUZZLES = [
+    {"id": "pz_1", "type": "sudoku", "difficulty": "easy", "grid": [[0] * 9 for _ in range(9)]},
+    {"id": "pz_2", "type": "crossword", "difficulty": "medium", "clues": []},
+    {"id": "pz_3", "type": "wordsearch", "difficulty": "easy", "words": ["mock", "test"]},
+]
+
+
+@app.get("/puzzles/list")
+async def list_puzzles(puzzle_type: Optional[str] = None, limit: int = 10):
+    items = MOCK_PUZZLES
+    if puzzle_type:
+        items = [p for p in items if p.get("type") == puzzle_type]
+    return {"puzzles": items[:limit], "total": len(items)}
+
+
+@app.get("/puzzles/{puzzle_id}")
+async def get_puzzle(puzzle_id: str):
+    for p in MOCK_PUZZLES:
+        if p["id"] == puzzle_id:
+            return p
+    return {"id": puzzle_id, "type": "unknown", "data": {}}
+
+
+# =====================================================================
+# TikTok Mock
+# =====================================================================
+@app.post("/tiktok/upload")
+async def tiktok_upload(request: Request):
+    try:
+        body = await request.json() if "application/json" in request.headers.get("content-type", "") else {}
+    except Exception:
+        body = {}
+    vid = f"tiktok_{uuid.uuid4().hex[:12]}"
+    return {"video_id": vid, "status": "uploaded", "url": f"https://tiktok.com/@{vid}"}
+
+
+@app.get("/tiktok/video/{video_id}")
+async def tiktok_video(video_id: str):
+    return {"video_id": video_id, "status": "published", "views": 42, "likes": 10}
+
+
+# =====================================================================
+# YouTube Mock
+# =====================================================================
+@app.post("/youtube/videos")
+async def youtube_upload(request: Request):
+    try:
+        body = await request.json() if "application/json" in request.headers.get("content-type", "") else {}
+    except Exception:
+        body = {}
+    vid = f"yt_{uuid.uuid4().hex[:11]}"
+    return {
+        "id": vid,
+        "snippet": {"title": body.get("snippet", {}).get("title", "Mock Video"), "description": ""},
+        "status": {"uploadStatus": "uploaded", "privacyStatus": "private"},
+    }
+
+
+@app.get("/youtube/videos")
+async def youtube_list(part: str = "snippet", max_results: int = 5):
+    return {
+        "items": [
+            {
+                "id": f"yt_mock{i}",
+                "snippet": {"title": f"Mock Video {i}", "description": "", "publishedAt": "2026-02-01T00:00:00Z"},
+            }
+            for i in range(1, min(max_results, 4))
+        ],
+        "nextPageToken": None,
+    }
 
 
 # =====================================================================

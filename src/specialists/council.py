@@ -436,6 +436,9 @@ class Professor(Specialist):
         Analyze these application specs and identify the most relevant domain.
         Available local skills: {os.listdir("skills") if os.path.exists("skills") else "None"}
         
+        Hints: If specs mention MCP server, VLC, 7-Zip, or wrapping a Windows
+        executable with MCP tools + web dashboard, choose mcp-windows-app-wrapper.md.
+        
         Specs: {specs[:50000]}
         
         Output ONLY the filename of the best matching skill or "None".

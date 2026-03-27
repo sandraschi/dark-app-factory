@@ -75,7 +75,7 @@ vibe.md  -->  [foreman enrich]  -->  enriched_vibe.md (user reviews)
 - **Port**: Configurable via `DTU_PORT` env var (default 8001).
 - **Service Registry**: `GET /dtu/services` returns all mock URLs and corresponding env vars.
 - **Request Log**: `GET /dtu/log` returns the last N requests for debugging.
-- **Mock Services**: Stripe (payments, charges, balance), Auth (login, register, verify, me), Email, SMS, Storage (S3-compatible upload/download/delete), Discord webhooks, Slack webhooks, Weather (current + forecast), Generic webhook receiver.
+- **Mock Services**: Stripe, Auth, Email, SMS, Storage, Discord, Slack, Weather, Webhook, LLM (OpenAI/Anthropic), Google Calendar, Google Maps (geocoding), Analytics, Puzzles (PuzzlePhil-style), TikTok, YouTube.
 - **Deterministic**: All mocks always succeed. Payments always return `status: succeeded`. Auth always returns a valid JWT. This allows testing integration logic without external dependencies.
 
 ### Utils & Core Logic
