@@ -29,7 +29,6 @@ import os
 import shutil
 import subprocess
 import time
-from pathlib import Path
 from typing import Dict, List, Optional
 
 logger = logging.getLogger("dark_factory")
@@ -64,7 +63,9 @@ def is_available() -> bool:
     try:
         result = subprocess.run(
             cmd + ["--help"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         return result.returncode == 0
     except Exception:
@@ -91,6 +92,7 @@ def _run(args: list, timeout: int = 30) -> subprocess.CompletedProcess:
 # =====================================================================
 # Lifecycle
 # =====================================================================
+
 
 def start() -> bool:
     """Launch headless Chrome. Returns True if started successfully."""
@@ -124,6 +126,7 @@ def status() -> Optional[str]:
 # Navigation
 # =====================================================================
 
+
 def open_url(url: str) -> bool:
     """Navigate to a URL."""
     result = _run(["open", url], timeout=30)
@@ -154,6 +157,7 @@ def wait_load() -> bool:
 # =====================================================================
 # Information extraction
 # =====================================================================
+
 
 def title() -> Optional[str]:
     """Get the page title."""
@@ -201,6 +205,7 @@ def count(selector: str) -> int:
 # Interaction
 # =====================================================================
 
+
 def click(selector: str) -> bool:
     """Click an element."""
     result = _run(["click", selector], timeout=15)
@@ -216,6 +221,7 @@ def input_text(selector: str, value: str) -> bool:
 # =====================================================================
 # Screenshots
 # =====================================================================
+
 
 def screenshot(filepath: str) -> bool:
     """Take a full-page screenshot."""
@@ -239,6 +245,7 @@ def screenshot_element(selector: str, filepath: str) -> bool:
 # =====================================================================
 # High-level verification workflow
 # =====================================================================
+
 
 def verify_webapp(
     url: str,
@@ -329,7 +336,9 @@ def verify_webapp(
                             report["checks_failed"] += 1
                             logger.warning(
                                 "CHECK FAIL: %s count=%d expected>=%d",
-                                check_name, actual, expected,
+                                check_name,
+                                actual,
+                                expected,
                             )
 
                     elif action == "click":

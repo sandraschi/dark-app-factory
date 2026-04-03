@@ -12,7 +12,7 @@ class GitManager:
     def run_git(self, args: list) -> bool:
         """Helper to run git commands in the target directory."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["git"] + args,
                 cwd=self.target_dir,
                 capture_output=True,

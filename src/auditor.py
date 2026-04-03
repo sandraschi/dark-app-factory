@@ -20,7 +20,9 @@ async def audit_app(url, timeout=30000):
     try:
         from playwright.async_api import async_playwright
     except ImportError:
-        report["errors"].append("playwright not installed. Run: pip install playwright && playwright install")
+        report["errors"].append(
+            "playwright not installed. Run: pip install playwright && playwright install"
+        )
         return report
 
     async with async_playwright() as p:
@@ -39,7 +41,7 @@ async def audit_app(url, timeout=30000):
 
         try:
             logger.info("Audit starting: %s", url)
-            response = await page.goto(url, wait_until="networkidle", timeout=timeout)
+            await page.goto(url, wait_until="networkidle", timeout=timeout)
 
             # Check for Vite Error Overlay
             vite_error = await page.query_selector(".vite-error-overlay")

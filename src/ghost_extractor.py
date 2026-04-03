@@ -1,8 +1,7 @@
 import os
 import json
 import logging
-import asyncio
-from typing import List, Dict, Optional
+from typing import List, Dict
 from src.llm_client import LLMClient
 
 # Setup logging

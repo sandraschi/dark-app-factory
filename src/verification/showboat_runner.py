@@ -19,7 +19,6 @@ import logging
 import os
 import shutil
 import subprocess
-from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger("dark_factory")
@@ -45,9 +44,7 @@ def _get_showboat_cmd() -> list:
         return list(_SHOWBOAT_CMD)
 
     # 3. Not available
-    logger.warning(
-        "showboat not found. Install with: uv tool install showboat"
-    )
+    logger.warning("showboat not found. Install with: uv tool install showboat")
     _SHOWBOAT_CMD = []
     return []
 
@@ -60,7 +57,9 @@ def is_available() -> bool:
     try:
         result = subprocess.run(
             cmd + ["--version"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         return result.returncode == 0
     except Exception:
@@ -122,16 +121,12 @@ def exec_cmd(
     """
     result = _run(["exec", demo_path, lang, code], workdir=workdir)
     if result.returncode != 0:
-        logger.warning(
-            "showboat exec exited %d: %s", result.returncode, result.stderr
-        )
+        logger.warning("showboat exec exited %d: %s", result.returncode, result.stderr)
     # showboat prints the captured output to stdout regardless of exit code
     return (result.returncode == 0, result.stdout)
 
 
-def image(
-    demo_path: str, script: str, workdir: Optional[str] = None
-) -> bool:
+def image(demo_path: str, script: str, workdir: Optional[str] = None) -> bool:
     """Run a script expected to produce an image, embed in demo document."""
     result = _run(["image", demo_path, script], workdir=workdir)
     if result.returncode != 0:
@@ -193,7 +188,6 @@ def create_build_demo(
     demo_path = os.path.join(demo_dir, "build-report.md")
 
     # Use the output_dir as workdir so relative paths resolve
-    workdir = output_dir
 
     if not init(demo_path, f"Build Report: {project_name}", workdir=None):
         return None

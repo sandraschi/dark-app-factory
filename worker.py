@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 import os
 import argparse
 import sys
@@ -120,7 +121,9 @@ async def generate_specialist_files(
             # Passed both gates (or last attempt)
             generated_files.add(file_path)
             specialist_results[file_path] = code
-            full_path = os.path.join(output_dir, file_path)
+            # Normalize path: strip leading slashes to prevent absolute path resolution on Windows
+            relative_path = file_path.lstrip("/\\")
+            full_path = os.path.join(output_dir, relative_path)
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
             with open(full_path, "w", encoding="utf-8") as f:
                 f.write(code)
@@ -180,17 +183,35 @@ async def run_factory(
     file_paths = []
     for line in files_response.strip().split("\n"):
         line = line.strip().strip("-").strip("*").strip("`").strip()
-        if "." in line or "/" in line:
+        # Strip ASCII tree-drawing prefixes (│ ├── └── ─) that LLMs emit
+        # instead of plain file lists. Extract the last token — the actual path.
+        if any(c in line for c in ("│", "├", "└", "─")):
+            tokens = line.split()
+            line = tokens[-1] if tokens else ""
+        line = line.strip()
+        if not line:
+            continue
+        # Safety: reject path traversal, absolute paths, Windows drive letters
+        if ".." in line:
+            continue
+        if line.startswith(("/", "\\")) or (len(line) > 1 and line[1] == ":"):
+            continue
+        if ("." in line or "/" in line) and not line.endswith(("/", "\\")):
             file_paths.append(line)
 
     if not file_paths:
         logger.error("Architect failed to plan files.")
         return
 
-    # Basic cleaning
-    file_paths = [
-        f.replace("frontend/", "").replace("backend/", "") for f in file_paths
-    ]
+    # Basic cleaning: only strip top-level frontend/ or backend/ prefixes,
+    # not occurrences mid-path (e.g. src/services/backend/foo.js must stay intact)
+    def _strip_top_prefix(p: str) -> str:
+        for prefix in ("frontend/", "backend/"):
+            if p.startswith(prefix):
+                return p[len(prefix):]
+        return p
+
+    file_paths = [_strip_top_prefix(f) for f in file_paths]
 
     # Stack-aware mandatory files
     mandatory = ["skills/expertise.md", "README.md"]
@@ -367,6 +388,10 @@ async def run_factory(
         "Navigate",
         "Outlet",
         "Suspense",
+        "StrictMode",
+        "Fragment",
+        "Provider",
+        "motion",
     }
 
     # Python stdlib modules (never generate these)
@@ -421,21 +446,23 @@ async def run_factory(
                 for item in all_detected:
                     if item in tsx_blacklist:
                         continue
-                    for folder in ["pages", "components"]:
-                        target_path = f"src/{folder}/{item}.tsx"
-                        if target_path not in generated_files:
-                            logger.info(f"Deep-Crawl discovered (tsx): {target_path}")
-                            raw_code = await sculptor.generate(
-                                target_path, specs, shared_context, worker
-                            )
-                            code = clean_code(raw_code)
-                            full_save_path = os.path.join(output_dir, target_path)
-                            os.makedirs(os.path.dirname(full_save_path), exist_ok=True)
-                            with open(full_save_path, "w", encoding="utf-8") as f:
-                                f.write(code)
-                            logger.debug(f"   -> Saved to {full_save_path}")
-                            generated_files.add(target_path)
-                            next_crawl_batch.append(target_path)
+                    # Pick the right folder: *Page components go in pages/, rest in components/
+                    folder = "pages" if item.endswith("Page") else "components"
+                    target_path = f"src/{folder}/{item}.tsx"
+                    if target_path not in generated_files:
+                        logger.info(f"Deep-Crawl discovered (tsx): {target_path}")
+                        raw_code = await sculptor.generate(
+                            target_path, specs, shared_context, worker
+                        )
+                        code = clean_code(raw_code)
+                        target_path = target_path.lstrip("/\\")
+                        full_save_path = os.path.join(output_dir, target_path)
+                        os.makedirs(os.path.dirname(full_save_path), exist_ok=True)
+                        with open(full_save_path, "w", encoding="utf-8") as f:
+                            f.write(code)
+                        logger.debug(f"   -> Saved to {full_save_path}")
+                        generated_files.add(target_path)
+                        next_crawl_batch.append(target_path)
 
             # --- Python import scanning ---
             elif scan_path.endswith(".py"):
@@ -464,6 +491,7 @@ async def run_factory(
                         "requests",
                         "dotenv",
                         "bcrypt",
+                        "bcryptjs",
                         "jose",
                         "passlib",
                         "alembic",
@@ -478,6 +506,7 @@ async def run_factory(
                             target_path, specs, shared_context, worker
                         )
                         code = clean_code(raw_code)
+                        target_path = target_path.lstrip("/\\")
                         full_save_path = os.path.join(output_dir, target_path)
                         os.makedirs(os.path.dirname(full_save_path), exist_ok=True)
                         with open(full_save_path, "w", encoding="utf-8") as f:

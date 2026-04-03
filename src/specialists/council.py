@@ -1,7 +1,6 @@
 from .base import Specialist
 from typing import Dict, Any, List, Tuple
 import json
-import re
 
 
 # =====================================================================
@@ -111,8 +110,9 @@ class Plumber(Specialist):
             - NO SKELETAL CODE. Implement FULL logic for all routes.
             - **Dynamic Port**: MUST use `process.env.PORT || 3000` for the listener.
             - **Health Endpoint**: MUST include a GET /health or /api/health endpoint returning JSON with: status, uptime, database_connected, version.
-            - Data Validation: Use Zod or similar for all request bodies.
-            - Error Handling: Implement robust try-catch blocks with helpful error messages.
+            - Data Validation: Use Zod. Import EXACTLY as: `const {{ z }} = require('zod');` (destructured, NOT `const zod = require('zod')`).
+            - Password hashing: use `bcryptjs` (NOT `bcrypt`). Import as: `const bcrypt = require('bcryptjs');`
+            - Error Handling: ALL route handlers MUST declare `next` as the 4th parameter: `app.get('/path', async (req, res, next) => {{`. In catch blocks call `next(error)`, NOT a custom errorHandler function. Register a global error handler at the bottom: `app.use((err, req, res, next) => {{ res.status(500).json({{ error: err.message }}); }});`
             - Professional Comments: Explain complex logic for high-fidelity auditing.
             
             **DIGITAL TWIN UNIVERSE (DTU) INTEGRATION -- MANDATORY**:
@@ -134,13 +134,9 @@ class Plumber(Specialist):
     def validate(self, file_path: str, code: str, specs: str) -> Tuple[bool, str]:
         errors = []
         if file_path in ("main.py", "app.py"):
-            if (
-                "uvicorn" not in code
-                and "app.listen" not in code
-                and "run(" not in code
-            ):
+            if "uvicorn" not in code and "run(" not in code and "app.run" not in code:
                 errors.append(
-                    "Entry file missing server startup (uvicorn.run or app.listen)."
+                    "Python entry file missing server startup (uvicorn.run or app.run)."
                 )
             if "/health" not in code and "health" not in code.lower():
                 errors.append("Missing /health endpoint.")
@@ -249,7 +245,8 @@ class Sculptor(Specialist):
         elif file_path == "src/App.tsx":
             prompt = f"""
             Generate the SOTA HIGH-FIDELITY shell for the application: /src/App.tsx.
-            - Use Framer Motion for page transitions.
+            - Import Framer Motion EXACTLY as named imports: `import {{ AnimatePresence, motion }} from 'framer-motion';` -- NEVER use a default import or namespace import.
+            - Use <AnimatePresence mode="wait"> (NOT exitBeforeEnter, which is deprecated) for page transitions.
             - Implement a GORGEOUS Responsive Navbar with Glassmorphism (backdrop-blur).
             - Routing: use react-router-dom for all pages defined in the specs.
             - Design: Dark mode by default, high-contrast, premium typography.
@@ -320,6 +317,22 @@ class Sculptor(Specialist):
                 return (
                     False,
                     f"{file_path}: Missing 'export' statement -- component not importable.",
+                )
+        if file_path == "src/App.tsx":
+            # Catch the common LLM mistake: default import of framer-motion
+            if "import FramerMotion from 'framer-motion'" in code or \
+               'import FramerMotion from "framer-motion"' in code:
+                return (
+                    False,
+                    "src/App.tsx: Uses default framer-motion import (import FramerMotion ...). "
+                    "Must use named imports: import { AnimatePresence, motion } from 'framer-motion'",
+                )
+            # Catch deprecated exitBeforeEnter prop
+            if "exitBeforeEnter" in code:
+                return (
+                    False,
+                    "src/App.tsx: Uses deprecated exitBeforeEnter prop. "
+                    "Replace with <AnimatePresence mode=\"wait\">",
                 )
         return (True, "")
 
@@ -557,14 +570,46 @@ class Registrar(Specialist):
     def validate(self, file_path: str, code: str, specs: str) -> Tuple[bool, str]:
         if file_path == "package.json":
             try:
-                json.loads(code)
+                pkg = json.loads(code)
             except (json.JSONDecodeError, ValueError) as e:
                 return (False, f"package.json is not valid JSON: {e}")
+            # Reject hallucinated kitchen-sink deps not in specs
+            all_deps = {
+                **pkg.get("dependencies", {}),
+                **pkg.get("devDependencies", {}),
+            }
+            specs_lower = specs.lower()
+            GATED_DEPS = {
+                "three": ["3d", "three.js", "threejs", "webgl"],
+                "@react-three/fiber": ["3d", "three.js", "r3f"],
+                "@react-three/drei": ["3d", "three.js", "r3f"],
+                "langchain": ["rag", "langchain", "vector", "embedding"],
+                "@langchain/core": ["rag", "langchain", "vector"],
+                "@pinecone-database/pinecone": ["pinecone", "vector database"],
+                "midi-writer-js": ["midi", "music generation"],
+                "wavesurfer.js": ["waveform", "wavesurfer", "audio visuali"],
+                "video.js": ["video player", "video.js", "hls"],
+                "tone": ["tone.js", "web audio", "synthesizer"],
+                "howler": ["howler", "audio engine"],
+                "epub-parser": ["epub", "ebook"],
+                "pdf-parse": ["pdf parsing", "pdf extract"],
+                "moment": ["moment.js"],  # date-fns is the preferred dep
+            }
+            hallucinated = []
+            for dep, required_keywords in GATED_DEPS.items():
+                if dep in all_deps:
+                    if not any(kw in specs_lower for kw in required_keywords):
+                        hallucinated.append(dep)
+            if hallucinated:
+                return (
+                    False,
+                    f"package.json contains hallucinated deps not justified by specs: {', '.join(hallucinated)}. Remove them.",
+                )
         if file_path == "requirements.txt":
             lines = [
-                l.strip()
-                for l in code.strip().splitlines()
-                if l.strip() and not l.strip().startswith("#")
+                line.strip()
+                for line in code.strip().splitlines()
+                if line.strip() and not line.strip().startswith("#")
             ]
             if len(lines) < 3:
                 return (
@@ -665,12 +710,18 @@ class Registrar(Specialist):
         - CORE: express, cors, dotenv, bcryptjs, jsonwebtoken, sequelize, pg, pg-hstore, morgan, helmet
         - UI: react, react-dom, react-router-dom, axios, framer-motion, lucide-react, clsx, tailwind-merge
         - FORMS: react-hook-form, zod
-        - CHARTS: recharts, d3
+        - CHARTS: recharts
         - UTILS: date-fns, lodash, multer, node-cron, uuid
         - STATE: @reduxjs/toolkit, react-redux
         
         REQUIRED DEV DEPENDENCIES:
-        - vite, @vitejs/plugin-react, concurrently, nodemon, typescript
+        - vite, @vitejs/plugin-react, @types/react, @types/react-dom, concurrently, nodemon, typescript
+        
+        DO NOT include: three, @react-three/fiber, @react-three/drei, langchain, @langchain/core,
+        @pinecone-database/pinecone, midi-writer-js, wavesurfer.js, video.js, tone, howler,
+        epub-parser, pdf-parse, mammoth, officegen, rss-parser, cheerio, husky, jest,
+        html-webpack-plugin, jwks-rsa, moment, nodemailer, @types/three.
+        Include ONLY dependencies listed above unless the specs explicitly require them.
         """
 
     @staticmethod

@@ -1,10 +1,7 @@
 """Tests for the scenario parser module."""
 
-import pytest
 from src.verification.scenario_parser import (
-    Assertion,
     HttpAction,
-    Scenario,
     ScenarioType,
     classify_scenario,
     parse_assertion,
@@ -17,6 +14,7 @@ from src.verification.scenario_parser import (
 # HTTP Action parsing
 # ---------------------------------------------------------------------------
 
+
 class TestParseHttpAction:
     def test_post_request(self):
         action = parse_http_action(
@@ -28,9 +26,7 @@ class TestParseHttpAction:
         assert action.body_hint == "valid"
 
     def test_get_request(self):
-        action = parse_http_action(
-            "Submit a GET request to `/treatments`."
-        )
+        action = parse_http_action("Submit a GET request to `/treatments`.")
         assert action is not None
         assert action.method == "GET"
         assert action.path == "/treatments"
@@ -76,6 +72,7 @@ class TestParseHttpAction:
 # Assertion parsing
 # ---------------------------------------------------------------------------
 
+
 class TestParseAssertion:
     def test_creation_assertion(self):
         a = parse_assertion(
@@ -117,21 +114,28 @@ class TestParseAssertion:
 # Scenario classification
 # ---------------------------------------------------------------------------
 
+
 class TestClassifyScenario:
     def test_api_with_http_action(self):
         action = HttpAction(method="GET", path="/users")
         assert classify_scenario(action, "list returned") == ScenarioType.API
 
     def test_static_encryption(self):
-        assert classify_scenario(None, "data is returned encrypted") == ScenarioType.STATIC
+        assert (
+            classify_scenario(None, "data is returned encrypted") == ScenarioType.STATIC
+        )
 
     def test_browser_fallback(self):
-        assert classify_scenario(None, "the page loads successfully") == ScenarioType.BROWSER
+        assert (
+            classify_scenario(None, "the page loads successfully")
+            == ScenarioType.BROWSER
+        )
 
 
 # ---------------------------------------------------------------------------
 # Full scenario parsing
 # ---------------------------------------------------------------------------
+
 
 class TestParseScenarios:
     SAMPLE_MD = """# User Scenarios

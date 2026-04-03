@@ -164,7 +164,7 @@ def generate_deploy_artifacts(output_dir: str) -> list[str]:
     Returns list of paths written.
     """
     written: list[str] = []
-    stack = _detect_stack(output_dir)
+    _detect_stack(output_dir)
 
     # deploy_config.example.yaml
     config_path = os.path.join(output_dir, "deploy_config.example.yaml")
@@ -207,6 +207,9 @@ def generate_deploy_artifacts(output_dir: str) -> list[str]:
         logger.warning("Could not write nginx.conf: %s", e)
 
     if written:
-        logger.info("Deploy artifacts written: %s", ", ".join(os.path.basename(p) for p in written))
+        logger.info(
+            "Deploy artifacts written: %s",
+            ", ".join(os.path.basename(p) for p in written),
+        )
 
     return written

@@ -1,0 +1,9 @@
+{
+  "provider": "ollama",
+  "base_url": "http://localhost:11434/v1",
+  "foreman_model": "llama3.1:latest",
+  "worker_model": "qwen2.5-coder:latest",
+  "api_key": "ollama",
+  "context_length": 65536,
+  "timeout_seconds": 180
+}

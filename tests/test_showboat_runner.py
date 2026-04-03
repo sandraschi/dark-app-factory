@@ -3,6 +3,7 @@
 These tests mock subprocess.run to avoid requiring the actual showboat binary.
 """
 
+# ruff: noqa: E402
 import os
 import subprocess
 import sys
@@ -14,7 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from src.verification import showboat_runner
 
@@ -30,7 +31,9 @@ def reset_cmd_cache():
 @patch("shutil.which")
 def test_get_showboat_cmd_binary_on_path(mock_which):
     """When showboat is on PATH, use it directly."""
-    mock_which.side_effect = lambda name: "/usr/bin/showboat" if name == "showboat" else None
+    mock_which.side_effect = lambda name: (
+        "/usr/bin/showboat" if name == "showboat" else None
+    )
     cmd = showboat_runner._get_showboat_cmd()
     assert cmd == ["showboat"]
 
@@ -38,6 +41,7 @@ def test_get_showboat_cmd_binary_on_path(mock_which):
 @patch("shutil.which")
 def test_get_showboat_cmd_uvx_fallback(mock_which):
     """When showboat is NOT on PATH but uvx is, use uvx showboat."""
+
     def which_side_effect(name):
         if name == "showboat":
             return None

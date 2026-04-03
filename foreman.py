@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import json
 import sys
+# ruff: noqa: E402
 import os
 
 # Normalize import paths: ensure project root is on sys.path
@@ -200,10 +201,11 @@ Output format: Markdown."""
     1.  **Architecture**: Must use the tech stack specified above: {stack_desc}.
         - Generate all code, models, and APIs using the specified backend language/framework.
         - Generate frontend using the specified frontend framework (or skip if "none").
-    2.  **UI/UX Richness** (if frontend is specified):
-        -   Define at least **4 distinct functional views/pages** (e.g., Dashboard, Asset List, Detail View, User Profile, Settings).
+    2.  **UI/UX Richness** (ONLY if frontend is NOT "none"):
+        -   Define at least **4 distinct functional views/pages**.
         -   Specify interactive elements (Modals, Forms with validation, Sorting/Filtering).
         -   Identify complex UI states (Loading spinners, "Empty State" illustrations, Error toast messages).
+        -   If frontend is plain JS/HTML (not React): define standard HTML pages, NO JSX/TSX/React components.
     3.  **Deep Business Logic**:
         -   Describe a core multi-step workflow (e.g., "Create Asset" -> "Queue for Processing" -> "Notify User").
         -   Define internal data transformation logic (e.g., "Calculate ROI based on tax brackets").

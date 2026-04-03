@@ -60,24 +60,24 @@ class DarkLogger:
 
         self._initialized = True
 
-    def info(self, message: str):
-        self.logger.info(message)
+    def info(self, msg, *args, **kwargs):
+        self.logger.info(msg, *args, **kwargs)
 
-    def warning(self, message: str):
-        self.logger.warning(message)
+    def warning(self, msg, *args, **kwargs):
+        self.logger.warning(msg, *args, **kwargs)
 
-    def error(self, message: str, exc_info=False):
-        self.logger.error(message, exc_info=exc_info)
+    def error(self, msg, *args, **kwargs):
+        self.logger.error(msg, *args, **kwargs)
 
-    def debug(self, message: str):
-        self.logger.debug(message)
+    def debug(self, msg, *args, **kwargs):
+        self.logger.debug(msg, *args, **kwargs)
 
-    def success(self, message: str):
-        self.logger.info(f"SUCCESS: {message}")
+    def success(self, msg, *args, **kwargs):
+        self.logger.info(f"SUCCESS: {msg}", *args, **kwargs)
 
-    def audit(self, message: str):
+    def audit(self, msg, *args, **kwargs):
         """Specialized logging for Satisficer verdicts."""
-        self.logger.info(f"VERDICT: {message}")
+        self.logger.info(f"VERDICT: {msg}", *args, **kwargs)
 
     def tail(self, n: int = 50) -> list:
         """Returns the last n lines of the log file."""

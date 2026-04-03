@@ -12,7 +12,6 @@ from src.verification.scenario_parser import (
 from src.verification.scenario_executor import ScenarioResult
 from src.verification.satisfaction_scorer import (
     SatisfactionReport,
-    ScenarioScore,
     _score_mechanical,
     compute_satisfaction,
 )
@@ -21,6 +20,7 @@ from src.verification.satisfaction_scorer import (
 # ---------------------------------------------------------------------------
 # Mechanical scoring
 # ---------------------------------------------------------------------------
+
 
 class TestScoreMechanical:
     def test_not_executed_scores_zero(self):
@@ -33,8 +33,10 @@ class TestScoreMechanical:
 
     def test_connection_error_low_score(self):
         result = ScenarioResult(
-            scenario_title="Test", executed=True,
-            error="Connection refused", status_code=None,
+            scenario_title="Test",
+            executed=True,
+            error="Connection refused",
+            status_code=None,
         )
         score = _score_mechanical(result)
         assert score.satisfaction == 0.1
@@ -42,9 +44,12 @@ class TestScoreMechanical:
 
     def test_assertion_passed(self):
         result = ScenarioResult(
-            scenario_title="Test", executed=True,
-            status_code=200, assertion_met=True,
-            confidence=0.9, assertion_evidence="Status matched",
+            scenario_title="Test",
+            executed=True,
+            status_code=200,
+            assertion_met=True,
+            confidence=0.9,
+            assertion_evidence="Status matched",
         )
         score = _score_mechanical(result)
         assert score.satisfaction == 0.9
@@ -52,9 +57,12 @@ class TestScoreMechanical:
 
     def test_assertion_failed_not_500(self):
         result = ScenarioResult(
-            scenario_title="Test", executed=True,
-            status_code=422, assertion_met=False,
-            confidence=0.8, assertion_evidence="Schema mismatch",
+            scenario_title="Test",
+            executed=True,
+            status_code=422,
+            assertion_met=False,
+            confidence=0.8,
+            assertion_evidence="Schema mismatch",
         )
         score = _score_mechanical(result)
         assert score.satisfaction == 0.2  # Partial credit for non-500
@@ -62,18 +70,24 @@ class TestScoreMechanical:
 
     def test_assertion_failed_500(self):
         result = ScenarioResult(
-            scenario_title="Test", executed=True,
-            status_code=500, assertion_met=False,
-            confidence=0.9, assertion_evidence="Internal server error",
+            scenario_title="Test",
+            executed=True,
+            status_code=500,
+            assertion_met=False,
+            confidence=0.9,
+            assertion_evidence="Internal server error",
         )
         score = _score_mechanical(result)
         assert score.satisfaction == 0.05  # Very low
 
     def test_ambiguous_assertion(self):
         result = ScenarioResult(
-            scenario_title="Test", executed=True,
-            status_code=200, assertion_met=None,
-            confidence=0.3, assertion_evidence="Ambiguous",
+            scenario_title="Test",
+            executed=True,
+            status_code=200,
+            assertion_met=None,
+            confidence=0.3,
+            assertion_evidence="Ambiguous",
         )
         score = _score_mechanical(result)
         assert score.satisfaction == 0.5  # Neutral prior
@@ -84,10 +98,13 @@ class TestScoreMechanical:
 # Report serialization
 # ---------------------------------------------------------------------------
 
+
 class TestSatisfactionReport:
     def test_to_dict(self):
         report = SatisfactionReport(
-            total_scenarios=5, executed=3, skipped=2,
+            total_scenarios=5,
+            executed=3,
+            skipped=2,
             overall_satisfaction=0.75,
             verdict="SATISFACTORY",
         )
@@ -98,8 +115,11 @@ class TestSatisfactionReport:
 
     def test_summary_text(self):
         report = SatisfactionReport(
-            total_scenarios=5, executed=3, skipped=2,
-            overall_satisfaction=0.75, overall_confidence=0.8,
+            total_scenarios=5,
+            executed=3,
+            skipped=2,
+            overall_satisfaction=0.75,
+            overall_confidence=0.8,
             mechanical_satisfaction=0.7,
             verdict="SATISFACTORY",
         )
@@ -112,40 +132,63 @@ class TestSatisfactionReport:
 # Full satisfaction computation (no LLM)
 # ---------------------------------------------------------------------------
 
+
 class TestComputeSatisfaction:
     @pytest.fixture
     def scenarios_and_results(self):
         s1 = Scenario(
-            title="Create User", description="", category="User Management",
-            given="", when="", then="", scenario_type=ScenarioType.API,
+            title="Create User",
+            description="",
+            category="User Management",
+            given="",
+            when="",
+            then="",
+            scenario_type=ScenarioType.API,
             assertion=Assertion(raw_text="created", expects_creation=True),
         )
         r1 = ScenarioResult(
-            scenario_title="Create User", scenario_type="api",
-            executed=True, status_code=201,
-            assertion_met=True, confidence=1.0,
+            scenario_title="Create User",
+            scenario_type="api",
+            executed=True,
+            status_code=201,
+            assertion_met=True,
+            confidence=1.0,
             assertion_evidence="Status 201, creation confirmed",
         )
 
         s2 = Scenario(
-            title="List Users", description="", category="User Management",
-            given="", when="", then="", scenario_type=ScenarioType.API,
+            title="List Users",
+            description="",
+            category="User Management",
+            given="",
+            when="",
+            then="",
+            scenario_type=ScenarioType.API,
             assertion=Assertion(raw_text="list returned", expects_list=True),
         )
         r2 = ScenarioResult(
-            scenario_title="List Users", scenario_type="api",
-            executed=True, status_code=200,
+            scenario_title="List Users",
+            scenario_type="api",
+            executed=True,
+            status_code=200,
             response_body='[{"id": 1}]',
-            assertion_met=True, confidence=1.0,
+            assertion_met=True,
+            confidence=1.0,
             assertion_evidence="JSON array returned",
         )
 
         s3 = Scenario(
-            title="Encryption", description="", category="Security",
-            given="", when="", then="", scenario_type=ScenarioType.STATIC,
+            title="Encryption",
+            description="",
+            category="Security",
+            given="",
+            when="",
+            then="",
+            scenario_type=ScenarioType.STATIC,
         )
         r3 = ScenarioResult(
-            scenario_title="Encryption", scenario_type="static",
+            scenario_title="Encryption",
+            scenario_type="static",
             skipped_reason="Static scenario",
         )
 
@@ -154,9 +197,7 @@ class TestComputeSatisfaction:
     @pytest.mark.asyncio
     async def test_mechanical_only(self, scenarios_and_results):
         scenarios, results = scenarios_and_results
-        report = await compute_satisfaction(
-            scenarios, results, llm_client=None
-        )
+        report = await compute_satisfaction(scenarios, results, llm_client=None)
         assert report.total_scenarios == 3
         assert report.executed == 2
         assert report.skipped == 1
@@ -166,14 +207,22 @@ class TestComputeSatisfaction:
     @pytest.mark.asyncio
     async def test_all_failed(self):
         s = Scenario(
-            title="Fail", description="", category="Test",
-            given="", when="", then="", scenario_type=ScenarioType.API,
+            title="Fail",
+            description="",
+            category="Test",
+            given="",
+            when="",
+            then="",
+            scenario_type=ScenarioType.API,
             assertion=Assertion(raw_text="fail", expected_status=200),
         )
         r = ScenarioResult(
-            scenario_title="Fail", scenario_type="api",
-            executed=True, status_code=500,
-            assertion_met=False, confidence=0.9,
+            scenario_title="Fail",
+            scenario_type="api",
+            executed=True,
+            status_code=500,
+            assertion_met=False,
+            confidence=0.9,
             assertion_evidence="500 error",
         )
         report = await compute_satisfaction([s], [r], llm_client=None)
@@ -183,9 +232,7 @@ class TestComputeSatisfaction:
     @pytest.mark.asyncio
     async def test_category_breakdown(self, scenarios_and_results):
         scenarios, results = scenarios_and_results
-        report = await compute_satisfaction(
-            scenarios, results, llm_client=None
-        )
+        report = await compute_satisfaction(scenarios, results, llm_client=None)
         assert "User Management" in report.category_scores
         assert report.category_scores["User Management"] > 0.5
 
@@ -199,17 +246,24 @@ class TestComputeSatisfaction:
     async def test_with_mock_llm(self):
         """Ambiguous scenario triggers LLM evaluation."""
         s = Scenario(
-            title="Ambiguous", description="", category="Test",
-            given="", when="POST /test", then="Something happens",
+            title="Ambiguous",
+            description="",
+            category="Test",
+            given="",
+            when="POST /test",
+            then="Something happens",
             scenario_type=ScenarioType.API,
             http_action=HttpAction(method="POST", path="/test"),
             assertion=Assertion(raw_text="Something happens"),
         )
         r = ScenarioResult(
-            scenario_title="Ambiguous", scenario_type="api",
-            executed=True, status_code=200,
+            scenario_title="Ambiguous",
+            scenario_type="api",
+            executed=True,
+            status_code=200,
             response_body='{"ok": true}',
-            assertion_met=None, confidence=0.3,
+            assertion_met=None,
+            confidence=0.3,
             assertion_evidence="Ambiguous assertion",
         )
 

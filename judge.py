@@ -1,4 +1,5 @@
 import argparse
+# ruff: noqa: E402
 import os
 import sys
 import json
@@ -14,7 +15,7 @@ from src.utils.logger import logger
 from run_manifest import RunManifest
 from src.llm_client import LLMClient
 from src.verification import rodney_runner, showboat_runner
-from src.verification.scenario_parser import parse_scenarios, ScenarioType
+from src.verification.scenario_parser import parse_scenarios
 from src.verification.scenario_executor import execute_all_scenarios
 from src.verification.satisfaction_scorer import compute_satisfaction
 
@@ -139,14 +140,17 @@ async def run_judgement(
 
         # Detect app URL
         app_port = _detect_app_port(orchestrator)
-        app_url = f"http://localhost:{app_port}" if app_port else "http://localhost:3000"
+        app_url = (
+            f"http://localhost:{app_port}" if app_port else "http://localhost:3000"
+        )
 
         # 3a. Parse and execute scenarios against live app
         parsed_scenarios = parse_scenarios(scenarios)
         if parsed_scenarios:
             logger.info(
                 "Executing %d parsed scenarios against %s...",
-                len(parsed_scenarios), app_url,
+                len(parsed_scenarios),
+                app_url,
             )
             scenario_results = await execute_all_scenarios(
                 scenarios=parsed_scenarios,
@@ -169,7 +173,9 @@ async def run_judgement(
                 satisfaction_report.overall_satisfaction * 100,
             )
         else:
-            logger.warning("No parseable scenarios found -- skipping scenario execution.")
+            logger.warning(
+                "No parseable scenarios found -- skipping scenario execution."
+            )
 
         # 3b. General UI Verification (Rodney -> Playwright fallback)
         if rodney_runner.is_available():
@@ -211,8 +217,9 @@ async def run_judgement(
             )
 
     except Exception as e:
-        logger.error("Execution verification error: %s", e)
+        logger.warning("Execution verification failed (boot issue?): %s", e)
         ui_report["error"] = str(e)
+        ui_report["success"] = False
     finally:
         orchestrator.terminate()
 
@@ -237,18 +244,21 @@ async def run_judgement(
     # Build satisfaction summary for the prompt
     satisfaction_summary = "Scenario testing not performed."
     if satisfaction_report:
-        satisfaction_summary = json.dumps(
-            satisfaction_report.to_dict(), indent=2
-        )
+        satisfaction_summary = json.dumps(satisfaction_report.to_dict(), indent=2)
+
+    # Robust slicing for f-string
+    safe_scenarios = (scenarios[:2000] if scenarios else "")
+    safe_files = (", ".join(files_present[:50]) if isinstance(files_present, list) else str(files_present))
+    safe_dtu = (json.dumps(dtu_logs[:20], indent=2) if isinstance(dtu_logs, list) and dtu_logs else "No DTU logs observed.")
 
     prompt = f"""
     Review these scenarios and the ACTUAL state of the generated app in '{output_dir}'.
     
     SCENARIOS:
-    {scenarios[:2000]}
+    {safe_scenarios}
     
     FILES GENERATED:
-    {", ".join(files_present[:50])}
+    {safe_files}
     
     AUDITOR REPORT:
     {audit_report}
@@ -260,16 +270,16 @@ async def run_judgement(
     {lint_report if lint_report else "Not available."}
 
     UI/EXECUTION REPORT:
-    Tool: {ui_report.get('tool', 'none')}
-    Title: {ui_report.get('title', 'N/A')}
-    Success: {ui_report.get('success', False)}
-    Checks Passed: {ui_report.get('checks_passed', 'N/A')}
-    Checks Failed: {ui_report.get('checks_failed', 'N/A')}
-    Errors: {ui_report.get('errors', [])}
+    Tool: {ui_report.get("tool", "none")}
+    Title: {ui_report.get("title", "N/A")}
+    Success: {ui_report.get("success", False)}
+    Checks Passed: {ui_report.get("checks_passed", "N/A")}
+    Checks Failed: {ui_report.get("checks_failed", "N/A")}
+    Errors: {ui_report.get("errors", [])}
     {screenshots_info}
 
     DTU INTERACTION LOGS:
-    {json.dumps(dtu_logs[:20], indent=2) if dtu_logs else "No DTU logs observed."}
+    {safe_dtu}
     
     IMPORTANT: The scenario execution results above show ACTUAL HTTP responses
     from the running application. These are objective, mechanical test results.
@@ -355,12 +365,14 @@ def _create_showboat_audit(
         # List files via real command
         if os.name == "nt":
             showboat_runner.exec_cmd(
-                demo_path, "powershell",
+                demo_path,
+                "powershell",
                 f"Get-ChildItem -Recurse -File '{output_dir}' | Measure-Object | Select-Object -ExpandProperty Count",
             )
         else:
             showboat_runner.exec_cmd(
-                demo_path, "bash",
+                demo_path,
+                "bash",
                 f"find {output_dir} -type f | wc -l",
             )
 

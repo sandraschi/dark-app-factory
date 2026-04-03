@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 import os
 import subprocess
 import json
@@ -119,7 +120,9 @@ class RunManifest:
 
     def _detect_stack(self):
         """Detect stack from output files when no manifest exists."""
-        has_requirements = os.path.exists(os.path.join(self.output_dir, "requirements.txt"))
+        has_requirements = os.path.exists(
+            os.path.join(self.output_dir, "requirements.txt")
+        )
         has_main_py = os.path.exists(os.path.join(self.output_dir, "main.py"))
         has_app_py = os.path.exists(os.path.join(self.output_dir, "app.py"))
         has_package_json = os.path.exists(os.path.join(self.output_dir, "package.json"))
@@ -144,7 +147,11 @@ class RunManifest:
         if backend_entry:
             if backend_entry.endswith(".py"):
                 components.append(
-                    {"name": "backend", "command": f"python {backend_entry}", "cwd": "."}
+                    {
+                        "name": "backend",
+                        "command": f"python {backend_entry}",
+                        "cwd": ".",
+                    }
                 )
             elif backend_entry.endswith(".js"):
                 components.append(
@@ -152,7 +159,7 @@ class RunManifest:
                 )
             else:
                 components.append(
-                    {"name": "backend", "command": f"npm start", "cwd": "."}
+                    {"name": "backend", "command": "npm start", "cwd": "."}
                 )
             logger.info("Manifest: backend entry -> %s", backend_entry)
 
@@ -176,7 +183,8 @@ class RunManifest:
                 if converted and converted["components"]:
                     logger.info(
                         "Loaded manifest.json from %s (%d components).",
-                        self.output_dir, len(converted["components"]),
+                        self.output_dir,
+                        len(converted["components"]),
                     )
                     return converted
                 logger.warning(
@@ -205,9 +213,7 @@ class RunManifest:
             )
             logger.info("Detected Python backend (entry: %s).", entry)
         elif is_node:
-            components.append(
-                {"name": "backend", "command": "npm start", "cwd": "."}
-            )
+            components.append({"name": "backend", "command": "npm start", "cwd": "."})
             logger.info("Detected Node.js backend.")
 
         # Hybrid: Python backend + React frontend
@@ -217,15 +223,11 @@ class RunManifest:
             )
             logger.info("Detected hybrid stack: Python backend + Node frontend.")
         elif not is_python and is_node:
-            components = [
-                {"name": "app", "command": "npm run dev", "cwd": "."}
-            ]
+            components = [{"name": "app", "command": "npm run dev", "cwd": "."}]
 
         if not components:
             logger.error("Could not detect any bootable components.")
-            components = [
-                {"name": "backend", "command": "npm start", "cwd": "."}
-            ]
+            components = [{"name": "backend", "command": "npm start", "cwd": "."}]
 
         return {"components": components}
 
@@ -242,11 +244,18 @@ class RunManifest:
             cmd = comp.get("command")
             cwd = os.path.join(self.output_dir, comp.get("cwd", ""))
 
+            # On Windows, npm/npx need the .cmd extension to resolve via shell
+            if os.name == "nt" and isinstance(cmd, str):
+                if cmd.startswith("npm "):
+                    cmd = "npm.cmd " + cmd[4:]
+                elif cmd.startswith("npx "):
+                    cmd = "npx.cmd " + cmd[4:]
+
             logger.info("Starting %s (cmd: %s) in %s...", name, cmd, cwd)
 
             try:
                 p = subprocess.Popen(
-                    cmd.split(),
+                    cmd,
                     cwd=cwd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
@@ -257,8 +266,32 @@ class RunManifest:
             except Exception as e:
                 logger.error("Failed to start %s: %s", name, e)
 
-        # Wait for startup
-        time.sleep(5)
+        # Poll for a listening port instead of blind sleep
+        self._wait_for_startup(timeout=30)
+
+    def _wait_for_startup(self, timeout: int = 30):
+        """Poll candidate ports until one opens or timeout expires."""
+        import socket
+        candidates = [3000, 8000, 5173, 5174, 8080, 19300]
+        deadline = time.time() + timeout
+        logger.info("Waiting for app to start (up to %ds)...", timeout)
+        while time.time() < deadline:
+            for port in candidates:
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.settimeout(0.5)
+                        if s.connect_ex(("localhost", port)) == 0:
+                            logger.info("App listening on port %d.", port)
+                            self.check_status()
+                            return
+                except Exception:
+                    pass
+            # Also bail early if all processes have already died
+            if all(p["process"].poll() is not None for p in self.processes):
+                logger.error("All processes exited before startup completed.")
+                break
+            time.sleep(1)
+        logger.warning("Startup timeout reached; proceeding anyway.")
         self.check_status()
 
     def check_status(self):

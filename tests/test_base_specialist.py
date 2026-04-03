@@ -1,6 +1,5 @@
 """Tests for src/specialists/base.py -- Specialist base class logic."""
 
-import pytest
 from typing import Dict, Any
 
 from src.specialists.base import Specialist
@@ -39,29 +38,21 @@ class TestGetDependencyContext:
         assert spec.get_dependency_context({}) == ""
 
     def test_with_upstream_output(self):
-        spec = ConcreteSpecialist(
-            name="Test", owned_patterns=[], requires=["Plumber"]
-        )
+        spec = ConcreteSpecialist(name="Test", owned_patterns=[], requires=["Plumber"])
         context = {
-            "Plumber": {
-                "main.py": "from fastapi import FastAPI\napp = FastAPI()"
-            }
+            "Plumber": {"main.py": "from fastapi import FastAPI\napp = FastAPI()"}
         }
         result = spec.get_dependency_context(context)
         assert "Plumber/main.py" in result
         assert "FastAPI" in result
 
     def test_missing_upstream_returns_empty(self):
-        spec = ConcreteSpecialist(
-            name="Test", owned_patterns=[], requires=["Missing"]
-        )
+        spec = ConcreteSpecialist(name="Test", owned_patterns=[], requires=["Missing"])
         result = spec.get_dependency_context({})
         assert result == ""
 
     def test_context_truncation(self):
-        spec = ConcreteSpecialist(
-            name="Test", owned_patterns=[], requires=["Big"]
-        )
+        spec = ConcreteSpecialist(name="Test", owned_patterns=[], requires=["Big"])
         huge_code = "x" * 20000
         context = {"Big": {"huge.py": huge_code}}
         result = spec.get_dependency_context(context)

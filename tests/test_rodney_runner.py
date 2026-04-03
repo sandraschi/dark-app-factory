@@ -3,6 +3,7 @@
 These tests mock subprocess.run to avoid requiring Chrome or the rodney binary.
 """
 
+# ruff: noqa: E402
 import os
 import subprocess
 import sys
@@ -13,7 +14,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from src.verification import rodney_runner
 
@@ -28,7 +29,9 @@ def reset_cmd_cache():
 
 @patch("shutil.which")
 def test_get_rodney_cmd_binary(mock_which):
-    mock_which.side_effect = lambda name: "/usr/bin/rodney" if name == "rodney" else None
+    mock_which.side_effect = lambda name: (
+        "/usr/bin/rodney" if name == "rodney" else None
+    )
     cmd = rodney_runner._get_rodney_cmd()
     assert cmd == ["rodney"]
 
@@ -174,11 +177,17 @@ def test_verify_webapp_basic_flow(mock_which, mock_run, tmp_path):
         cmd_part = args[1] if len(args) > 1 else ""
 
         if cmd_part == "title":
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="Test App\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="Test App\n", stderr=""
+            )
         if cmd_part == "exists":
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="", stderr=""
+            )
         # Default success
-        return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+        return subprocess.CompletedProcess(
+            args=args, returncode=0, stdout="", stderr=""
+        )
 
     mock_run.side_effect = run_side_effect
 

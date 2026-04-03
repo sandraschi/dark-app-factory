@@ -1,0 +1,352 @@
+import asyncio
+import json
+import os
+import subprocess
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+
+import factory
+from src.ghost_extractor import GhostExtractor
+from src.llm_client import LLMClient
+from src.specialists.council import get_council
+from src.utils.logger import logger
+from src.utils.progress import progress
+
+app = FastAPI(title="Dark App Factory Dashboard")
+ghost_extractor = GhostExtractor()
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+UI_DIR = Path(__file__).resolve().parent
+LOG_FILE = ROOT_DIR / "logs" / "factory.log"
+SETTINGS_FILE = ROOT_DIR / "web" / "settings.json"
+DOCS_DIR = ROOT_DIR / "docs"
+README_FILE = ROOT_DIR / "README.md"
+
+DEFAULT_SETTINGS = {
+    "provider": "ollama",
+    "base_url": "http://localhost:11434/v1",
+    "foreman_model": "llama3.1:latest",
+    "worker_model": "qwen2.5-coder:latest",
+    "api_key": "ollama",
+    "context_length": 65536,
+    "timeout_seconds": 180,
+}
+
+
+class BuildRequest(BaseModel):
+    vibe_content: str
+    output_dir: str = "output"
+    ghost_blueprint_path: str | None = None
+
+
+class RefineRequest(BaseModel):
+    prompt: str
+    history: list[str] = Field(default_factory=list)
+
+
+class SuggestRequest(BaseModel):
+    query: str
+
+
+class GhostRequest(BaseModel):
+    url: str
+
+
+class FleetLaunchRequest(BaseModel):
+    repo_path: str
+
+
+class SettingsPayload(BaseModel):
+    provider: str
+    base_url: str
+    foreman_model: str
+    worker_model: str
+    api_key: str = "ollama"
+    context_length: int = 65536
+    timeout_seconds: int = 180
+
+
+state = {"active_builds": 0, "last_verdict": "No runs yet"}
+
+
+def load_settings() -> dict:
+    if not SETTINGS_FILE.exists():
+        SETTINGS_FILE.write_text(
+            json.dumps(DEFAULT_SETTINGS, indent=2), encoding="utf-8"
+        )
+        return dict(DEFAULT_SETTINGS)
+    try:
+        data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning("Invalid web/settings.json, reverting to defaults.")
+        data = {}
+    merged = dict(DEFAULT_SETTINGS)
+    merged.update(data)
+    return merged
+
+
+def save_settings(settings: dict) -> dict:
+    normalized = dict(DEFAULT_SETTINGS)
+    normalized.update(settings)
+    SETTINGS_FILE.write_text(json.dumps(normalized, indent=2), encoding="utf-8")
+    return normalized
+
+
+def list_help_docs() -> list[dict]:
+    help_docs = []
+    for path in sorted(DOCS_DIR.glob("*.md")):
+        help_docs.append(
+            {"id": path.stem, "title": path.stem.replace("_", " "), "path": str(path)}
+        )
+    if README_FILE.exists():
+        help_docs.insert(
+            0, {"id": "README", "title": "README", "path": str(README_FILE)}
+        )
+    return help_docs
+
+
+def read_log_lines(lines: int, search: str = "") -> list[str]:
+    if not LOG_FILE.exists():
+        return []
+    log_lines = LOG_FILE.read_text(encoding="utf-8", errors="ignore").splitlines()
+    if search:
+        needle = search.lower()
+        log_lines = [line for line in log_lines if needle in line.lower()]
+    if lines > 0:
+        log_lines = log_lines[-lines:]
+    return log_lines
+
+
+async def launch_factory(vibe: str, ghost_blueprint_path: str | None = None) -> None:
+    try:
+        state["active_builds"] += 1
+        ghost_dna = None
+        if ghost_blueprint_path and os.path.exists(ghost_blueprint_path):
+            with open(ghost_blueprint_path, "r", encoding="utf-8") as file:
+                ghost_dna = json.load(file)
+        await factory.main_flow(vibe, ghost_dna=ghost_dna)
+        state["last_verdict"] = "PASS"
+    except Exception as error:  # noqa: BLE001
+        logger.error(f"Factory execution failed: {error}")
+        state["last_verdict"] = f"FAIL: {error}"
+    finally:
+        state["active_builds"] = max(0, state["active_builds"] - 1)
+
+
+@app.get("/api/status")
+async def get_status():
+    return {
+        "active_builds": state["active_builds"],
+        "last_verdict": state["last_verdict"],
+        "settings_provider": load_settings()["provider"],
+    }
+
+
+@app.get("/api/models")
+async def get_models():
+    """Discover models from local providers (Ollama, LM Studio) using standard urllib."""
+    import urllib.request
+
+    models = []
+    providers = [
+        {"name": "ollama", "url": "http://localhost:11434/v1/models"},
+        {"name": "lmstudio", "url": "http://localhost:1234/v1/models"},
+    ]
+
+    def probe(url, provider_name):
+        try:
+            with urllib.request.urlopen(url, timeout=2.0) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    found = []
+                    for m in data.get("data", []):
+                        found.append({"id": m["id"], "provider": provider_name})
+                    return found
+        except Exception:  # noqa: BLE001
+            return []
+        return []
+
+    results = await asyncio.gather(
+        *(asyncio.to_thread(probe, p["url"], p["name"]) for p in providers)
+    )
+    for res in results:
+        models.extend(res)
+
+    return {"success": True, "models": models}
+
+
+@app.get("/api/progress")
+async def get_progress():
+    return progress.get_state()
+
+
+@app.get("/api/settings")
+async def get_settings():
+    return {"success": True, "settings": load_settings()}
+
+
+@app.put("/api/settings")
+async def update_settings(payload: SettingsPayload):
+    settings = save_settings(payload.model_dump())
+    return {"success": True, "settings": settings}
+
+
+@app.get("/api/help")
+async def get_help_index():
+    return {"success": True, "docs": list_help_docs()}
+
+
+@app.get("/api/help/{doc_id}")
+async def get_help_doc(doc_id: str):
+    docs = {entry["id"]: Path(entry["path"]) for entry in list_help_docs()}
+    path = docs.get(doc_id)
+    if path is None or not path.exists():
+        raise HTTPException(status_code=404, detail="Help document not found.")
+    return {
+        "success": True,
+        "id": doc_id,
+        "content": path.read_text(encoding="utf-8", errors="ignore"),
+    }
+
+
+@app.get("/api/logs")
+async def get_logs(lines: int = 200, search: str = ""):
+    safe_lines = max(1, min(lines, 2000))
+    return {
+        "success": True,
+        "lines": read_log_lines(safe_lines, search),
+        "file": str(LOG_FILE),
+    }
+
+
+@app.get("/api/logs/download")
+async def download_logs():
+    if not LOG_FILE.exists():
+        raise HTTPException(status_code=404, detail="No log file found.")
+    return FileResponse(str(LOG_FILE), filename="factory.log")
+
+
+@app.get("/api/specialists")
+async def list_specialists():
+    try:
+        specialists = []
+        for _, specialist in get_council().items():
+            specialists.append(
+                {
+                    "name": specialist.name,
+                    "owned_patterns": specialist.owned_patterns,
+                    "requires": specialist.requires,
+                    "temperature": specialist.temperature,
+                    "docs": specialist.get_docs(),
+                }
+            )
+        return {"success": True, "specialists": specialists}
+    except Exception as error:  # noqa: BLE001
+        logger.error(f"Error listing specialists: {error}")
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post("/api/suggest-exemplars")
+async def suggest_exemplars(req: SuggestRequest):
+    try:
+        suggestions = await ghost_extractor.suggest_exemplars(req.query)
+        return {"success": True, "suggestions": suggestions}
+    except Exception as error:  # noqa: BLE001
+        logger.error(f"Discovery error: {error}")
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post("/api/ghost")
+async def ghost_site(req: GhostRequest):
+    try:
+        result = await ghost_extractor.extract_ghost(req.url)
+        return {"success": True, **result}
+    except Exception as error:  # noqa: BLE001
+        logger.error(f"Ghost extraction error: {error}")
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post("/api/refine")
+async def refine_prompt(request: RefineRequest):
+    client = LLMClient(role="foreman")
+    context = ""
+    if request.history:
+        context = "Previous versions:\n" + "\n---\n".join(request.history) + "\n\n"
+    improved = await client.generate(
+        prompt=f"{context}Current User Prompt: {request.prompt}",
+        system_prompt=(
+            "Rewrite the user request as a clear implementation brief. "
+            "Keep constraints practical and remove vague language."
+        ),
+        temperature=0.6,
+    )
+    return {"improved": improved}
+
+
+@app.post("/api/build")
+@app.post("/api/launch")
+async def launch(req: BuildRequest):
+    if state["active_builds"] > 0:
+        raise HTTPException(status_code=429, detail="A build is already in progress.")
+    asyncio.create_task(launch_factory(req.vibe_content, req.ghost_blueprint_path))
+    return {"success": True, "message": "Build launched."}
+
+
+@app.get("/api/v1/health")
+async def health_v1():
+    return {"status": "ok", "server": "dark-app-factory", "version": "2026.3"}
+
+
+@app.post("/api/v1/fleet/launch")
+@app.post("/api/fleet/launch")
+async def fleet_launch(request: FleetLaunchRequest):
+    path = Path(request.repo_path)
+    if not path.exists():
+        raise HTTPException(
+            status_code=404, detail=f"Path {request.repo_path} does not exist"
+        )
+    try:
+        allowed_base = Path("D:/Dev/repos").resolve()
+        path.resolve().relative_to(allowed_base)
+    except ValueError as error:
+        raise HTTPException(status_code=403, detail="Access denied") from error
+
+    start_script = path / "web_sota" / "start.ps1"
+    if not start_script.exists():
+        start_script = path / "web" / "start.ps1"
+    if not start_script.exists():
+        start_script = path / "start.ps1"
+    if not start_script.exists():
+        raise HTTPException(status_code=400, detail="No start.ps1 found")
+
+    try:
+        subprocess.Popen(
+            [
+                "powershell.exe",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(start_script),
+            ],
+            cwd=str(path),
+            creationflags=subprocess.CREATE_NEW_CONSOLE,
+        )
+    except Exception as error:  # noqa: BLE001
+        logger.error(f"Launch failed: {error}")
+        raise HTTPException(status_code=500, detail=str(error))
+    return {"success": True, "message": f"Launched {path.name}"}
+
+
+if os.path.exists(UI_DIR / "index.html"):
+    app.mount("/", StaticFiles(directory=str(UI_DIR), html=True), name="static")
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("PORT", "10738"))
+    uvicorn.run(app, host="0.0.0.0", port=port)

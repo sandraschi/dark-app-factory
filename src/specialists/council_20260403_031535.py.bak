@@ -1,0 +1,1930 @@
+from .base import Specialist
+from typing import Dict, Any, List, Tuple
+import json
+
+
+# =====================================================================
+# Plumber -- Backend Specialist (Node/Express OR Python/FastAPI)
+# =====================================================================
+class Plumber(Specialist):
+    """
+    The Backend Specialist.
+    Dual-mode: Node/Express OR Python/FastAPI based on stack_profile.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Plumber",
+            owned_patterns=[
+                # Node patterns
+                "server.js",
+                "app.js",
+                "db/*",
+                "models/*",
+                "routes/*",
+                "controllers/*",
+                "middleware/*",
+                # Python patterns
+                "main.py",
+                "app.py",
+                "routers/*",
+                "schemas/*",
+                "services/*",
+                "database/*",
+                "core/*",
+                "api/*",
+            ],
+            requires=["Professor"],
+            temperature=0.15,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        skill_context = shared_context.get(
+            "SKILL_DATA", "No additional skill data provided."
+        )
+        dep_context = self.get_dependency_context(shared_context)
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+
+        if backend.startswith("python/"):
+            framework = backend.split("/")[1]  # fastapi, flask, django
+            code_prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate a HIGH-FIDELITY, INDUSTRIAL-GRADE Python backend implementation for: {file_path}
+            Framework: {framework.upper()}
+            
+            Specs Context:
+            {specs[:50000]}
+            
+            DOMAIN EXPERTISE (SKILL BATTERY):
+            {skill_context}
+            
+            UPSTREAM CONTEXT (code from dependencies):
+            {dep_context}
+            
+            CRITICAL REQUIREMENTS:
+            - NO SKELETAL CODE. Implement FULL logic for all routes.
+            - Use {framework} with proper async patterns.
+            - **FastAPI specifics**: Use Pydantic v2 models for request/response validation.
+            - **API Docs**: Do NOT disable docs_url or redoc_url. Swagger UI at /docs and ReDoc at /redoc must remain active (FastAPI default).
+            - **Health Endpoint**: MUST include a GET /health endpoint returning JSON with: status, uptime_seconds, database_connected (bool), version, stack info.
+            - **Database**: Use SQLAlchemy 2.0 async with proper session management.
+            - **Dynamic Port**: Use `int(os.environ.get("PORT", 8000))` for uvicorn.
+            - Error Handling: Use proper HTTP exception classes with detail messages.
+            - Type hints on ALL function signatures.
+            - Professional docstrings explaining complex logic.
+            - Use python-dotenv for environment configuration.
+            - Use bcrypt/passlib for password hashing, python-jose for JWT.
+            
+            **DIGITAL TWIN UNIVERSE (DTU) INTEGRATION -- MANDATORY**:
+            - NEVER hardcode external API URLs (Stripe, auth services, email, SMS, etc.).
+            - ALL external API base URLs MUST be read from environment variables:
+              STRIPE_API_URL, AUTH_API_URL, EMAIL_API_URL, SMS_API_URL, STORAGE_API_URL,
+              DISCORD_WEBHOOK_URL, SLACK_WEBHOOK_URL, WEATHER_API_URL.
+            - Pattern: `os.environ.get("STRIPE_API_URL", "https://api.stripe.com")`
+            - This allows the Digital Twin Universe (DTU) to intercept all external calls
+              during testing by setting these env vars to http://localhost:8001/stripe etc.
+            - Create a `config.py` or config section that centralizes all external URLs.
+            """
+            system = f"You are the {self.name}, a Python backend expert. Output ONLY Python code. Use {framework} patterns."
+        else:
+            code_prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate a HIGH-FIDELITY, INDUSTRIAL-GRADE backend implementation for: {file_path}
+            Expertises: Node.js, Express, PostgreSQL, Auth, Media Processing, Auditing logic.
+            
+            Specs Context:
+            {specs[:50000]}
+            
+            DOMAIN EXPERTISE (SKILL BATTERY):
+            {skill_context}
+            
+            UPSTREAM CONTEXT (code from dependencies):
+            {dep_context}
+            
+            CRITICAL REQUIREMENTS:
+            - NO SKELETAL CODE. Implement FULL logic for all routes.
+            - **Dynamic Port**: MUST use `process.env.PORT || 3000` for the listener.
+            - **Health Endpoint**: MUST include a GET /health or /api/health endpoint returning JSON with: status, uptime, database_connected, version.
+            - Data Validation: Use Zod. Import EXACTLY as: `const {{ z }} = require('zod');` (destructured, NOT `const zod = require('zod')`).
+            - Password hashing: use `bcryptjs` (NOT `bcrypt`). Import as: `const bcrypt = require('bcryptjs');`
+            - Error Handling: Implement robust try-catch blocks with helpful error messages.
+            - Professional Comments: Explain complex logic for high-fidelity auditing.
+            
+            **DIGITAL TWIN UNIVERSE (DTU) INTEGRATION -- MANDATORY**:
+            - NEVER hardcode external API URLs (Stripe, auth services, email, SMS, etc.).
+            - ALL external API base URLs MUST be read from environment variables:
+              STRIPE_API_URL, AUTH_API_URL, EMAIL_API_URL, SMS_API_URL, STORAGE_API_URL,
+              DISCORD_WEBHOOK_URL, SLACK_WEBHOOK_URL, WEATHER_API_URL.
+            - Pattern: `process.env.STRIPE_API_URL || "https://api.stripe.com"`
+            - This allows the Digital Twin Universe (DTU) to intercept all external calls
+              during testing by setting these env vars to http://localhost:8001/stripe etc.
+            - Create a `config.js` that centralizes all external service URLs from env vars.
+            """
+            system = f"You are the {self.name}. Output ONLY code. Provide EXHAUSTIVE, production-ready logic."
+
+        return await worker.generate(
+            code_prompt, system_prompt=system, temperature=self.temperature
+        )
+
+    def validate(self, file_path: str, code: str, specs: str) -> Tuple[bool, str]:
+        errors = []
+        if file_path in ("main.py", "app.py"):
+            if (
+                "uvicorn" not in code
+                and "app.listen" not in code
+                and "run(" not in code
+            ):
+                errors.append(
+                    "Entry file missing server startup (uvicorn.run or app.listen)."
+                )
+            if "/health" not in code and "health" not in code.lower():
+                errors.append("Missing /health endpoint.")
+        if file_path == "server.js":
+            if "app.listen" not in code and "server.listen" not in code:
+                errors.append("server.js missing app.listen() or server.listen().")
+            if "/health" not in code and "health" not in code.lower():
+                errors.append("Missing /health endpoint.")
+        return (len(errors) == 0, "; ".join(errors))
+
+    def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
+        files = []
+        backend = stack_profile.get("backend", "node/express")
+        specs_lower = specs.lower()
+        if backend.startswith("python/"):
+            if any(
+                kw in specs_lower
+                for kw in ["patient", "appointment", "booking", "user", "crud"]
+            ):
+                files.extend(
+                    [
+                        "routers/__init__.py",
+                        "schemas/__init__.py",
+                        "database/__init__.py",
+                    ]
+                )
+        else:
+            if any(
+                kw in specs_lower
+                for kw in ["patient", "appointment", "booking", "user", "crud"]
+            ):
+                files.extend(["routes/api.js", "models/index.js"])
+        return files
+
+
+# =====================================================================
+# Sculptor -- Frontend Specialist (React / HTMX / None)
+# =====================================================================
+class Sculptor(Specialist):
+    """
+    The UI/UX Artisan & Frontend Architect.
+    Crafstman of premium, high-fidelity user interfaces. Expert in
+    glassmorphism, advanced Tailwind patterns, and responsive component
+    architecture. Owns the visual and interactive core of the application.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Sculptor",
+            owned_patterns=[
+                "src/App.tsx",
+                "src/components/*",
+                "src/pages/*",
+                "src/views/*",
+                "src/index.css",
+                "index.html",
+                "src/main.tsx",
+                "src/renderers/*",
+                # HTMX patterns
+                "templates/*",
+                "static/*",
+            ],
+            requires=["Professor"],
+            temperature=0.4,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        stack = shared_context.get("stack_profile", {})
+        frontend = stack.get("frontend", "react")
+
+        # Skip generation if no frontend
+        if frontend == "none":
+            return ""
+
+        # HTMX mode
+        if frontend == "htmx":
+            return await self._generate_htmx(file_path, specs, shared_context, worker)
+
+        # React mode (default)
+        return await self._generate_react(file_path, specs, shared_context, worker)
+
+    async def _generate_react(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        dep_context = self.get_dependency_context(shared_context)
+
+        if file_path == "index.html":
+            prompt = """
+            Generate a SOTA, PREMIUM index.html for a Vite + React project.
+            - MUST include <div id="root"></div>.
+            - MUST include <script type="module" src="/src/main.tsx"></script>.
+            - Include Google Fonts (Inter, Outfit, or Poppins).
+            - Set base background color to a sleek dark theme (#09090b).
+            """
+        elif file_path == "src/main.tsx":
+            prompt = """
+            Generate React 18 /src/main.tsx.
+            - MUST import React, { StrictMode }.
+            - MUST import { createRoot } from 'react-dom/client'.
+            - MUST import App from './App'.
+            - MUST import './index.css'.
+            - Render <App /> with a <StrictMode> wrapper.
+            """
+        elif file_path == "src/App.tsx":
+            prompt = f"""
+            Generate the SOTA HIGH-FIDELITY shell for the application: /src/App.tsx.
+            - Import Framer Motion EXACTLY as named imports: `import {{ AnimatePresence, motion }} from 'framer-motion';` -- NEVER use a default import or namespace import.
+            - Use <AnimatePresence mode="wait"> (NOT exitBeforeEnter, which is deprecated) for page transitions.
+            - Implement a GORGEOUS Responsive Navbar with Glassmorphism (backdrop-blur).
+            - Routing: use react-router-dom for all pages defined in the specs.
+            - Design: Dark mode by default, high-contrast, premium typography.
+            - Context: {specs[:50000]}
+            """
+        else:
+            prompt = f"""
+            Generate a STUNNING, HIGH-FIDELITY React component: {file_path}
+            Expertises: Tailwind CSS, Framer Motion, Glassmorphism, Micro-animations.
+            
+            Specs Context: {specs[:50000]}
+            
+            DOMAIN EXPERTISE (SKILL BATTERY):
+            {shared_context.get("SKILL_DATA", "")}
+            
+            UPSTREAM CONTEXT (code from dependencies):
+            {dep_context}
+            
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            AESTHETIC PROTOCOLS:
+            - **Glassmorphism**: Use `bg-white/10 backdrop-blur-md border border-white/20`.
+            - **Typography**: Large, bold headings, clean sans-serif (Inter/Outfit).
+            - **Interactivity**: Every button must have a hover scale effect.
+            - **Content Density**: DO NOT generate skeleton loaders. Include dense, realistic content.
+            - **Visuals**: Use Lucide-React icons for every list item/button.
+            - **Grid/Layout**: Use complex Bento Grid or modern flex layouts.
+            """
+
+        return await worker.generate(
+            prompt,
+            system_prompt=f"You are the {self.name}, a world-class UI/UX designer and frontend engineer. Use Tailwind CSS for all styling.",
+            temperature=self.temperature,
+        )
+
+    async def _generate_htmx(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        dep_context = self.get_dependency_context(shared_context)
+        prompt = f"""
+        {self.ANTI_GASLIGHTING_PROMPT}
+
+        Generate a HIGH-FIDELITY HTMX template for: {file_path}
+        Expertises: Jinja2 templates, HTMX attributes (hx-get, hx-post, hx-swap, hx-trigger), Alpine.js for client state.
+        
+        Specs Context: {specs[:50000]}
+        
+        UPSTREAM CONTEXT (code from dependencies):
+        {dep_context}
+        
+        CRITICAL REQUIREMENTS:
+        - Use Jinja2 template syntax with template inheritance (extends base.html).
+        - Use HTMX for all dynamic interactions (no page reloads).
+        - Use Alpine.js (x-data, x-show, x-on) for client-side reactivity.
+        - Tailwind CSS for styling.
+        - Mobile-first responsive design.
+        - NO React, NO JSX, NO JavaScript frameworks.
+        """
+        return await worker.generate(
+            prompt,
+            system_prompt=f"You are the {self.name}. Generate HTMX + Jinja2 templates. Output ONLY template code.",
+            temperature=self.temperature,
+        )
+
+    def validate(self, file_path: str, code: str, specs: str) -> Tuple[bool, str]:
+        if file_path.endswith(".tsx") or file_path.endswith(".jsx"):
+            if "export" not in code:
+                return (
+                    False,
+                    f"{file_path}: Missing 'export' statement -- component not importable.",
+                )
+        return (True, "")
+
+
+# =====================================================================
+# Librarian -- Documentation Specialist
+# =====================================================================
+class Librarian(Specialist):
+    """
+    The Technical Writer & API Documentarian.
+    Expert in crafting clear, concise, and comprehensive documentation.
+    Specializes in API reference guides, user manuals, and project
+    readmes. Ensures the application's functionality is well-understood
+    and easily consumable.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Librarian",
+            owned_patterns=["README.md", "docs/*"],
+            requires=["Plumber"],
+            temperature=0.6,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+
+        # Use the generic dependency context (includes full Plumber output)
+        dep_context = self.get_dependency_context(shared_context)
+
+        # Also extract main entry specifically for route docs
+        plumber_output = shared_context.get("Plumber", {})
+        if backend.startswith("python/"):
+            backend_entry = "main.py"
+            install_cmd = "pip install -r requirements.txt"
+            run_cmd = "uvicorn main:app --reload"
+        else:
+            backend_entry = "server.js"
+            install_cmd = "npm install"
+            run_cmd = "npm run dev"
+
+        backend_code = plumber_output.get(backend_entry, f"No {backend_entry} found.")
+
+        prompt = f"""
+        {self.ANTI_GASLIGHTING_PROMPT}
+
+        Generate an EXHAUSTIVE, multi-section README.md for this project.
+        Expertise: Technical Writing, API Documentation, Professional Markdown.
+        
+        Tech Stack: {backend} backend
+        
+        Specs Summary: {specs[:50000]}
+        
+        INPUT - ACTUAL BACKEND CODE (use for route documentation):
+        {backend_code[:2500]}
+        
+        UPSTREAM CONTEXT (all backend files):
+        {dep_context}
+        
+        MUST INCLUDE THESE SECTIONS:
+        1. # Project Title (Industrial & Descriptive)
+        2. ## Overview (What does this app do?)
+        3. ## Features (List at least 5 key features based on Specs)
+        4. ## Tech Stack (Frontend/Backend/DB)
+        5. ## API Reference (Document every route found in the provided code)
+        6. ## Database Schema (Document the SQL structure)
+        7. ## Getting Started (Step-by-step install and run)
+           - Install: `{install_cmd}`
+           - Run: `{run_cmd}`
+        
+        CRITICAL: Do NOT just output SQL. The output must be valid Markdown text. 
+        Aim for a long, high-fidelity file.
+        """
+        return await worker.generate(
+            prompt,
+            system_prompt=f"You are the {self.name}. Output ONLY Markdown.",
+            temperature=self.temperature,
+        )
+
+    def validate(self, file_path: str, code: str, specs: str) -> Tuple[bool, str]:
+        if file_path.endswith(".md"):
+            if "#" not in code:
+                return (False, "README.md missing markdown headers.")
+            if "##" not in code:
+                return (False, "README.md missing section headers (##).")
+        return (True, "")
+
+
+# =====================================================================
+# Professor -- Skill Battery Specialist (no requires, no temp override)
+# =====================================================================
+class Professor(Specialist):
+    """
+    The Skill Battery Specialist.
+    Loads specialized domain knowledge from the local /skills directory.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Professor",
+            owned_patterns=["skills/*"],
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        import os
+
+        # 1. Analyze Specs to find the best skill
+        skill_selection_prompt = f"""
+        Analyze these application specs and identify the most relevant domain.
+        Available local skills: {os.listdir("skills") if os.path.exists("skills") else "None"}
+        
+        Hints: If specs mention MCP server, VLC, 7-Zip, or wrapping a Windows
+        executable with MCP tools + web dashboard, choose mcp-windows-app-wrapper.md.
+        
+        Specs: {specs[:50000]}
+        
+        Output ONLY the filename of the best matching skill or "None".
+        """
+
+        skill_filename = await worker.generate(
+            skill_selection_prompt,
+            system_prompt="You are the Skill Selector. Output ONLY the filename.",
+        )
+        skill_filename = skill_filename.strip().strip('"').strip("'")
+
+        skill_content = ""
+        if (
+            skill_filename
+            and skill_filename != "None"
+            and os.path.exists(f"skills/{skill_filename}")
+        ):
+            with open(f"skills/{skill_filename}", "r", encoding="utf-8") as f:
+                skill_content = f.read()
+            # Inject into shared context for all specialists to see
+            shared_context["SKILL_DATA"] = skill_content
+            return f"Successfully loaded skill: {skill_filename}"
+
+        return "No specific skill loaded."
+
+
+# =====================================================================
+# Registrar -- Infrastructure Specialist
+# =====================================================================
+class Registrar(Specialist):
+    """
+    The Infrastructure & DevOps Engineer.
+    Architect of the application's foundational environment. Expert in
+    Docker, Kubernetes, CI/CD pipelines, and cloud-native deployments.
+    Ensures the application is scalable, resilient, and production-ready.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Registrar",
+            owned_patterns=[
+                "package.json",
+                "vite.config.ts",
+                ".env*",
+                "requirements.txt",
+                "pyproject.toml",
+                "Dockerfile",
+                "docker-compose.yml",
+            ],
+            temperature=0.1,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+        frontend = stack.get("frontend", "react")
+        database = stack.get("database", "sqlite")
+
+        if file_path == "requirements.txt":
+            prompt = self._python_requirements_prompt(backend, database)
+        elif file_path == "pyproject.toml":
+            prompt = self._pyproject_prompt(specs)
+        elif file_path == "package.json":
+            if backend.startswith("python/"):
+                prompt = self._frontend_only_package_json_prompt()
+            else:
+                prompt = self._fullstack_node_package_json_prompt()
+        elif file_path == "vite.config.ts":
+            backend_port = "8000" if backend.startswith("python/") else "3000"
+            prompt = f"""
+            Generate a standard vite.config.ts for a React project using @vitejs/plugin-react.
+            - Use the 'vite' and '@vitejs/plugin-react' imports.
+            - Configuration must include the React plugin.
+            - Ensure it's compatible with a flat project structure where package.json is at root.
+            - DISABLE middlewareMode. (Standard dev server).
+            - **Dynamic Ports**: 
+                - Use `process.env.VITE_PORT || 5173` for the dev server port.
+                - Add a PROXY for '/api' pointing to `http://localhost:${{process.env.PORT || {backend_port}}}`.
+            """
+        elif file_path == "Dockerfile":
+            if backend.startswith("python/"):
+                prompt = f"""
+                Generate a production Dockerfile for a Python {backend.split("/")[1]} application.
+                - Use python:3.12-slim as base.
+                - Copy requirements.txt and install deps first (layer caching).
+                - Copy source code.
+                - Expose port 8000.
+                - CMD: uvicorn main:app --host 0.0.0.0 --port 8000
+                - Use non-root user.
+                """
+            else:
+                prompt = """
+                Generate a production Dockerfile for a Node.js Express application.
+                - Use node:20-slim as base.
+                - Copy package.json and install deps first (layer caching).
+                - Copy source code.
+                - Expose port 3000.
+                - CMD: node server.js
+                - Use non-root user.
+                """
+        else:
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+            Generate infrastructure file: {file_path}
+            Stack: backend={backend}, frontend={frontend}, database={database}
+            """
+
+        return await worker.generate(
+            prompt,
+            system_prompt=f"You are the {self.name}. Output ONLY code/config.",
+            temperature=self.temperature,
+        )
+
+    def validate(self, file_path: str, code: str, specs: str) -> Tuple[bool, str]:
+        if file_path == "package.json":
+            try:
+                pkg = json.loads(code)
+            except (json.JSONDecodeError, ValueError) as e:
+                return (False, f"package.json is not valid JSON: {e}")
+            # Reject hallucinated kitchen-sink deps not in specs
+            all_deps = {
+                **pkg.get("dependencies", {}),
+                **pkg.get("devDependencies", {}),
+            }
+            specs_lower = specs.lower()
+            GATED_DEPS = {
+                "three": ["3d", "three.js", "threejs", "webgl"],
+                "@react-three/fiber": ["3d", "three.js", "r3f"],
+                "@react-three/drei": ["3d", "three.js", "r3f"],
+                "langchain": ["rag", "langchain", "vector", "embedding"],
+                "@langchain/core": ["rag", "langchain", "vector"],
+                "@pinecone-database/pinecone": ["pinecone", "vector database"],
+                "midi-writer-js": ["midi", "music generation"],
+                "wavesurfer.js": ["waveform", "wavesurfer", "audio visuali"],
+                "video.js": ["video player", "video.js", "hls"],
+                "tone": ["tone.js", "web audio", "synthesizer"],
+                "howler": ["howler", "audio engine"],
+                "epub-parser": ["epub", "ebook"],
+                "pdf-parse": ["pdf parsing", "pdf extract"],
+                "moment": ["moment.js"],  # date-fns is the preferred dep
+            }
+            hallucinated = []
+            for dep, required_keywords in GATED_DEPS.items():
+                if dep in all_deps:
+                    if not any(kw in specs_lower for kw in required_keywords):
+                        hallucinated.append(dep)
+            if hallucinated:
+                return (
+                    False,
+                    f"package.json contains hallucinated deps not justified by specs: {', '.join(hallucinated)}. Remove them.",
+                )
+        if file_path == "requirements.txt":
+            lines = [
+                line.strip()
+                for line in code.strip().splitlines()
+                if line.strip() and not line.strip().startswith("#")
+            ]
+            if len(lines) < 3:
+                return (
+                    False,
+                    "requirements.txt has fewer than 3 packages -- likely incomplete.",
+                )
+        return (True, "")
+
+    def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
+        files = []
+        backend = stack_profile.get("backend", "node/express")
+        frontend = stack_profile.get("frontend", "react")
+        if backend.startswith("python/"):
+            files.append("requirements.txt")
+            files.append("Dockerfile")
+        if frontend == "react":
+            files.append("vite.config.ts")
+        return files
+
+    @staticmethod
+    def _python_requirements_prompt(backend: str, database: str) -> str:
+        framework = backend.split("/")[1] if "/" in backend else "fastapi"
+        db_deps = {
+            "postgresql": "psycopg2-binary\nasyncpg",
+            "mysql": "pymysql\naiomysql",
+            "mongodb": "motor\npymongo",
+            "sqlite": "aiosqlite",
+        }
+        db_pkgs = db_deps.get(database, "aiosqlite")
+
+        if framework == "fastapi":
+            return f"""
+            Generate a requirements.txt for a production FastAPI application.
+            Include these packages (latest versions, no pinning):
+            
+            # Core
+            fastapi
+            uvicorn[standard]
+            pydantic>=2.0
+            pydantic-settings
+            python-dotenv
+            
+            # Database
+            sqlalchemy>=2.0
+            alembic
+            {db_pkgs}
+            
+            # Auth
+            python-jose[cryptography]
+            passlib[bcrypt]
+            python-multipart
+            
+            # HTTP
+            httpx
+            
+            # Utils
+            python-dateutil
+            
+            Output ONLY the requirements.txt content, one package per line.
+            """
+        elif framework == "flask":
+            return f"""
+            Generate a requirements.txt for a production Flask application.
+            Include: flask, flask-cors, flask-sqlalchemy, flask-migrate,
+            marshmallow, python-dotenv, {db_pkgs}, gunicorn.
+            Output ONLY the requirements.txt content.
+            """
+        else:
+            return f"""
+            Generate a requirements.txt for a production Django application.
+            Include: django>=5.0, djangorestframework, django-cors-headers,
+            python-dotenv, {db_pkgs}, gunicorn.
+            Output ONLY the requirements.txt content.
+            """
+
+    @staticmethod
+    def _pyproject_prompt(specs: str) -> str:
+        return f"""
+        Generate a pyproject.toml for a Python project based on these specs.
+        Use modern Python packaging (PEP 621).
+        Include [project] metadata, [build-system] with setuptools.
+        Specs: {specs[:5000]}
+        Output ONLY the pyproject.toml content.
+        """
+
+    @staticmethod
+    def _fullstack_node_package_json_prompt() -> str:
+        return """
+        Generate a production-ready package.json for a Full Stack React + Express app.
+        
+        CRITICAL SCRIPTS:
+        "start": "node server.js",
+        "server": "nodemon server.js",
+        "client": "vite",
+        "dev": "concurrently \\"npm run server\\" \\"npm run client\\""
+        
+        REQUIRED DEPENDENCIES (Use '*' for versions):
+        - CORE: express, cors, dotenv, bcryptjs, jsonwebtoken, sequelize, pg, pg-hstore, morgan, helmet
+        - UI: react, react-dom, react-router-dom, axios, framer-motion, lucide-react, clsx, tailwind-merge
+        - FORMS: react-hook-form, zod
+        - CHARTS: recharts
+        - UTILS: date-fns, lodash, multer, node-cron, uuid
+        - STATE: @reduxjs/toolkit, react-redux
+        
+        REQUIRED DEV DEPENDENCIES:
+        - vite, @vitejs/plugin-react, @types/react, @types/react-dom, concurrently, nodemon, typescript
+        
+        DO NOT include: three, @react-three/fiber, @react-three/drei, langchain, @langchain/core,
+        @pinecone-database/pinecone, midi-writer-js, wavesurfer.js, video.js, tone, howler,
+        epub-parser, pdf-parse, mammoth, officegen, rss-parser, cheerio, husky, jest,
+        html-webpack-plugin, jwks-rsa, moment, nodemailer, @types/three.
+        Include ONLY dependencies listed above unless the specs explicitly require them.
+        """
+
+    @staticmethod
+    def _frontend_only_package_json_prompt() -> str:
+        return """
+        Generate a package.json for a React frontend (Vite) that connects to a Python backend via API proxy.
+        
+        CRITICAL SCRIPTS:
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+        
+        REQUIRED DEPENDENCIES (Use '*' for versions):
+        - UI: react, react-dom, react-router-dom, axios, framer-motion, lucide-react, clsx, tailwind-merge
+        - FORMS: react-hook-form, zod
+        - CHARTS: recharts
+        - STATE: @reduxjs/toolkit, react-redux
+        
+        REQUIRED DEV DEPENDENCIES:
+        - vite, @vitejs/plugin-react, typescript, @types/react, @types/react-dom, tailwindcss, postcss, autoprefixer
+        
+        No Express, no backend deps. This is frontend-only.
+        """
+
+
+# =====================================================================
+# Nervos -- System Heartbeat & Plugin Specialist (stack-aware)
+# =====================================================================
+class Nervos(Specialist):
+    """
+    The System Heartbeat & Plugin Specialist.
+    Expert in App lifecycle, Messaging Connectors (WhatsApp/Email), and Plugin Architecture.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Nervos",
+            owned_patterns=[
+                "src/services/nervos/*",
+                "src/plugins/*",
+                "src/hooks/useHeartbeat.ts",
+                "src/components/StatusMonitor.tsx",
+            ],
+            temperature=0.2,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+
+        if backend.startswith("python/"):
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate system health or connector logic for: {file_path}
+            Language: Python
+            Expertises: FastAPI BackgroundTasks, fastapi-mail, python-telegram-bot, websockets, Plugin registry patterns.
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Use async/await patterns throughout.
+            - Heartbeat: async periodic task checking service liveness.
+            - Messaging: Use fastapi-mail for email, python-telegram-bot for Telegram.
+            - Plugin system: Use importlib for dynamic module loading, registry dict pattern.
+            - Type hints on all signatures.
+            """
+            system = f"You are the {self.name}, a Python systems expert. Output ONLY Python code."
+        else:
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate system health or connector logic for: {file_path}
+            Language: JavaScript/TypeScript
+            Expertises: Heartbeat monitoring, Messaging APIs (WhatsApp/Nodemailer/Telegram), Plugin Systems (Registry/Loading), WebSockets.
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Implementation of robust service connectors.
+            - Proper plugin lifecycle management.
+            - Efficient status monitoring (heartbeat) logic.
+            """
+            system = f"You are the {self.name}. Output ONLY code."
+
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
+
+    def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
+        specs_lower = specs.lower()
+        if not any(
+            kw in specs_lower
+            for kw in [
+                "heartbeat",
+                "plugin",
+                "email",
+                "telegram",
+                "whatsapp",
+                "notification",
+                "monitor",
+            ]
+        ):
+            return []
+        backend = stack_profile.get("backend", "node/express")
+        if backend.startswith("python/"):
+            return [
+                "src/services/nervos/heartbeat.py",
+                "src/services/nervos/connectors.py",
+            ]
+        return ["src/services/nervos/heartbeat.js", "src/plugins/registry.js"]
+
+
+# =====================================================================
+# Auditor -- MS Office & Audit Specialist (stack-aware)
+# =====================================================================
+class Auditor(Specialist):
+    """
+    The Data Modeler & Schema Engineer.
+    Architect of the persistence layer. Expert in Prisma, SQL, and NoSQL
+    schema design. Ensures data integrity and efficient relationship
+    modeling across the entire application stack.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Auditor",
+            owned_patterns=[
+                "src/services/audit/*",
+                "src/components/ExcelViewer.tsx",
+                "src/hooks/useAudit.ts",
+            ],
+            temperature=0.2,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+
+        if backend.startswith("python/"):
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate Office file processing or auditing logic for: {file_path}
+            Language: Python
+            Expertises: openpyxl (Excel read/write), python-docx (Word), pandas (data validation), formula auditing patterns.
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Use openpyxl for XLSX processing, python-docx for Word documents.
+            - Use pandas for data validation and statistical checks.
+            - Implement formula auditing (detect circular refs, broken formulas).
+            - Type hints on all signatures.
+            """
+            system = f"You are the {self.name}, a Python data auditing expert. Output ONLY Python code."
+        else:
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate Office file processing or auditing logic for: {file_path}
+            Language: JavaScript/TypeScript
+            Expertises: MS Excel (XLSX/ExcelJS), Word (DocxTemplater), Data Validation, Error checking in formulas, "Cook my books" auditing patterns.
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Implementation of high-fidelity Excel/Word parsing and auditing.
+            - Efficient processing of complex spreadsheet formulas.
+            - Clear error reporting and validation summaries.
+            """
+            system = f"You are the {self.name}. Output ONLY code."
+
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
+
+
+# =====================================================================
+# Raggy -- RAG & Vector Search Specialist (stack-aware)
+# =====================================================================
+class Raggy(Specialist):
+    """
+    The Semantic Intelligence & RAG Architect.
+    Expert in Retrieval-Augmented Generation, vector embeddings, and
+    semantic search orchestration. Specialists in ChromaDB, FAISS, and
+    LLM contextual grounding logic.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Raggy",
+            owned_patterns=[
+                "src/services/rag/*",
+                "src/hooks/useRag.ts",
+                "src/components/ChatWithDocs.tsx",
+            ],
+            temperature=0.2,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+
+        if backend.startswith("python/"):
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate RAG/Vector search logic for: {file_path}
+            Language: Python
+            Expertises: chromadb, langchain, sentence-transformers, FAISS, semantic search, document chunking (RecursiveCharacterTextSplitter).
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Use chromadb as the default vector store (local, no external service needed).
+            - Use sentence-transformers for embeddings (all-MiniLM-L6-v2 default).
+            - Implement document chunking with configurable chunk_size/overlap.
+            - Async-compatible retrieval functions.
+            - Type hints on all signatures.
+            """
+            system = f"You are the {self.name}, a Python RAG expert. Output ONLY Python code."
+        else:
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate RAG/Vector search logic for: {file_path}
+            Language: JavaScript/TypeScript
+            Expertises: OpenAI/Gemini Embeddings, Vector Databases (Pinecone, ChromaDB, HNSWLIB), Semantic Search, Chunking strategies, LangChain.
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Implementation of vector embedding generation and storage logic.
+            - Efficient retrieval patterns (similarity search).
+            - Proper integration with Chat UIs for context-augmented generation.
+            """
+            system = f"You are the {self.name}. Output ONLY code."
+
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
+
+    def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
+        specs_lower = specs.lower()
+        if not any(
+            kw in specs_lower
+            for kw in [
+                "rag",
+                "vector",
+                "embedding",
+                "semantic search",
+                "chat with doc",
+                "knowledge base",
+            ]
+        ):
+            return []
+        backend = stack_profile.get("backend", "node/express")
+        if backend.startswith("python/"):
+            return ["src/services/rag/retriever.py", "src/services/rag/embeddings.py"]
+        return ["src/services/rag/retriever.js", "src/services/rag/embeddings.js"]
+
+
+# =====================================================================
+# WebFinder -- Web Scraping & Embedding Specialist (stack-aware)
+# =====================================================================
+class WebFinder(Specialist):
+    """
+    The Web Intelligence & Scraping Specialist.
+    Expert in automated data collection and content extraction. Specializes
+    in Wikipedia/TVTropes APIs, RSS orchestration, and async scraping
+    pipelines with rate-limiting and sanitization.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="WebFinder",
+            owned_patterns=[
+                "src/services/web/*",
+                "src/hooks/useWebFinder.ts",
+                "src/components/WebEmbed.tsx",
+            ],
+            temperature=0.2,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+
+        if backend.startswith("python/"):
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate web-scraping or embedding logic for: {file_path}
+            Language: Python
+            Expertises: httpx/aiohttp for async HTTP, BeautifulSoup4 for HTML parsing, wikipedia-api, feedparser for RSS/Atom, iframe safe-embedding patterns.
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Use httpx (async) for HTTP requests.
+            - Use BeautifulSoup4 for HTML parsing.
+            - Implement rate limiting and retry logic.
+            - Sanitize extracted content (bleach or html.escape).
+            - Type hints on all signatures.
+            """
+            system = f"You are the {self.name}, a Python web scraping expert. Output ONLY Python code."
+        else:
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate web-scraping or embedding logic for: {file_path}
+            Language: JavaScript/TypeScript
+            Expertises: Wikipedia API, RSS/Atom parsing, Cheerio, TVTropes-specific extraction patterns, iframe safe-embedding.
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Implementation of efficient content fetchers and parsers.
+            - Robust error handling for external site changes.
+            - Sanitization of extracted HTML/content.
+            """
+            system = f"You are the {self.name}. Output ONLY code."
+
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
+
+
+# =====================================================================
+# Archivist -- Digital Book & Calibre Specialist (stack-aware)
+# =====================================================================
+class Archivist(Specialist):
+    """
+    The Digital Asset & Library Specialist.
+    Architect of document processing systems. Expert in ePub, PDF, and
+    Calibre library integration. Specializes in metadata extraction,
+    chapter-level parsing, and binary stream management.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Archivist",
+            owned_patterns=[
+                "src/services/library/*",
+                "src/components/Reader.tsx",
+                "src/hooks/useLibrary.ts",
+            ],
+            temperature=0.2,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+
+        if backend.startswith("python/"):
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate library/book extraction logic for: {file_path}
+            Language: Python
+            Expertises: ebooklib (EPUB), PyPDF2/pdfplumber (PDF), Calibre library structure, text extraction, metadata management.
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Use ebooklib for EPUB parsing, PyPDF2 or pdfplumber for PDF.
+            - Extract metadata (title, author, ISBN, cover image).
+            - Implement text extraction with chapter-level granularity.
+            - Stream large files to avoid memory bloat.
+            - Type hints on all signatures.
+            """
+            system = f"You are the {self.name}, a Python document processing expert. Output ONLY Python code."
+        else:
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate library/book extraction logic for: {file_path}
+            Language: JavaScript/TypeScript
+            Expertises: Calibre library structure, EPUB/PDF/Mobi parsing (epub-parser, pdf-parse), text extraction, and metadata management.
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Implementation of high-fidelity document parsers.
+            - Efficient processing of large binary files (streams).
+            - Clean representation of book metadata and content.
+            """
+            system = f"You are the {self.name}. Output ONLY code."
+
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
+
+
+# =====================================================================
+# Maestro -- Music & Audio Specialist (stack-aware)
+# =====================================================================
+class Maestro(Specialist):
+    """
+    The Audio Engineering & Generative Music Specialist.
+    Conductor of the Web Audio API. Expert in Tone.js, AI music
+    orchestration (Suno/Udio), and MIDI generation patterns. Ensures
+    the application sounds as premium as it looks.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Maestro",
+            owned_patterns=[
+                "src/audio/*",
+                "src/components/AudioPlayer.tsx",
+                "src/hooks/useAudio.ts",
+            ],
+            temperature=0.3,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+
+        if backend.startswith("python/") and file_path.endswith(".py"):
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate music/audio processing logic for: {file_path}
+            Language: Python
+            Expertises: pydub, librosa, soundfile, MIDI (mido/pretty_midi), ffmpeg subprocess wrappers.
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Use pydub or librosa for audio manipulation.
+            - Use mido/pretty_midi for MIDI generation.
+            - Wrap ffmpeg for format conversion via subprocess.
+            - Type hints on all signatures.
+            """
+            system = f"You are the {self.name}, a Python audio engineer. Output ONLY Python code."
+        else:
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate music/audio logic for: {file_path}
+            Language: JavaScript/TypeScript
+            Expertises: Tone.js, Web Audio API, Suno/Udio API integration patterns, MIDI generation, FOSS audio tools.
+            
+            Specs Context: {specs[:50000]}
+            
+            REQUIREMENTS:
+            - Implementation of audio synthesis, generative music, or AI music client logic.
+            - Proper handling of AudioContext and browser autoplay policies.
+            - High-quality, functional code only.
+            """
+            system = f"You are the {self.name}. Output ONLY code."
+
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
+
+
+# =====================================================================
+# Picasso -- Visualizer (creative temperature)
+# =====================================================================
+class Picasso(Specialist):
+    """
+    The Visual Identity & Vector Artist.
+    Master of the SVG canvas. Expert in custom icons, high-fidelity UI
+    illustrations, and optimized vector orchestration. Ensures
+    visual continuity across all media assets.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Picasso",
+            owned_patterns=[
+                "public/assets/*",
+                "src/assets/*",
+                "src/components/illustrations/*",
+                "src/components/icons/*",
+            ],
+            temperature=0.5,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        prompt = f"""
+        {self.ANTI_GASLIGHTING_PROMPT}
+
+        Generate a GORGEOUS, HIGH-FIDELITY visual asset or icon component for: {file_path}
+        Expertises: SVG optimization, React SVG components, Lucide-React styling, CSS gradients, complex patterns.
+        
+        Specs Context: {specs[:50000]}
+        
+        REQUIREMENTS:
+        - Implementation of optimized, high-fidelity visuals.
+        - Proper use of gradients, shadows, and paths.
+        - Ensure responsive and accessible SVG attributes.
+        """
+        return await worker.generate(
+            prompt,
+            system_prompt=f"You are the {self.name}. Output ONLY code/SVG.",
+            temperature=self.temperature,
+        )
+
+
+# =====================================================================
+# Shakespeare -- Copywriter (high creative temperature)
+# =====================================================================
+class Shakespeare(Specialist):
+    """
+    The Narrative Lead & Copy Director.
+    Architect of the application's voice. Expert in persuasive
+    copywriting, high-fidelity marketing narratives, and multi-language
+    localization (i18n). Ensures the story is clear and compelling.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Shakespeare",
+            owned_patterns=[
+                "src/content/*",
+                "src/locales/*",
+                "docs/MARKETING.md",
+            ],
+            temperature=0.7,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        prompt = f"""
+        {self.ANTI_GASLIGHTING_PROMPT}
+
+        Generate WORLD-CLASS, PERSUASIVE copy/content for: {file_path}
+        Expertises: Marketing Copywriting, Storytelling, SEO Optimization, Multi-language localization (i18next).
+        
+        Specs Context: {specs[:50000]}
+        
+        REQUIREMENTS:
+        - Implementation of premium, industrial-standard copy.
+        - Narrative consistency across all sections.
+        - Optimized for user engagement and clarity.
+        """
+        return await worker.generate(
+            prompt,
+            system_prompt=f"You are the {self.name}. Output ONLY Markdown/Text content.",
+            temperature=self.temperature,
+        )
+
+
+# =====================================================================
+# Propagandist -- Distribution & PR Specialist (requires Shakespeare + Librarian)
+# =====================================================================
+class Propagandist(Specialist):
+    """
+    The Growth & Distribution Specialist.
+    Architect of the product launch. Expert in tech PR, Reddit/HN
+    orchestration, and social media viral loops. Transforms code into
+    newsworthy narratives and platform-specific assets.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Propagandist",
+            owned_patterns=[
+                "www/*",
+                "marketing/*",
+                "marketing/press_release.md",
+                "marketing/blog_post.md",
+                "marketing/social_media.md",
+                "marketing/email_pitch.md",
+                "marketing/reddit_post.md",
+                "marketing/discord_announcement.md",
+                "marketing/producthunt_launch.md",
+                "marketing/landing_page.html",
+            ],
+            requires=["Shakespeare", "Librarian"],
+            temperature=0.65,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        dep_context = self.get_dependency_context(shared_context)
+
+        platform_prompts = {
+            "marketing/press_release.md": """
+                Write a PROFESSIONAL press release (AP style) announcing the launch
+                of this application. Include: headline, dateline, lead paragraph,
+                body with quotes from the developer, boilerplate, contact info placeholder.
+                Tone: authoritative, newsworthy. 400-600 words.
+            """,
+            "marketing/blog_post.md": """
+                Write an engaging technical blog post (Medium/Dev.to style) about
+                this application. Include: catchy title, problem statement, solution
+                overview, technical highlights (with brief code snippets if relevant),
+                screenshots placeholder, call to action. Tone: enthusiastic but
+                technically credible. 800-1200 words.
+            """,
+            "marketing/social_media.md": """
+                Generate a social media kit with MULTIPLE posts, each clearly labeled:
+                
+                ## Twitter/X (3 variants, 280 chars each)
+                ## LinkedIn (1 post, professional tone, 300 words)
+                ## Instagram Caption (1, with hashtag block)
+                ## Bluesky (1 post, 300 chars)
+                ## Mastodon (1 post, 500 chars)
+                
+                Each must be self-contained, compelling, and include a CTA.
+            """,
+            "marketing/email_pitch.md": """
+                Write 3 email pitch templates:
+                
+                ## 1. Tech Journalist Pitch
+                Short, respectful, newsworthy angle. Include subject line.
+                
+                ## 2. YouTuber/Influencer Pitch
+                Casual, offer early access, suggest collaboration angle.
+                
+                ## 3. Newsletter Feature Pitch
+                Brief, value-focused, explain why their audience cares.
+                
+                Each: subject line + body. Professional but human.
+            """,
+            "marketing/reddit_post.md": """
+                Generate Reddit-ready posts for relevant subreddits:
+                
+                ## r/webdev or r/programming (Show HN style)
+                Title + self-post body. Technical, humble, ask for feedback.
+                
+                ## r/SideProject
+                Title + body. Story-driven, what you built and why.
+                
+                ## Niche subreddit (identify from specs)
+                Title + body. Domain-focused, how it solves a real problem.
+                
+                IMPORTANT: Reddit hates self-promotion. Lead with value, not marketing.
+            """,
+            "marketing/discord_announcement.md": """
+                Generate Discord-ready announcements:
+                
+                ## Launch Announcement (for your own server)
+                Use Discord markdown formatting. Include sections with bold headers.
+                
+                ## Community Share (for relevant community servers)
+                Brief, respectful, ask permission vibe. Lead with what you built.
+                
+                Keep it concise. Discord users scroll fast.
+            """,
+            "marketing/producthunt_launch.md": """
+                Generate a Product Hunt launch kit:
+                
+                ## Tagline (max 60 chars)
+                ## Description (max 260 chars)
+                ## First Comment (the "maker comment" -- tell the story, 200 words)
+                ## Topics (list 3-5 relevant PH topics)
+                
+                Tone: enthusiastic maker energy. Not corporate.
+            """,
+            "marketing/landing_page.html": """
+                Generate a COMPLETE, SELF-CONTAINED landing page (index.html) with:
+                - ALL CSS inline (in <style> tag)
+                - ALL JS inline (in <script> tag)
+                - Dark theme (#09090b background)
+                - Hero section with project name, tagline, glowing CTA button
+                - Features section with glassmorphism cards (backdrop-blur)
+                - "How It Works" section with 3 steps
+                - Testimonial placeholder section
+                - Footer with credits
+                - Responsive design (mobile-first)
+                - Google Fonts (Inter)
+                - Gradient accents (cyan #00f3ff to purple #bd00ff)
+                - Smooth scroll animations (CSS only)
+                - Minimum 250 lines
+                
+                Output ONLY the complete HTML. No markdown fences.
+            """,
+        }
+
+        # Determine the platform-specific instructions
+        platform_instruction = ""
+        for pattern, instruction in platform_prompts.items():
+            if file_path == pattern or file_path.endswith(pattern.split("/")[-1]):
+                platform_instruction = instruction
+                break
+
+        if not platform_instruction:
+            # Generic marketing file
+            platform_instruction = f"""
+                Generate high-quality marketing/distribution content for: {file_path}
+                Make it platform-appropriate and compelling.
+            """
+
+        prompt = f"""
+        {self.ANTI_GASLIGHTING_PROMPT}
+
+        Generate distribution/marketing content for: {file_path}
+        
+        APPLICATION SPECS (what are we promoting):
+        {specs[:30000]}
+        
+        UPSTREAM CONTEXT (Shakespeare's copy + Librarian's docs -- USE THESE):
+        {dep_context}
+        
+        PLATFORM-SPECIFIC INSTRUCTIONS:
+        {platform_instruction}
+        
+        CRITICAL:
+        - Use REAL feature names and descriptions from the specs above.
+        - NO generic placeholder content. Every claim must be grounded in actual app features.
+        - Match the tone and format expectations of the target platform.
+        - Include specific technical details where appropriate (framework, key features).
+        """
+
+        system = f"You are the {self.name}, an expert in tech PR, growth marketing, and developer relations. You know how each platform works and what resonates with its audience."
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
+
+    def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
+        # Always generate the core marketing kit
+        return [
+            "marketing/press_release.md",
+            "marketing/blog_post.md",
+            "marketing/social_media.md",
+            "marketing/email_pitch.md",
+            "marketing/reddit_post.md",
+            "marketing/discord_announcement.md",
+            "marketing/producthunt_launch.md",
+            "marketing/landing_page.html",
+        ]
+
+
+# =====================================================================
+# Houdini -- Illusionist (context-injecting, creative temperature)
+# =====================================================================
+class Houdini(Specialist):
+    """
+    The Motion Designer & Illusionist.
+    Master of fluid interactions. Expert in Framer Motion, Three.js,
+    and advanced CSS physics. Creates the animations that make the UI
+    feel premium, alive, and responsive.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Houdini",
+            owned_patterns=[
+                "src/animations/*",
+                "src/components/visualizers/*",
+                "src/hooks/useAnimation.ts",
+            ],
+            requires=["Sculptor"],
+            temperature=0.45,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        dep_context = self.get_dependency_context(shared_context)
+        prompt = f"""
+        {self.ANTI_GASLIGHTING_PROMPT}
+
+        Generate STUNNING, FLUID animation logic for: {file_path}
+        Expertises: Framer Motion (variants, layoutid), Three.js (R3F), GSAP, Spring physics, CSS Keyframes.
+        
+        Specs Context: {specs[:50000]}
+        
+        UPSTREAM CONTEXT (Sculptor's components -- target these for animations):
+        {dep_context}
+        
+        REQUIREMENTS:
+        - Implementation of smooth, high-performance transitions and interactions.
+        - Use of advanced variants and gesture-based triggers.
+        - Efficient rendering to prevent frame drops (60FPS target).
+        - Animations MUST reference actual component class names and IDs from upstream.
+        """
+        return await worker.generate(
+            prompt,
+            system_prompt=f"You are the {self.name}. Output ONLY high-fidelity code.",
+            temperature=self.temperature,
+        )
+
+
+# =====================================================================
+# Morpheus -- Guardian / Security (stack-aware, context-injecting)
+# =====================================================================
+class Morpheus(Specialist):
+    """
+    The Zero-Trust Security Specialist.
+    Guardian of the application stack. Expert in JWT hardening,
+    at-rest encryption (AES-256), and secret repository patterns.
+    Ensures the application is production-hardened and secure.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Morpheus",
+            owned_patterns=[
+                "src/security/*",
+                "src/middleware/security.py",
+                "src/middleware/security.js",
+                "src/utils/crypto.py",
+                "src/utils/crypto.js",
+            ],
+            requires=["Plumber"],
+            temperature=0.1,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        dep_context = self.get_dependency_context(shared_context)
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+
+        if backend.startswith("python/"):
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate MISSION-CRITICAL security logic for: {file_path}
+            Language: Python
+            Expertises: OWASP Top 10, python-jose (JWT), passlib/bcrypt (hashing), cryptography (AES-256), slowapi (rate limiting), Starlette middleware.
+            
+            Specs Context: {specs[:50000]}
+            
+            UPSTREAM CONTEXT (Plumber's routes -- secure these):
+            {dep_context}
+            
+            REQUIREMENTS:
+            - FastAPI dependency injection pattern for auth (Depends(get_current_user)).
+            - JWT access + refresh token flow with proper expiry.
+            - Password hashing with bcrypt via passlib.
+            - Rate limiting middleware (slowapi).
+            - Input sanitization (bleach or html.escape).
+            - CORS configuration helper.
+            - Type hints on all signatures.
+            """
+            system = f"You are the {self.name}, a Python security expert. Output ONLY Python code."
+        else:
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate MISSION-CRITICAL security logic for: {file_path}
+            Language: JavaScript
+            Expertises: OWASP Top 10 hardening, Rate limiting (express-rate-limit), CSRF protection, JWT Refresh patterns, AES-256 encryption (crypto), Input Sanitization (express-validator/DOMPurify).
+            
+            Specs Context: {specs[:50000]}
+            
+            UPSTREAM CONTEXT (Plumber's routes -- secure these):
+            {dep_context}
+            
+            REQUIREMENTS:
+            - Implementation of zero-trust security patterns.
+            - Robust encryption and hashing (bcrypt/Argon2).
+            - Secure session management and header hardening (Helmet/HSTS).
+            - **SECRET REPOSITORY PATTERN**:
+                - Implement a `SecretVault` or `CredentialManager` that reads from encrypted `.env.vault` files.
+                - Use AES-256 for at-rest encryption of sensitive API keys (Gemini, Vertex, etc.).
+                - Ensure keys are NEVER logged or exposed in client-side bundles.
+            """
+            system = f"You are the {self.name}. Output ONLY secure, production-hardened code."
+
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
+
+    def validate(self, file_path: str, code: str, specs: str) -> Tuple[bool, str]:
+        code_lower = code.lower()
+        if (
+            "security" in file_path.lower()
+            or "crypto" in file_path.lower()
+            or "auth" in file_path.lower()
+        ):
+            if not any(
+                kw in code_lower
+                for kw in [
+                    "bcrypt",
+                    "argon2",
+                    "passlib",
+                    "hash",
+                    "jwt",
+                    "jose",
+                    "jsonwebtoken",
+                ]
+            ):
+                return (
+                    False,
+                    f"{file_path}: Security file missing crypto/auth imports (bcrypt, jwt, etc.).",
+                )
+        return (True, "")
+
+    def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
+        specs_lower = specs.lower()
+        if not any(
+            kw in specs_lower
+            for kw in ["auth", "login", "user", "password", "jwt", "security", "admin"]
+        ):
+            return []
+        backend = stack_profile.get("backend", "node/express")
+        if backend.startswith("python/"):
+            return ["src/middleware/security.py", "src/utils/crypto.py"]
+        return ["src/middleware/security.js", "src/utils/crypto.js"]
+
+
+# =====================================================================
+# Tesla -- Artificer / Robotics (stack-aware, context-injecting)
+# =====================================================================
+class Tesla(Specialist):
+    """
+    The Artificer & Robotics Lead.
+    Pioneer of hardware integration. Expert in ROS, Unitree/Moorebot
+    Scout connectivity, and IOT orchestration. Bridges the gap
+    between digital logic and physical substrate.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Tesla",
+            owned_patterns=[
+                "src/services/robotics/*",
+                "src/hooks/useIOT.ts",
+                "src/controllers/hardware/*",
+            ],
+            requires=["Nervos"],
+            temperature=0.15,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        dep_context = self.get_dependency_context(shared_context)
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+
+        if backend.startswith("python/"):
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate SOTA hardware/robotic integration logic for: {file_path}
+            Language: Python
+            Expertises: ROS2 (rclpy), MQTT (paho-mqtt), OSC (python-osc), Unitree SDK Python bindings, serial communication (pyserial).
+            
+            Specs Context: {specs[:50000]}
+            
+            UPSTREAM CONTEXT (Nervos heartbeat/connectors -- integrate with these):
+            {dep_context}
+            
+            REQUIREMENTS:
+            - Use async patterns (asyncio) for real-time communication.
+            - MQTT client with reconnect logic.
+            - Hardware disconnect handling with exponential backoff.
+            - Type hints on all signatures.
+            """
+            system = f"You are the {self.name}, a Python robotics engineer. Output ONLY Python code."
+        else:
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate SOTA hardware/robotic integration logic for: {file_path}
+            Language: JavaScript/TypeScript
+            Expertises: ROS (Robot Operating System), MQTT, OSC Protocol, Unitree R1/Go2 API patterns, Moorebot Scout control, Livox LiDAR parsing.
+            
+            Specs Context: {specs[:50000]}
+            
+            UPSTREAM CONTEXT (Nervos heartbeat/connectors -- integrate with these):
+            {dep_context}
+            
+            REQUIREMENTS:
+            - Implementation of robust real-time communication protocols.
+            - Error handling for hardware disconnects and sensor latency.
+            - SOTA-compliant command orchestration for physical robotics.
+            """
+            system = (
+                f"You are the {self.name}. Output ONLY industrial-grade robotics code."
+            )
+
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
+
+
+# =====================================================================
+# Amodei -- Orchestrator / AI Integration (stack-aware, context-injecting)
+# =====================================================================
+class Amodei(Specialist):
+    """
+    The LLM Orchestrator & AI Engineer.
+    Architect of the intelligent core. Expert in Ollama client patterns,
+    Anthropic/Google/OpenAI service layers, and streaming inference
+    logic. Owns the AI brain of the application.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Amodei",
+            owned_patterns=[
+                "src/services/ai/*",
+                "src/components/chat/*",
+                "src/hooks/useAI.ts",
+                "ollama_config.json",
+            ],
+            requires=["Plumber", "Sculptor"],
+            temperature=0.3,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        dep_context = self.get_dependency_context(shared_context)
+        stack = shared_context.get("stack_profile", {})
+        backend = stack.get("backend", "node/express")
+
+        if backend.startswith("python/") and file_path.endswith(".py"):
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate SOTA AI integration logic for: {file_path}
+            Language: Python
+            Expertises: Ollama Python client (ollama), openai (for OpenAI-compatible local APIs), httpx streaming, FastAPI SSE (Server-Sent Events), function calling.
+            
+            Specs Context: {specs[:50000]}
+            
+            UPSTREAM CONTEXT (Plumber's API routes and Sculptor's UI -- wire AI into these):
+            {dep_context}
+            
+            REQUIREMENTS:
+            - Use the ollama Python package or openai client pointing to localhost:11434/v1.
+            - Implement streaming responses via SSE (EventSourceResponse).
+            - Support multiple model switching (qwen2.5-coder, llama3.1, deepseek-r1).
+            - Async throughout.
+            - Type hints on all signatures.
+            """
+            system = f"You are the {self.name}, a Python AI integration expert. Output ONLY Python code."
+        else:
+            prompt = f"""
+            {self.ANTI_GASLIGHTING_PROMPT}
+
+            Generate SOTA AI integration logic for: {file_path}
+            Language: JavaScript/TypeScript
+            Expertises: Ollama API, Local LLM orchestration (Llama 3, Mistral), Chatbot UI components (floaters, streaming), AI function calling, Prompt engineering.
+            
+            Specs Context: {specs[:50000]}
+            
+            UPSTREAM CONTEXT (Plumber's API routes and Sculptor's UI -- wire AI into these):
+            {dep_context}
+            
+            REQUIREMENTS:
+            - Implementation of efficient AI service layers.
+            - Robust handling for streaming responses and socket connectivity.
+            - Production-ready chatbot interfaces with glassmorphism aesthetics.
+            """
+            system = f"You are the {self.name}. Output ONLY high-fidelity AI code."
+
+        return await worker.generate(
+            prompt, system_prompt=system, temperature=self.temperature
+        )
+
+    def declare_files(self, specs: str, stack_profile: Dict[str, str]) -> List[str]:
+        specs_lower = specs.lower()
+        if not any(
+            kw in specs_lower
+            for kw in ["ai", "llm", "chatbot", "ollama", "gpt", "assistant", "chat"]
+        ):
+            return []
+        backend = stack_profile.get("backend", "node/express")
+        if backend.startswith("python/"):
+            return ["src/services/ai/llm_client.py", "src/services/ai/streaming.py"]
+        return ["src/services/ai/llm_client.js", "src/components/chat/ChatFloater.tsx"]
+
+
+# =====================================================================
+# Hawks -- Movie Director (cinematic temperature)
+# =====================================================================
+class Hawks(Specialist):
+    """
+    The Cinematic Director & Video Lead.
+    Master of temporal consistency and AI-driven cinematography.
+    Expert in Google Veo API, HLS/DASH streaming, and FFmpeg complex
+    orchestration. Creates high-fidelity video experiences.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Hawks",
+            owned_patterns=[
+                "src/services/video/*",
+                "src/components/video/*",
+                "public/videos/*",
+                "ffmpeg_config.json",
+            ],
+            requires=["Amodei", "Picasso"],
+            temperature=0.6,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        dep_context = self.get_dependency_context(shared_context)
+        prompt = f"""
+        {self.ANTI_GASLIGHTING_PROMPT}
+
+        Generate CINEMATIC video orchestration logic for: {file_path}
+        Expertises: Google Veo API, Temporal Consistency, Cinematic Prompting, HLS/Dash streaming, FFmpeg complex filters, Video.js integration.
+        
+        Specs Context: {specs[:50000]}
+        
+        UPSTREAM CONTEXT (Amodei's AI client & Picasso's visuals -- integrate here):
+        {dep_context}
+        
+        REQUIREMENTS:
+        - Implementation of high-fidelity video generation pipelines using Google Veo.
+        - Ensure temporal consistency across generated frames (Seed management).
+        - Robust video player components with custom controls (Video.js/Plyr).
+        - Efficient handling of large video assets and streaming manifests.
+        - Use Amodei's service for the actual API calls, but define the CINEMATIC parameters here.
+        """
+        return await worker.generate(
+            prompt,
+            system_prompt=f"You are the {self.name}, a SOTA AI Video Director. Output ONLY high-fidelity code.",
+            temperature=self.temperature,
+        )
+
+
+# =====================================================================
+# Generalist -- Catch-all (context-injecting from all)
+# =====================================================================
+class Generalist(Specialist):
+    """
+    The Synthesis Specialist & Edge-Case Guardian.
+    Architect of holistic integration. Handles any file not claimed by
+    domain-specific experts, ensuring that the final output is
+    consistent, high-fidelity, and fully grounded in the project specs.
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="Generalist",
+            owned_patterns=["*"],
+            requires=[
+                "Sculptor",
+                "Plumber",
+                "Librarian",
+                "Registrar",
+                "Maestro",
+                "WebFinder",
+                "Archivist",
+                "Raggy",
+                "Nervos",
+                "Auditor",
+                "Professor",
+                "Picasso",
+                "Shakespeare",
+                "Propagandist",
+                "Houdini",
+                "Morpheus",
+                "Tesla",
+                "Amodei",
+            ],
+            temperature=0.3,
+        )
+
+    async def generate(
+        self, file_path: str, specs: str, shared_context: Dict[str, Any], worker: Any
+    ) -> str:
+        dep_context = self.get_dependency_context(shared_context)
+        prompt = f"""
+        {self.ANTI_GASLIGHTING_PROMPT}
+
+        Generate code for: {file_path}. Based on specs: {specs[:50000]}
+        
+        UPSTREAM CONTEXT (code from all prior specialists):
+        {dep_context}
+        """
+        return await worker.generate(
+            prompt,
+            system_prompt=f"You are the {self.name}. Output ONLY code.",
+            temperature=self.temperature,
+        )
+
+
+def get_council() -> Dict[str, Specialist]:
+    """Returns an instantiated dictionary of all available specialists."""
+    return {
+        "Plumber": Plumber(),
+        "Sculptor": Sculptor(),
+        "Librarian": Librarian(),
+        "Registrar": Registrar(),
+        "Maestro": Maestro(),
+        "WebFinder": WebFinder(),
+        "Archivist": Archivist(),
+        "Raggy": Raggy(),
+        "Nervos": Nervos(),
+        "Auditor": Auditor(),
+        "Professor": Professor(),
+        "Picasso": Picasso(),
+        "Shakespeare": Shakespeare(),
+        "Propagandist": Propagandist(),
+        "Houdini": Houdini(),
+        "Morpheus": Morpheus(),
+        "Tesla": Tesla(),
+        "Amodei": Amodei(),
+        "Hawks": Hawks(),
+        "Generalist": Generalist(),
+    }

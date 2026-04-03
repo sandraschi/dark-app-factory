@@ -16,11 +16,10 @@ The executor does NOT make pass/fail judgments itself. It collects raw
 evidence for the SatisfactionScorer to evaluate probabilistically.
 """
 
-import json
 import logging
 import time
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from dataclasses import dataclass
+from typing import List, Optional
 
 from src.verification.scenario_parser import (
     HttpAction,
@@ -34,6 +33,7 @@ logger = logging.getLogger("dark_factory")
 @dataclass
 class ScenarioResult:
     """Result of executing a single scenario."""
+
     scenario_title: str
     scenario_type: str
     executed: bool = False
@@ -49,68 +49,73 @@ class ScenarioResult:
     screenshot_path: str = ""
 
     # Assertion evaluation (raw, pre-scoring)
-    assertion_met: Optional[bool] = None   # True/False/None (ambiguous)
-    assertion_evidence: str = ""           # Why we think it passed or failed
-    confidence: float = 0.0               # 0.0-1.0 how sure we are
+    assertion_met: Optional[bool] = None  # True/False/None (ambiguous)
+    assertion_evidence: str = ""  # Why we think it passed or failed
+    confidence: float = 0.0  # 0.0-1.0 how sure we are
 
     # Errors during execution
     error: str = ""
 
 
-def _generate_sample_body(http_action: HttpAction, scenario: Scenario) -> Optional[dict]:
-    """Generate a plausible request body based on scenario context.
-
-    This is a best-effort heuristic -- the generated app may have
-    different schema expectations. The satisfaction scorer accounts
-    for schema mismatches.
-    """
+def _generate_sample_body(
+    http_action: HttpAction, scenario: Scenario
+) -> Optional[dict]:
+    """Generate a plausible request body based on scenario context."""
     if http_action.method in ("GET", "DELETE"):
         return None
 
     lower_title = scenario.title.lower()
     lower_given = scenario.given.lower()
+    lower_when = scenario.when.lower()
+    is_invalid = "invalid" in http_action.body_hint or "invalid" in lower_given
 
-    if "user" in lower_title:
-        if "invalid" in http_action.body_hint or "invalid" in lower_given:
+    if "user" in lower_title or "register" in lower_title or "signup" in lower_title:
+        if is_invalid:
             return {"username": "", "password": ""}
-        return {
-            "username": "testuser",
-            "email": "test@example.com",
-            "password": "TestPass123",
-        }
+        return {"username": "testuser", "email": "test@example.com", "password": "TestPass123"}
+
+    if "login" in lower_title or "auth" in lower_title:
+        if is_invalid:
+            return {"email": "wrong@example.com", "password": "wrongpass"}
+        return {"email": "test@example.com", "password": "TestPass123"}
 
     if "treatment" in lower_title:
-        return {
-            "title": "Test Treatment",
-            "description": "Automated test treatment",
-            "duration_minutes": 30,
-        }
+        return {"title": "Test Treatment", "description": "Automated test treatment", "duration_minutes": 30}
 
-    if "appointment" in lower_title:
+    if "appointment" in lower_title or "booking" in lower_title:
         if "duplicate" in http_action.body_hint:
-            return {
-                "user_id": 1,
-                "treatment_id": 1,
-                "date": "2023-03-01",
-                "time": "10:00",
-            }
-        return {
-            "user_id": 1,
-            "treatment_id": 1,
-            "date": "2025-06-15",
-            "time": "14:00",
-        }
+            return {"user_id": 1, "treatment_id": 1, "date": "2026-01-01", "time": "10:00"}
+        return {"user_id": 1, "treatment_id": 1, "date": "2026-06-15", "time": "14:00"}
 
-    if "password" in lower_title or "login" in lower_title:
-        if "invalid" in http_action.body_hint or "invalid" in lower_given:
-            return {"email": "wrong@example.com", "password": "wrongpass"}
+    if "task" in lower_title:
+        if is_invalid:
+            return {"title": ""}
+        return {"title": "Test Task", "status": "active", "priority": "normal"}
+
+    if "roast" in lower_title:
+        return {"name": "Test Roast", "description": "Automated test roast", "price": 12.99}
+
+    if "order" in lower_title:
+        return {"user_id": 1, "roast_id": 1, "quantity": 2}
+
+    if "product" in lower_title:
+        return {"name": "Test Product", "price": 9.99, "stock": 10}
+
+    if "password" in lower_title or "reset" in lower_title:
+        if is_invalid:
+            return {"email": "wrong@example.com"}
         return {"email": "test@example.com"}
 
     if "digital twin" in lower_title or "configure" in lower_title:
         return {"enabled": True, "sync_interval": 60}
 
-    # Fallback: generic JSON
-    return {"name": "test", "value": "automated_scenario_test"}
+    # Fallback: try to derive field name from path
+    path_parts = [p for p in http_action.path.strip("/").split("/") if p and not p.startswith("{")]
+    resource = path_parts[-1] if path_parts else "item"
+    # Singularise naively (strip trailing s)
+    if resource.endswith("s") and len(resource) > 3:
+        resource = resource[:-1]
+    return {"name": f"test_{resource}", "description": "automated scenario test"}
 
 
 def _resolve_path(path: str) -> str:
@@ -119,9 +124,7 @@ def _resolve_path(path: str) -> str:
     return path
 
 
-def _evaluate_api_assertion(
-    scenario: Scenario, result: ScenarioResult
-) -> None:
+def _evaluate_api_assertion(scenario: Scenario, result: ScenarioResult) -> None:
     """Evaluate a THEN clause against the actual HTTP response.
 
     Sets assertion_met, assertion_evidence, and confidence on the result.
@@ -170,7 +173,11 @@ def _evaluate_api_assertion(
         if result.response_body.strip().startswith("["):
             passed += 1
             evidence_parts.append("Response is a JSON array (list expected)")
-        elif '"results"' in body_lower or '"data"' in body_lower or '"items"' in body_lower:
+        elif (
+            '"results"' in body_lower
+            or '"data"' in body_lower
+            or '"items"' in body_lower
+        ):
             passed += 0.8
             evidence_parts.append("Response contains list-like wrapper field")
         else:
@@ -196,13 +203,9 @@ def _evaluate_api_assertion(
         checks += 1
         if result.status_code and result.status_code >= 400:
             passed += 1
-            evidence_parts.append(
-                f"Error response received: {result.status_code}"
-            )
+            evidence_parts.append(f"Error response received: {result.status_code}")
         else:
-            evidence_parts.append(
-                f"Expected error but got status={result.status_code}"
-            )
+            evidence_parts.append(f"Expected error but got status={result.status_code}")
 
     # Compute overall confidence
     if checks > 0:
@@ -292,7 +295,10 @@ async def execute_api_scenario(
         result.error = str(exc)
         logger.warning(
             "Scenario '%s' execution error: %s %s -> %s",
-            scenario.title, action.method, url, exc,
+            scenario.title,
+            action.method,
+            url,
+            exc,
         )
 
     # Evaluate assertion
@@ -417,7 +423,10 @@ async def execute_all_scenarios(
 
     logger.info(
         "Scenario execution complete: %d total, %d executed, %d skipped, %d errored",
-        len(results), executed, skipped, errored,
+        len(results),
+        executed,
+        skipped,
+        errored,
     )
 
     return results

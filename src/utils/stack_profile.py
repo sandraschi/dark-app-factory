@@ -20,13 +20,22 @@ DEFAULT_STACK = {
 }
 
 VALID_BACKENDS = {
-    "node/express", "python/fastapi", "python/flask", "python/django",
+    "node/express",
+    "python/fastapi",
+    "python/flask",
+    "python/django",
 }
 VALID_FRONTENDS = {
-    "react", "htmx", "svelte", "none",
+    "react",
+    "htmx",
+    "svelte",
+    "none",
 }
 VALID_DATABASES = {
-    "sqlite", "postgresql", "mongodb", "mysql",
+    "sqlite",
+    "postgresql",
+    "mongodb",
+    "mysql",
 }
 
 
@@ -43,9 +52,7 @@ def parse_stack_from_vibe(vibe_content: str) -> Dict[str, str]:
     """
     profile = dict(DEFAULT_STACK)
 
-    backend_match = re.search(
-        r"\*\*Backend\*\*:\s*(\S+)", vibe_content, re.IGNORECASE
-    )
+    backend_match = re.search(r"\*\*Backend\*\*:\s*(\S+)", vibe_content, re.IGNORECASE)
     if backend_match:
         val = backend_match.group(1).strip().lower()
         if val in VALID_BACKENDS:
@@ -53,7 +60,9 @@ def parse_stack_from_vibe(vibe_content: str) -> Dict[str, str]:
         else:
             logger.warning(
                 "Unknown backend '%s' in vibe. Valid: %s. Using default: %s",
-                val, VALID_BACKENDS, DEFAULT_STACK["backend"],
+                val,
+                VALID_BACKENDS,
+                DEFAULT_STACK["backend"],
             )
 
     frontend_match = re.search(
@@ -66,12 +75,12 @@ def parse_stack_from_vibe(vibe_content: str) -> Dict[str, str]:
         else:
             logger.warning(
                 "Unknown frontend '%s' in vibe. Valid: %s. Using default: %s",
-                val, VALID_FRONTENDS, DEFAULT_STACK["frontend"],
+                val,
+                VALID_FRONTENDS,
+                DEFAULT_STACK["frontend"],
             )
 
-    db_match = re.search(
-        r"\*\*Database\*\*:\s*(\S+)", vibe_content, re.IGNORECASE
-    )
+    db_match = re.search(r"\*\*Database\*\*:\s*(\S+)", vibe_content, re.IGNORECASE)
     if db_match:
         val = db_match.group(1).strip().lower()
         if val in VALID_DATABASES:
@@ -79,12 +88,16 @@ def parse_stack_from_vibe(vibe_content: str) -> Dict[str, str]:
         else:
             logger.warning(
                 "Unknown database '%s' in vibe. Valid: %s. Using default: %s",
-                val, VALID_DATABASES, DEFAULT_STACK["database"],
+                val,
+                VALID_DATABASES,
+                DEFAULT_STACK["database"],
             )
 
     logger.info(
         "Stack profile: backend=%s frontend=%s database=%s",
-        profile["backend"], profile["frontend"], profile["database"],
+        profile["backend"],
+        profile["frontend"],
+        profile["database"],
     )
     return profile
 

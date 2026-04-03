@@ -9,3 +9,6 @@
 
 
 > **User Feedback**: start page crashes with vite error, store page not correctly made or pointed to. Fix: see above.
+
+
+> **User Feedback**: better help. Fix: nothing.

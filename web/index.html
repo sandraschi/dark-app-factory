@@ -1,947 +1,897 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dark App Factory | SOTA Dashboard</title>
+    <title>Dark App Factory</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --glass: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --neon: #6366f1;
-            --neon-glow: rgba(99, 102, 241, 0.4);
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: radial-gradient(circle at top right, #1e1b4b, #0f172a, #020617);
-            color: #e2e8f0;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .glass {
-            background: var(--glass);
-            -webkit-backdrop-filter: blur(12px);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-
-        .neon-text {
-            text-shadow: 0 0 10px var(--neon-glow);
-        }
-
-        .neon-border {
-            border-color: var(--neon);
-            box-shadow: 0 0 15px var(--neon-glow);
-        }
-
-        .animate-float {
-            animation: float 6s ease-in-out infinite;
-        }
-
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-10px);
-            }
-        }
-
-        .glow-button {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .glow-button:hover {
-            box-shadow: 0 0 20px var(--neon-glow);
-            transform: scale(1.02);
-        }
-
-        .sidebar-item {
-            transition: all 0.2s ease;
-        }
-
-        .sidebar-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-left: 4px solid var(--neon);
-        }
+        :root { --glass: rgba(255,255,255,.05); --border: rgba(255,255,255,.1); --acc: #6366f1; }
+        body { font-family: Outfit, sans-serif; background: radial-gradient(circle at top right, #1e1b4b, #0f172a, #020617); color: #e2e8f0; }
+        .glass { background: var(--glass); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--border); }
+        .nav-item { display: block; padding: .65rem .75rem; border-radius: .5rem; transition: background .15s; cursor: pointer; font-size:.875rem; }
+        .nav-item:hover { background: rgba(255,255,255,.08); }
+        .nav-item.active { background: rgba(99,102,241,.25); border: 1px solid rgba(99,102,241,.4); }
+        .nav-section { font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; color:#64748b; padding:.75rem .75rem .25rem; }
+        .tag { display:inline-block; padding:.1rem .45rem; border-radius:9999px; font-size:.65rem; }
+        .tag-running { background:rgba(234,179,8,.15); color:#eab308; border:1px solid rgba(234,179,8,.3); }
+        .tag-completed { background:rgba(34,197,94,.15); color:#22c55e; border:1px solid rgba(34,197,94,.3); }
+        .tag-failed { background:rgba(239,68,68,.15); color:#ef4444; border:1px solid rgba(239,68,68,.3); }
+        .tag-stopped { background:rgba(100,116,139,.15); color:#94a3b8; border:1px solid rgba(100,116,139,.3); }
+        .btn { padding:.45rem 1rem; border-radius:.5rem; font-size:.875rem; font-weight:600; cursor:pointer; transition: opacity .15s; }
+        .btn:disabled { opacity:.4; cursor:not-allowed; }
+        .btn-primary { background:#6366f1; }
+        .btn-secondary { background:rgba(255,255,255,.1); }
+        .btn-danger { background:rgba(239,68,68,.25); border:1px solid rgba(239,68,68,.4); color:#fca5a5; }
+        .btn-green { background:rgba(34,197,94,.2); border:1px solid rgba(34,197,94,.35); color:#86efac; }
+        input, textarea, select { background:rgba(0,0,0,.4); border:1px solid var(--border); border-radius:.5rem; padding:.5rem .75rem; color:#e2e8f0; width:100%; outline:none; }
+        input:focus, textarea:focus, select:focus { border-color: rgba(99,102,241,.5); }
+        .mono { font-family: 'Courier New', monospace; font-size:.72rem; }
+        .log-line { padding:.1rem 0; border-bottom:1px solid rgba(255,255,255,.03); }
+        .log-SUCCESS, .log-success { color:#86efac; }
+        .log-ERROR, .log-error { color:#fca5a5; }
+        .log-WARNING, .log-warning { color:#fde68a; }
+        .log-INFO, .log-info { color:#93c5fd; }
+        #progress-bar { transition: width .4s ease; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
     </style>
 </head>
+<body class="flex min-h-screen">
 
-<body class="flex">
-
-    <!-- Retractable Sidebar -->
-    <aside id="sidebar"
-        class="w-64 glass h-screen fixed left-0 top-0 transition-all duration-300 z-50 flex flex-col p-6">
-        <div class="flex items-center gap-3 mb-12">
-            <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center neon-border">
-                <span class="font-bold text-xl">D</span>
-            </div>
-            <h1 class="font-bold text-lg tracking-tight">App Factory</h1>
-        </div>
-
-        <nav class="flex-1 space-y-4">
-            <a href="#" id="nav-dashboard" onclick="showSection('dashboard')"
-                class="sidebar-item flex items-center gap-3 p-3 rounded-lg bg-white/5 border-l-4 border-indigo-500">
-                <span>📊</span> Dashboard
-            </a>
-            <a href="#" id="nav-build" onclick="showSection('build')"
-                class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
-                <span>🚀</span> Build Runner
-            </a>
-            <a href="#" id="nav-specialists" onclick="showSection('specialists')"
-                class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
-                <span>🧰</span> Specialist Hub
-            </a>
-            <a href="#" id="nav-apps" onclick="showSection('apps')"
-                class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
-                <span>📱</span> Fleet Navigation
-            </a>
-            <a href="#" id="nav-tools" onclick="showSection('tools')"
-                class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
-                <span>🔧</span> Platform Tools
-            </a>
-            <a href="#" id="nav-settings" onclick="showSection('settings')"
-                class="sidebar-item flex items-center gap-3 p-3 rounded-lg">
-                <span>⚙️</span> Settings
-            </a>
-        </nav>
-
-        <div class="mt-auto glass p-4 rounded-xl text-xs text-slate-400">
-            <p>System v1.5 SOTA</p>
-            <p class="mt-1">Worker Pool: Active</p>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="ml-64 flex-1 p-8">
-
-        <!-- Top Bar -->
-        <header class="flex justify-between items-center mb-12 glass p-4 rounded-2xl">
-            <div class="flex items-center gap-4">
-                <span class="text-slate-400">Project:</span>
-                <span id="project-name" class="font-semibold text-indigo-400">Satisficer_Run_01</span>
-            </div>
-            <div class="flex items-center gap-6">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <span class="text-sm">Factory Ready</span>
-                </div>
-                <div
-                    class="w-10 h-10 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center">
-                    👤
-                </div>
-            </div>
-        </header>
-
-        <!-- Dashboard Section -->
-        <section id="section-dashboard" class="space-y-8 animate-in fade-in duration-500">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="glass p-6 rounded-2xl">
-                    <h4 class="text-slate-400 text-sm mb-1">Total Revenue</h4>
-                    <p class="text-3xl font-bold">$12,450.00</p>
-                    <span class="text-emerald-400 text-xs text-bold">↑ 12% vs last run</span>
-                </div>
-                <div class="glass p-6 rounded-2xl">
-                    <h4 class="text-slate-400 text-sm mb-1">Token Burn Rate</h4>
-                    <p class="text-3xl font-bold">1.2M / hr</p>
-                    <span class="text-amber-400 text-xs text-bold">Optimal efficiency</span>
-                </div>
-                <div class="glass p-6 rounded-2xl">
-                    <h4 class="text-slate-400 text-sm mb-1">System Entropy</h4>
-                    <p class="text-3xl font-bold">0.04</p>
-                    <span class="text-indigo-400 text-xs text-bold">Steady state</span>
-                </div>
-            </div>
-            <div class="glass p-8 rounded-3xl h-96 flex flex-col items-center justify-center text-center">
-                <div class="w-24 h-24 bg-indigo-600/20 rounded-full flex items-center justify-center mb-6">
-                    <span class="text-4xl">📈</span>
-                </div>
-                <h3 class="text-xl font-bold mb-2">Performance Analytics</h3>
-                <p class="text-slate-400 max-w-sm">Detailed telemetry for the Satisficer pipeline will be visualized
-                    here once the factory stabilizes.</p>
-            </div>
-        </section>
-
-        <!-- Build Section -->
-        <section id="section-build"
-            class="hidden grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
-
-            <!-- Build Form -->
-            <div class="lg:col-span-2 space-y-8">
-                <div class="glass p-8 rounded-3xl relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-3xl -z-10"></div>
-
-                    <h2 class="text-2xl font-bold mb-6 neon-text">Initiate Build</h2>
-
-                    <div class="mb-4">
-                        <label for="sample-prompts" class="block text-sm font-medium text-slate-400 mb-2">
-                            Quick Start Vibes
-                        </label>
-                        <select id="sample-prompts" onchange="applySamplePrompt()"
-                            class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer hover:bg-black/60">
-                            <option value="" disabled selected>Select a sample vibe...</option>
-                            <option
-                                value="Webpage for our crochet club, with member acquisition and info about crochet. Use warm, cozy colors and soft typography.">
-                                Crochet Club (Plausible)</option>
-                            <option
-                                value="A futuristic Vibecoding School interface. Seeded with logic from 'mcp-central-docs' (AGENT_PROTOCOLS, STANDARDS). High-tech reductionist aesthetic with clean data viz.">
-                                Vibecoding School (Seeded)</option>
-                            <option
-                                value="A game portal hub taking the 'games-app' repository as a foundation. Curated selection of Chess, Shogi, and Jenga. Retro-arcade meets glassmorphism.">
-                                Games Portal (Seeded)</option>
-                            <option
-                                value="Specialized Japanese learning platform using the Kanji/vocab stacks from 'games-app' (kanji_database, wakan_vocab). Zen-minimalist with N3 paths.">
-                                Japanese Learning (Seeded)</option>
-                            <option
-                                value="A website to drum up business for my diving shop in Niger. Few divers, but there ought to be a few even there! Use desert-underwater fusion aesthetics.">
-                                Niger Diving Shop (Absurd)</option>
-                            <option
-                                value="My pygmy hippo housebreaking school. We teach miniature hippos to respect the rug. Use sophisticated yet slightly chaotic academy vibes.">
-                                Pygmy Hippo Housebreaking (Absurd)</option>
-                        </select>
-                    </div>
-
-                    <textarea id="vibe-input" oninput="checkRefinementVisibility()"
-                        placeholder="Describe the application vibe (e.g., 'A premium glassmorphic crypto dashboard with real-time charts')..."
-                        class="w-full h-48 bg-black/20 border border-white/10 rounded-2xl p-6 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-lg"></textarea>
-
-                    <!-- Prompt Refinement Suggestion Card -->
-                    <div id="refinement-container" class="hidden mt-6 animate-in slide-in-from-top-4 duration-300">
-                        <div class="glass p-6 rounded-2xl border-l-4 border-indigo-500 bg-indigo-500/5">
-                            <div class="flex items-start gap-4">
-                                <span class="text-2xl">✨</span>
-                                <div class="flex-1">
-                                    <h4 class="font-bold text-sm mb-1 text-indigo-300">AI Prompt Refinement</h4>
-                                    <p class="text-xs text-slate-400 mb-4">Should the LLM improve your request, catch
-                                        bloopers, and add professional technical specs?</p>
-
-                                    <div id="improved-prompt-area"
-                                        class="hidden mb-4 p-4 bg-black/40 rounded-xl text-sm border border-white/5 max-h-48 overflow-y-auto">
-                                        <!-- Improved prompt content goes here -->
-                                    </div>
-
-                                    <div class="flex gap-3">
-                                        <button id="refine-btn" onclick="refinePrompt()"
-                                            class="text-xs font-bold bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/50 px-4 py-2 rounded-lg transition-all">
-                                            Yes, Improve Vibe
-                                        </button>
-                                        <button id="refine-accept-btn" onclick="useRefinedPrompt()"
-                                            class="hidden text-xs font-bold bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/50 px-4 py-2 rounded-lg transition-all">
-                                            Use This Version
-                                        </button>
-                                        <button onclick="dismissRefinement()"
-                                            class="text-xs font-bold bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg transition-all">
-                                            Keep My Original
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Ghosting Section -->
-                    <div class="mt-8 pt-8 border-t border-white/10">
-                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
-                            <i class="fas fa-ghost text-blue-400"></i>
-                            Ghost Site (Clone DNA)
-                        </h3>
-                        <div class="flex gap-4 mb-4">
-                            <input type="text" id="ghostSearchQuery"
-                                placeholder="Who should we ghost? (e.g., 'best locksmith vienna')"
-                                class="flex-1 bg-black/40 border border-white/10 rounded-lg px-4 py-2 focus:border-blue-500 transition-all outline-none">
-                            <button onclick="suggestExemplars()"
-                                class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 px-6 py-2 rounded-lg border border-blue-500/50 transition-all flex items-center gap-2">
-                                <i class="fas fa-search"></i> Discover
-                            </button>
-                        </div>
-
-                        <!-- Suggestions List -->
-                        <div id="exemplarContainer" class="hidden space-y-2 mb-4">
-                            <p class="text-sm text-gray-400 mb-2">Suggested Exemplars:</p>
-                            <div id="exemplarList" class="grid gap-2"></div>
-                        </div>
-
-                        <div class="flex gap-4">
-                            <input type="text" id="ghostUrl" placeholder="Or enter target URL directly..."
-                                class="flex-1 bg-black/40 border border-white/10 rounded-lg px-4 py-2 focus:border-purple-500 transition-all outline-none">
-                            <button onclick="extractGhost()"
-                                class="bg-purple-600/20 hover:bg-purple-600/40 text-purple-400 px-8 py-2 rounded-lg border border-purple-500/50 transition-all flex items-center gap-2">
-                                <i class="fas fa-magic"></i> Extract DNA
-                            </button>
-                        </div>
-
-                        <!-- Ghost DNA Status -->
-                        <div id="ghostStatus" class="hidden mt-4 glass-card p-4 border-purple-500/30">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h4 class="font-bold text-purple-400 flex items-center gap-2">
-                                        <i class="fas fa-dna"></i> Extracted Blueprint
-                                    </h4>
-                                    <p id="ghostSummary" class="text-sm text-gray-300 mt-1"></p>
-                                </div>
-                                <span class="bg-purple-500/20 text-purple-300 text-xs px-2 py-1 rounded">READY</span>
-                            </div>
-                            <pre id="ghostBlueprint"
-                                class="text-[10px] text-purple-300/70 mt-3 bg-black/40 p-2 rounded overflow-x-auto"></pre>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-between items-center mt-6">
-                        <div class="flex gap-4">
-                            <span class="glass px-3 py-1 rounded-full text-xs">Vite</span>
-                            <span class="glass px-3 py-1 rounded-full text-xs">React</span>
-                            <span class="glass px-3 py-1 rounded-full text-xs">Tailwind</span>
-                        </div>
-                        <button onclick="triggerBuild()" id="build-btn"
-                            class="glow-button bg-indigo-600 px-8 py-3 rounded-xl font-bold text-white shadow-lg shadow-indigo-500/20">
-                            Launch Factory
-                        </button>
-                    </div>
-
-                    <!-- Build Progress Bar (SOTA Feedback) -->
-                    <div id="progress-container"
-                        class="hidden mt-8 pt-8 border-t border-white/10 animate-in fade-in zoom-in duration-500">
-                        <div class="flex justify-between items-end mb-2">
-                            <div>
-                                <h4 id="progress-status" class="text-sm font-bold text-indigo-400">Orchestrating
-                                    council...</h4>
-                                <p id="progress-detail"
-                                    class="text-[10px] text-slate-500 mt-1 uppercase tracking-tight">Initializing build
-                                    sequence</p>
-                            </div>
-                            <span id="progress-percentage" class="text-2xl font-bold neon-text">0%</span>
-                        </div>
-                        <div class="w-full h-2 bg-black/40 rounded-full overflow-hidden border border-white/5">
-                            <div id="progress-bar"
-                                class="h-full bg-indigo-600 shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-500 w-0">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Active Logs -->
-                <div class="glass p-8 rounded-3xl h-64 flex flex-col">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-semibold">Live Build Logs</h3>
-                        <span class="text-xs text-indigo-400">SSE Connection Stable</span>
-                    </div>
-                    <div id="logs"
-                        class="flex-1 bg-black/40 rounded-xl p-4 font-mono text-sm overflow-y-auto space-y-1 text-slate-300">
-                        <p class="text-slate-500 italic">> Factory dashboard initialized.</p>
-                        <p class="text-slate-500 italic">> Awaiting user instruction...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Stats & Status -->
-            <div class="space-y-8">
-
-                <!-- Status Card -->
-                <div class="glass p-6 rounded-3xl text-center">
-                    <p class="text-slate-400 text-sm mb-2">Current System Entropy</p>
-                    <div id="status-circle"
-                        class="w-32 h-32 rounded-full border-4 border-slate-800 mx-auto flex flex-col items-center justify-center relative">
-                        <div class="absolute inset-0 rounded-full border-t-4 border-indigo-500 animate-spin"></div>
-                        <span id="active-builds" class="text-3xl font-bold">0</span>
-                        <span class="text-[10px] uppercase text-slate-500">Active Builds</span>
-                    </div>
-                    <p id="system-verdict" class="mt-4 font-medium text-emerald-400">Status: Ready</p>
-                </div>
-
-                <!-- Milestones -->
-                <div class="glass p-6 rounded-3xl">
-                    <h3 class="font-semibold mb-4">Pipeline Milestones</h3>
-                    <div class="space-y-4">
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-[10px]">
-                                ✓</div>
-                            <span class="text-sm">Registrar Optimized</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-[10px]">
-                                ✓</div>
-                            <span class="text-sm">Council Assembled</span>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Placeholders for other sections -->
-        <section id="section-specialists" class="hidden animate-in fade-in duration-500">
-            <div class="glass p-8 rounded-3xl">
-                <div class="flex justify-between items-center mb-12">
-                    <div>
-                        <h2 class="text-3xl font-bold neon-text">Specialist Hub</h2>
-                        <p class="text-slate-400">The Council of 19: SOTA Intelligence for Industrial Build Flows.</p>
-                    </div>
-                    <button onclick="fetchSpecialists()"
-                        class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 px-4 py-2 rounded-lg border border-indigo-500/50 transition-all flex items-center gap-2 text-sm">
-                        <span>🔄</span> Refresh Council
-                    </button>
-                </div>
-
-                <div id="specialist-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <!-- Specialist Cards will be injected here -->
-                    <div class="lg:col-span-full py-12 text-center text-slate-500 italic">
-                        Initializing Council connections...
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        </section>
-    </main>
-
-    <!-- Documentation Modal -->
-    <div id="docs-modal"
-        class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div
-            class="glass max-w-2xl w-full max-h-[80vh] rounded-3xl overflow-hidden flex flex-col animate-in zoom-in duration-300">
-            <div class="p-6 border-b border-white/10 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <span id="modal-icon" class="text-3xl">👤</span>
-                    <div>
-                        <h3 id="modal-title" class="text-xl font-bold neon-text">Specialist Documentation</h3>
-                        <p class="text-[10px] text-slate-500 uppercase tracking-widest">Instruction Set & Logic</p>
-                    </div>
-                </div>
-                <button onclick="hideDocs()"
-                    class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">✕</button>
-            </div>
-            <div class="p-8 overflow-y-auto bg-black/20 flex-1">
-                <pre id="modal-content"
-                    class="text-sm text-slate-300 whitespace-pre-wrap font-sans leading-relaxed"></pre>
-            </div>
-            <div class="p-6 border-t border-white/10 flex justify-end">
-                <button onclick="hideDocs()"
-                    class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 px-6 py-2 rounded-xl border border-indigo-500/50 transition-all font-bold text-sm">Acknowledge</button>
-            </div>
-        </div>
+<!-- SIDEBAR -->
+<aside class="w-56 glass fixed left-0 top-0 h-screen flex flex-col" style="z-index:40">
+    <div class="p-5 border-b border-white/10">
+        <div class="text-base font-bold text-indigo-300">⚙ Dark App Factory</div>
+        <div class="text-xs text-slate-500 mt-1">v2026</div>
     </div>
+    <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+        <div class="nav-section">Overview</div>
+        <a class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard')">Dashboard</a>
 
-    <script>
-        const API_BASE = '/api';
+        <div class="nav-section">Generate</div>
+        <a class="nav-item" id="nav-runner" onclick="showSection('runner')">🚀 Factory Runner</a>
+        <a class="nav-item" id="nav-runs" onclick="showSection('runs')">📋 Active Runs</a>
+        <a class="nav-item" id="nav-outputs" onclick="showSection('outputs')">📦 Outputs</a>
+        <a class="nav-item" id="nav-build" onclick="showSection('build')">🔨 Legacy Build</a>
 
-        function applySamplePrompt() {
-            const select = document.getElementById('sample-prompts');
-            const input = document.getElementById('vibe-input');
-            if (select.value) {
-                input.value = select.value;
-                checkRefinementVisibility();
-                appendLog(`Applied sample vibe: ${select.options[select.selectedIndex].text}`, 'text-indigo-400');
-            }
-        }
+        <div class="nav-section">System</div>
+        <a class="nav-item" id="nav-specialists" onclick="showSection('specialists')">Specialists</a>
+        <a class="nav-item" id="nav-settings" onclick="showSection('settings')">Settings</a>
+        <a class="nav-item" id="nav-log" onclick="showSection('log')">Logs</a>
+        <a class="nav-item" id="nav-help" onclick="showSection('help')">Help</a>
+    </nav>
+    <div class="p-3 border-t border-white/10 text-xs text-slate-500">
+        <span id="sidebar-status">●</span> <span id="sidebar-status-text">Ready</span>
+    </div>
+</aside>
 
-        function showSection(sectionId) {
-            // Hide all sections
-            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
-            // Show target section
-            document.getElementById(`section-${sectionId}`).classList.remove('hidden');
+<!-- MAIN -->
+<main class="ml-56 p-6 w-full min-h-screen">
 
-            // Update sidebar active state
-            document.querySelectorAll('.sidebar-item').forEach(item => {
-                item.classList.remove('bg-white/5', 'border-l-4', 'border-indigo-500');
-            });
-            document.getElementById(`nav-${sectionId}`).classList.add('bg-white/5', 'border-l-4', 'border-indigo-500');
+    <!-- ============================================================ DASHBOARD -->
+    <section id="section-dashboard" class="space-y-4">
+        <h2 class="text-xl font-bold mb-2">Dashboard</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="glass rounded-xl p-4">
+                <p class="text-xs text-slate-400">Active builds</p>
+                <p id="active-builds" class="text-3xl font-bold mt-1">0</p>
+            </div>
+            <div class="glass rounded-xl p-4">
+                <p class="text-xs text-slate-400">Last verdict</p>
+                <p id="system-verdict" class="text-lg font-semibold mt-1">No runs yet</p>
+            </div>
+            <div class="glass rounded-xl p-4">
+                <p class="text-xs text-slate-400">Provider</p>
+                <p id="provider-pill" class="text-lg font-semibold mt-1">ollama</p>
+            </div>
+            <div class="glass rounded-xl p-4">
+                <p class="text-xs text-slate-400">MCP runs (session)</p>
+                <p id="mcp-run-count" class="text-3xl font-bold mt-1">0</p>
+            </div>
+        </div>
+        <div class="glass rounded-xl p-5">
+            <h3 class="font-semibold mb-3">Quick actions</h3>
+            <div class="flex flex-wrap gap-3">
+                <button class="btn btn-primary" onclick="showSection('runner')">🚀 New generation</button>
+                <button class="btn btn-secondary" onclick="showSection('outputs')">📦 Browse outputs</button>
+                <button class="btn btn-secondary" onclick="showSection('runs')">📋 Active runs</button>
+                <button class="btn btn-secondary" onclick="showSection('settings')">⚙ Settings</button>
+                <button class="btn btn-secondary" onclick="showSection('log')">📜 Logs</button>
+            </div>
+        </div>
+        <div class="glass rounded-xl p-5">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-semibold">Recent outputs</h3>
+                <button class="btn btn-secondary text-xs py-1" onclick="showSection('outputs')">View all</button>
+            </div>
+            <div id="dash-recent-outputs" class="space-y-2 text-sm text-slate-400">Loading...</div>
+        </div>
+    </section>
 
-            if (sectionId === 'specialists') {
-                fetchSpecialists();
-            } else if (sectionId === 'apps') {
-                renderFleet();
-            }
-            appendLog(`Navigated to ${sectionId}.`, 'text-slate-500 italic');
-        }
+    <!-- ============================================================ FACTORY RUNNER -->
+    <section id="section-runner" class="hidden space-y-5">
+        <h2 class="text-xl font-bold">🚀 Factory Runner</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <!-- LEFT: prompt -->
+            <div class="lg:col-span-2 space-y-4">
+                <div class="glass rounded-xl p-5">
+                    <label class="text-xs text-slate-400 block mb-2">Sample vibes</label>
+                    <select id="runner-sample" onchange="applyRunnerSample()" class="mb-4">
+                        <option value="" disabled selected>Choose a sample or write your own…</option>
+                        <option value="A dentist booking app for Dr Painlessdriller in Hollabrunn, Austria. Austrian GDPR standards. Patients book online, staff view calendar. Dark non-intimidating theme.&#10;&#10;## Tech Stack&#10;- **Backend**: node/express&#10;- **Frontend**: react&#10;- **Database**: sqlite">🦷 Dentist (Node+React)</option>
+                        <option value="A beekeeper management app for Julius Stich in Hollabrunn. Webshop for honey products, hive health monitoring with hivecam feeds, temperature probes, swarm calendar, harvest logging, apiary map. Dark theme.&#10;&#10;## Tech Stack&#10;- **Backend**: python/fastapi&#10;- **Frontend**: react&#10;- **Database**: sqlite">🐝 Beekeeper (FastAPI+React)</option>
+                        <option value="A minimalist task manager with shadow mode. Tasks have title, status (active/shadow), and priority (void/high/normal). Filter by status. Local first, keyboard-driven.&#10;&#10;## Tech Stack&#10;- **Backend**: python/fastapi&#10;- **Frontend**: react&#10;- **Database**: sqlite">✅ Shadow Tasks (FastAPI+React)</option>
+                        <option value="A coffee roastery app for a premium night-roasting brand. Hero section, our process, menu of signature roasts (Obsidian, Eclipse, Void), brewing rituals section.&#10;&#10;## Tech Stack&#10;- **Backend**: node/express&#10;- **Frontend**: react&#10;- **Database**: sqlite">☕ Dark Coffee (Node+React)</option>
+                    </select>
 
-        const FLEET_REGISTRY = [
-            {
-                id: "blender-mcp",
-                name: "Blender Control",
-                description: "3D visualization and geometry orchestration.",
-                port: 10848,
-                repo_path: "D:/Dev/repos/blender-mcp",
-                icon: "📦",
-                category: "Creative"
-            },
-            {
-                id: "avatar-mcp",
-                name: "Avatar Control",
-                description: "VRM avatar management and animation orchestration.",
-                port: 10792,
-                repo_path: "D:/Dev/repos/avatar-mcp",
-                icon: "👤",
-                category: "Creative"
-            },
-            {
-                id: "alexa-mcp",
-                name: "Alexa Control",
-                description: "Acoustic bridge and voice command orchestration.",
-                port: 10800,
-                repo_path: "D:/Dev/repos/alexa-mcp",
-                icon: "🎙️",
-                category: "Control"
-            },
-            {
-                id: "vienna-live-mcp",
-                name: "Vienna Live MCP",
-                description: "Transit and location-aware services in Vienna.",
-                port: 10878,
-                repo_path: "D:/Dev/repos/vienna-live-mcp",
-                icon: "🚇",
-                category: "Transit"
-            },
-            {
-                id: "handbrake-mcp",
-                name: "Handbrake MCP",
-                description: "Automated media transcoding and pipeline management.",
-                port: 10874,
-                repo_path: "D:/Dev/repos/handbrake-mcp",
-                icon: "🎬",
-                category: "Media"
-            },
-            {
-                id: "virtualdj-mcp",
-                name: "VirtualDJ MCP",
-                description: "SOTA VJing and audio orchestration.",
-                port: 10876,
-                repo_path: "D:/Dev/repos/virtualdj-mcp",
-                icon: "🎶",
-                category: "Media"
-            },
-            {
-                id: "openfang",
-                name: "OpenFang",
-                description: "Fleet supervisor and modular agentic node controller.",
-                port: 10870,
-                repo_path: "D:/Dev/repos/openfang",
-                icon: "🛡️",
-                category: "Infra"
-            },
-            {
-                id: "osc-mcp",
-                name: "OSC MCP",
-                description: "Real-time control protocol bridge for high-end gear.",
-                port: 10766,
-                repo_path: "D:/Dev/repos/osc-mcp",
-                icon: "🌊",
-                category: "Control"
-            },
-            {
-                id: "rustdesk-mcp",
-                name: "RustDesk MCP",
-                description: "Secure remote access and fleet management.",
-                port: 10804,
-                repo_path: "D:/Dev/repos/rustdesk-mcp",
-                icon: "🖥️",
-                category: "Infra"
-            },
-            {
-                id: "vroidstudio-mcp",
-                name: "VroidStudio MCP",
-                description: "Avatar creation and VR character pipeline.",
-                port: 10880,
-                repo_path: "D:/Dev/repos/vroidstudio-mcp",
-                icon: "👤",
-                category: "Creative"
-            },
-            {
-                id: "obsidian-mcp",
-                name: "Obsidian MCP",
-                description: "Knowledge graph and second brain integration.",
-                port: 10704,
-                repo_path: "D:/Dev/repos/obsidian-mcp",
-                icon: "📖",
-                category: "Knowledge"
-            },
-            {
-                id: "mcp-central-docs",
-                name: "Docs MCP",
-                description: "Standardized MCP documentation and fleet registry.",
-                port: 10720,
-                repo_path: "D:/Dev/repos/mcp-central-docs",
-                icon: "📚",
-                category: "Knowledge"
-            }
-        ];
+                    <label class="text-xs text-slate-400 block mb-2">Vibe / prompt <span class="text-slate-600">(plain language, can include ## Tech Stack section)</span></label>
+                    <textarea id="runner-vibe" rows="8" placeholder="Describe what to build in plain language...&#10;&#10;Optionally add:&#10;## Tech Stack&#10;- **Backend**: node/express | python/fastapi | python/flask&#10;- **Frontend**: react | htmx | none&#10;- **Database**: sqlite | postgresql | mongodb"></textarea>
 
-        function renderFleet() {
-            const grid = document.getElementById('fleet-grid');
-            grid.innerHTML = '';
-
-            FLEET_REGISTRY.forEach(app => {
-                const card = document.createElement('div');
-                card.className = 'glass p-6 rounded-2xl border border-white/5 hover:border-indigo-500/50 hover:scale-[1.02] transition-all group flex flex-col h-full';
-
-                const isCurrent = app.id === 'dark-app-factory';
-
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="text-4xl bg-white/5 w-16 h-16 rounded-xl flex items-center justify-center group-hover:bg-indigo-500/10 transition-colors">
-                            ${app.icon}
-                        </div>
-                        <span class="text-[10px] bg-white/5 text-slate-400 px-2 py-1 rounded border border-white/10">
-                            ${app.category}
-                        </span>
-                    </div>
-                    
-                    <h3 class="font-bold text-lg mb-2 group-hover:text-indigo-400 transition-colors">${app.name}</h3>
-                    <p class="text-xs text-slate-400 mb-6 flex-1">${app.description}</p>
-                    
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono">
-                            <span>PORT</span>
-                            <span class="text-indigo-400">${app.port}</span>
-                        </div>
-                        
-                        <div class="flex gap-2">
-                             ${isCurrent ?
-                        `<div class="flex-1 bg-indigo-500/20 text-indigo-400 text-center py-2 rounded-lg text-xs font-bold border border-indigo-500/30">
-                                    Current App
-                                 </div>` :
-                        `<button onclick="launchFleetApp('${app.repo_path}', '${app.name}')" 
-                                         class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 rounded-lg transition-all shadow-lg shadow-indigo-500/20">
-                                    Launch App
-                                 </button>
-                                 <a href="http://localhost:${app.port}" target="_blank"
-                                    class="w-10 h-9 bg-white/5 hover:bg-white/10 flex items-center justify-center rounded-lg border border-white/10 transition-all">
-                                    🌐
-                                 </a>`
-                    }
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        async function launchFleetApp(path, name) {
-            appendLog(`Initiating launch for ${name}...`, 'text-indigo-400');
-            try {
-                const res = await fetch(`${API_BASE}/fleet/launch`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ repo_path: path })
-                });
-
-                if (res.ok) {
-                    appendLog(`Launch signal accepted for ${name}. Check console.`, 'text-emerald-400');
-                } else {
-                    const data = await res.json();
-                    appendLog(`Launch failed: ${data.detail}`, 'text-rose-400');
-                }
-            } catch (e) {
-                appendLog(`Connection error during launch: ${e.message}`, 'text-rose-400');
-            }
-        }
-
-        async function fetchSpecialists() {
-            const grid = document.getElementById('specialist-grid');
-            try {
-                const res = await fetch(`${API_BASE}/specialists`);
-                const data = await res.json();
-
-                if (data.success) {
-                    grid.innerHTML = '';
-                    data.specialists.forEach(spec => {
-                        const card = document.createElement('div');
-                        card.className = 'glass p-6 rounded-2xl border-t-4 border-indigo-500 hover:scale-[1.02] transition-all cursor-default group';
-
-                        // Icon mapping based on name
-                        const icons = {
-                            "Plumber": "🔧", "Sculptor": "🗿", "Librarian": "📚", "Registrar": "📋",
-                            "Maestro": "🎼", "WebFinder": "🌐", "Archivist": "📁", "Raggy": "🧩",
-                            "Nervos": "🧠", "Auditor": "🔍", "Professor": "🎓", "Picasso": "🎨",
-                            "Shakespeare": "✍️", "Propagandist": "📢", "Houdini": "🪄", "Morpheus": "💊",
-                            "Tesla": "⚡", "Amodei": "🧪", "Generalist": "🛠️"
-                        };
-                        const icon = icons[spec.name] || "👤";
-
-                        card.innerHTML = `
-                            <div class="flex justify-between items-start mb-4">
-                                <span class="text-4xl">${icon}</span>
-                                <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded">T: ${spec.temperature}</span>
-                            </div>
-                            <h4 class="font-bold text-lg mb-1 group-hover:text-indigo-400 transition-colors">${spec.name}</h4>
-                            <p class="text-[10px] text-slate-500 mb-3 uppercase tracking-wider font-semibold">Specialist</p>
-                            
-                            <div class="space-y-2">
-                                <p class="text-xs text-slate-400"><span class="text-indigo-400">Owns:</span> ${spec.owned_patterns.join(', ')}</p>
-                                <p class="text-xs text-slate-400"><span class="text-indigo-400">Requires:</span> ${spec.requires.join(', ') || 'None'}</p>
-                            </div>
-                            
-                            <div class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
-                                <span class="text-[10px] text-emerald-400">● Available</span>
-                                <button onclick="showDocs('${spec.name}', \`${spec.docs.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`, '${icon}')" 
-                                        class="text-[10px] bg-white/5 hover:bg-white/10 px-2 py-1 rounded transition-colors">Documentation</button>
-                            </div>
-                        `;
-                        grid.appendChild(card);
-                    });
-                } else {
-                    grid.innerHTML = `<div class="lg:col-span-full py-12 text-center text-rose-400">The Council is currently unavailable: ${data.detail || 'Unknown error'}</div>`;
-                }
-            } catch (e) {
-                grid.innerHTML = `<div class="lg:col-span-full py-12 text-center text-rose-400">Failed to summon the Council: ${e.message}</div>`;
-            }
-        }
-
-        function showDocs(name, docs, icon) {
-            document.getElementById('modal-title').innerText = `${name} | Instructions`;
-            document.getElementById('modal-icon').innerText = icon;
-            document.getElementById('modal-content').innerText = docs.trim();
-            document.getElementById('docs-modal').classList.remove('hidden');
-            appendLog(`Viewing documentation for ${name}.`, 'text-indigo-400');
-        }
-
-        function hideDocs() {
-            document.getElementById('docs-modal').classList.add('hidden');
-        }
-
-        async function updateStatus() {
-            try {
-                const res = await fetch(`${API_BASE}/status`);
-                const data = await res.json();
-
-                document.getElementById('active-builds').innerText = data.active_builds;
-                document.getElementById('system-verdict').innerText = `Verdict: ${data.last_verdict}`;
-
-                if (data.active_builds > 0) {
-                    document.getElementById('system-verdict').className = 'mt-4 font-medium text-indigo-400 animate-pulse';
-                    document.getElementById('build-btn').disabled = true;
-                    document.getElementById('build-btn').classList.add('opacity-50', 'cursor-not-allowed');
-
-                    // Show progress container
-                    document.getElementById('progress-container').classList.remove('hidden');
-                    pollProgress();
-                } else {
-                    document.getElementById('system-verdict').className = 'mt-4 font-medium ' + (data.last_verdict === 'PASS' ? 'text-emerald-400' : 'text-rose-400');
-                    document.getElementById('build-btn').disabled = false;
-                    document.getElementById('build-btn').classList.remove('opacity-50', 'cursor-not-allowed');
-
-                    // Hide progress container if build just finished
-                    if (window.lastProgress === 100) {
-                        setTimeout(() => {
-                            if (document.getElementById('active-builds').innerText == 0) {
-                                document.getElementById('progress-container').classList.add('hidden');
-                                window.lastProgress = 0;
-                            }
-                        }, 5000);
-                    }
-                }
-            } catch (e) {
-                console.error('Status check failed', e);
-            }
-        }
-
-        window.lastProgress = 0;
-        async function pollProgress() {
-            try {
-                const res = await fetch(`${API_BASE}/progress`);
-                const data = await res.json();
-
-                const bar = document.getElementById('progress-bar');
-                const pctText = document.getElementById('progress-percentage');
-                const statusText = document.getElementById('progress-status');
-                const detailText = document.getElementById('progress-detail');
-
-                bar.style.width = `${data.percentage}%`;
-                pctText.innerText = `${data.percentage}%`;
-                statusText.innerText = data.status || "Processing...";
-
-                // Logic to update detail based on percentage ranges if status is generic
-                window.lastProgress = data.percentage;
-            } catch (e) {
-                console.error('Progress poll failed', e);
-            }
-        }
-
-        async function triggerBuild() {
-            const vibe = document.getElementById('vibe-input').value;
-            if (!vibe) return alert('Please describe your vibe first.');
-
-            appendLog('User initiated build request.');
-            appendLog(`Vibe: ${vibe.substring(0, 50)}...`, 'text-indigo-300');
-
-            try {
-                const res = await fetch(`${API_BASE}/build`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        vibe_content: vibe,
-                        ghost_blueprint_path: window.ghostBlueprintPath || null
-                    })
-                });
-
-                if (res.ok) {
-                    appendLog('Factory confirmed build reception. Orchestrating workers...', 'text-emerald-400');
-                    document.getElementById('vibe-input').value = '';
-                    // Reset ghost path after launch
-                    window.ghostBlueprintPath = null;
-                } else {
-                    const error = await res.json();
-                    appendLog(`Factory Error: ${error.detail}`, 'text-rose-400');
-                }
-            } catch (e) {
-                appendLog(`Connection Error: ${e.message}`, 'text-rose-400');
-            }
-        }
-
-        function appendLog(msg, colorClass = '') {
-            const logs = document.getElementById('logs');
-            const p = document.createElement('p');
-            p.className = colorClass;
-            p.innerText = `> [${new Date().toLocaleTimeString()}] ${msg}`;
-            logs.appendChild(p);
-            logs.scrollTop = logs.scrollHeight;
-        }
-
-        let refinementHistory = [];
-        let currentImprovedText = "";
-
-        async function suggestExemplars() {
-            const query = document.getElementById('ghostSearchQuery').value;
-            if (!query) return;
-
-            const container = document.getElementById('exemplarContainer');
-            const list = document.getElementById('exemplarList');
-            list.innerHTML = '<div class="animate-pulse text-blue-400">Searching for exemplars...</div>';
-            container.classList.remove('hidden');
-
-            try {
-                const response = await fetch('/api/suggest-exemplars', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: query })
-                });
-                const data = await response.json();
-
-                list.innerHTML = '';
-                data.suggestions.forEach(s => {
-                    const el = document.createElement('div');
-                    el.className = 'glass-card p-2 hover:bg-white/5 cursor-pointer transition-all flex justify-between items-center group';
-                    el.innerHTML = `
+                    <div class="grid grid-cols-2 gap-3 mt-3">
                         <div>
-                            <div class="text-sm font-bold text-white group-hover:text-blue-400">${s.title}</div>
-                            <div class="text-[10px] text-gray-500">${s.url}</div>
+                            <label class="text-xs text-slate-400 block mb-1">Output name <span class="text-slate-600">(optional)</span></label>
+                            <input id="runner-output-name" placeholder="e.g. dentist_app">
                         </div>
-                        <button onclick="selectExemplar('${s.url}')" class="text-xs bg-blue-500/20 px-2 py-1 rounded">Ghost This</button>
-                    `;
-                    list.appendChild(el);
-                });
-            } catch (error) {
-                list.innerHTML = `<div class="text-red-400">Error: ${error.message}</div>`;
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Foreman model override</label>
+                            <input id="runner-foreman" list="model-list" placeholder="leave blank = use settings">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Worker model override</label>
+                            <input id="runner-worker" list="model-list" placeholder="leave blank = use settings">
+                            <datalist id="model-list"></datalist>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex gap-3">
+                        <button id="runner-start-btn" class="btn btn-primary" onclick="startRun()">🚀 Start generation</button>
+                        <button class="btn btn-secondary" onclick="refineRunnerPrompt()">✨ Refine vibe</button>
+                    </div>
+                </div>
+
+                <!-- Active run monitor -->
+                <div id="runner-monitor" class="glass rounded-xl p-5 hidden">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <span class="font-semibold">Run </span>
+                            <span id="runner-run-id" class="font-mono text-indigo-300 text-sm"></span>
+                            <span id="runner-status-tag" class="tag tag-running ml-2">running</span>
+                        </div>
+                        <button id="runner-stop-btn" class="btn btn-danger text-xs py-1" onclick="stopCurrentRun()">Stop</button>
+                    </div>
+                    <div class="mb-3">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span id="runner-progress-label">Initializing...</span>
+                            <span id="runner-progress-pct">0%</span>
+                        </div>
+                        <div class="w-full h-2 bg-black/40 rounded overflow-hidden border border-white/10">
+                            <div id="progress-bar" class="h-full bg-indigo-600 w-0"></div>
+                        </div>
+                    </div>
+                    <div id="runner-log" class="mono bg-black/40 rounded p-3 h-52 overflow-y-auto space-y-px"></div>
+                    <div id="runner-complete-actions" class="hidden mt-4 flex gap-3 items-center">
+                        <span class="text-sm text-emerald-400 font-semibold">✅ Build complete</span>
+                        <button class="btn btn-green text-xs" onclick="launchCurrentOutput()">▶ Launch app</button>
+                        <button class="btn btn-secondary text-xs" onclick="showSection('outputs')">📦 Browse outputs</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: sidebar -->
+            <div class="space-y-4">
+                <div class="glass rounded-xl p-4">
+                    <p class="text-xs text-slate-400 mb-2">Current models</p>
+                    <div class="text-sm space-y-1">
+                        <p><span class="text-slate-400">Foreman:</span> <span id="runner-summary-foreman">—</span></p>
+                        <p><span class="text-slate-400">Worker:</span> <span id="runner-summary-worker">—</span></p>
+                        <p><span class="text-slate-400">Provider:</span> <span id="runner-summary-provider">—</span></p>
+                    </div>
+                    <button class="btn btn-secondary text-xs mt-3 w-full" onclick="loadRunnerModels()">Scan models</button>
+                </div>
+                <div class="glass rounded-xl p-4">
+                    <p class="text-xs text-slate-400 mb-2">Tips</p>
+                    <ul class="text-xs text-slate-400 space-y-1 list-disc list-inside">
+                        <li>Add a ## Tech Stack section to control backend/frontend/db</li>
+                        <li>Generation takes 3–15 min depending on model</li>
+                        <li>The log updates live during the run</li>
+                        <li>Completed outputs appear in Outputs tab</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ ACTIVE RUNS -->
+    <section id="section-runs" class="hidden space-y-4">
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-bold">📋 Active Runs</h2>
+            <button class="btn btn-secondary text-xs" onclick="loadRuns()">↻ Refresh</button>
+        </div>
+        <div id="runs-list" class="space-y-3">
+            <p class="text-slate-500 text-sm">No runs in this session yet.</p>
+        </div>
+    </section>
+
+    <!-- ============================================================ OUTPUTS -->
+    <section id="section-outputs" class="hidden space-y-4">
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-bold">📦 Outputs</h2>
+            <button class="btn btn-secondary text-xs" onclick="loadOutputs()">↻ Refresh</button>
+        </div>
+        <div id="outputs-list" class="space-y-3">
+            <p class="text-slate-500 text-sm">Loading…</p>
+        </div>
+    </section>
+
+    <!-- ============================================================ LEGACY BUILD (unchanged) -->
+    <section id="section-build" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <div class="glass rounded-xl p-6">
+                <h2 class="text-xl font-bold mb-1">Legacy build runner</h2>
+                <p class="text-xs text-slate-500 mb-4">Runs in-process (blocks dashboard). Use Factory Runner for async generation.</p>
+                <select id="sample-prompts" title="Sample prompts" onchange="applySamplePrompt()" class="mb-4">
+                    <option value="" disabled selected>Select a sample prompt</option>
+                    <option value="Build a FastAPI CRM for a small services business with auth, contacts, and invoices.">CRM (FastAPI)</option>
+                    <option value="Build an Express + React inventory dashboard with role-based login and audit logs.">Inventory dashboard</option>
+                </select>
+                <textarea id="vibe-input" title="Vibe input" oninput="checkRefinementVisibility()" class="w-full h-40 rounded p-4" placeholder="Describe what to build..."></textarea>
+                <div id="refinement-container" class="hidden mt-4 glass rounded-xl p-4">
+                    <p class="text-sm font-semibold mb-2">Prompt refinement</p>
+                    <div id="improved-prompt-area" class="hidden text-sm bg-black/40 p-3 rounded mb-3 border border-white/10"></div>
+                    <div class="flex gap-2">
+                        <button id="refine-btn" onclick="refinePrompt()" class="btn btn-secondary text-sm">Refine</button>
+                        <button id="refine-accept-btn" onclick="useRefinedPrompt()" class="hidden btn btn-green text-sm">Use refined</button>
+                        <button onclick="dismissRefinement()" class="btn btn-secondary text-sm">Dismiss</button>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button id="build-btn" onclick="triggerBuild()" class="btn btn-primary">Start build</button>
+                </div>
+                <div id="progress-container" class="hidden mt-4">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span id="progress-status">Running</span>
+                        <span id="progress-percentage">0%</span>
+                    </div>
+                    <div class="w-full h-2 bg-black/40 rounded overflow-hidden border border-white/10">
+                        <div id="legacy-progress-bar" class="h-full bg-indigo-600 w-0"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="glass rounded-xl p-6">
+                <h3 class="font-semibold mb-3">Live logs</h3>
+                <div id="logs" class="bg-black/40 rounded p-3 h-56 overflow-y-auto mono space-y-1">
+                    <p class="text-slate-500">> dashboard initialized</p>
+                </div>
+            </div>
+        </div>
+        <div class="space-y-4">
+            <div class="glass rounded-xl p-4">
+                <p class="text-xs text-slate-400">Build status</p>
+                <p id="build-status-text" class="text-lg font-semibold mt-1">Ready</p>
+            </div>
+            <div class="glass rounded-xl p-4">
+                <p class="text-xs text-slate-400 mb-2">Settings</p>
+                <p class="text-sm"><span class="text-slate-400">Foreman:</span> <span id="summary-foreman">—</span></p>
+                <p class="text-sm"><span class="text-slate-400">Worker:</span> <span id="summary-worker">—</span></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ SPECIALISTS -->
+    <section id="section-specialists" class="hidden">
+        <div class="glass rounded-xl p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Specialists</h2>
+                <button onclick="fetchSpecialists()" class="btn btn-secondary text-sm">Refresh</button>
+            </div>
+            <div id="specialist-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+    </section>
+
+    <!-- ============================================================ SETTINGS -->
+    <section id="section-settings" class="hidden">
+        <div class="glass rounded-xl p-6 max-w-2xl">
+            <h2 class="text-xl font-bold mb-4">Settings</h2>
+            <form id="settings-form" class="space-y-4" onsubmit="saveSettings(event)">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Provider</label>
+                    <select id="settings-provider" title="Provider">
+                        <option value="ollama">Ollama</option>
+                        <option value="lmstudio">LM Studio</option>
+                        <option value="glom">Glom</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Base URL</label>
+                    <input id="settings-base-url" placeholder="http://localhost:11434">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Foreman model</label>
+                        <input id="settings-foreman-model" list="model-list-settings" placeholder="llama3.1:latest">
+                        <datalist id="model-list-settings"></datalist>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Worker model</label>
+                        <input id="settings-worker-model" list="model-list-settings" placeholder="qwen2.5-coder:latest">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Context length</label>
+                        <input id="settings-context-length" type="number" placeholder="65536">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Timeout (s)</label>
+                        <input id="settings-timeout-seconds" type="number" placeholder="180">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">API key</label>
+                    <input id="settings-api-key" placeholder="ollama">
+                </div>
+                <div class="flex gap-3">
+                    <button class="btn btn-primary" type="submit">Save</button>
+                    <button class="btn btn-secondary" type="button" onclick="scanSettingsModels()">Scan models</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- ============================================================ LOG -->
+    <section id="section-log" class="hidden">
+        <div class="glass rounded-xl p-6">
+            <div class="flex gap-2 mb-4">
+                <input id="log-search" placeholder="Search log text" class="flex-1">
+                <input id="log-lines" type="number" value="200" class="w-24">
+                <button onclick="loadLogPage()" class="btn btn-secondary">Refresh</button>
+                <a href="/api/logs/download" class="btn btn-primary text-center">Download</a>
+            </div>
+            <pre id="log-content" class="mono whitespace-pre-wrap bg-black/40 rounded p-3 max-h-[640px] overflow-y-auto"></pre>
+        </div>
+    </section>
+
+    <!-- ============================================================ HELP -->
+    <section id="section-help" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="glass rounded-xl p-4">
+                <h2 class="font-semibold mb-3">Help documents</h2>
+                <div id="help-doc-list" class="space-y-2 text-sm"></div>
+            </div>
+            <div class="glass rounded-xl p-4 lg:col-span-2">
+                <h3 id="help-doc-title" class="font-semibold mb-3">Select a document</h3>
+                <pre id="help-doc-content" class="mono whitespace-pre-wrap bg-black/40 rounded p-3 max-h-[560px] overflow-y-auto"></pre>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- Specialist docs modal -->
+<div id="docs-modal" class="hidden fixed inset-0 bg-black/70 z-50 p-8">
+    <div class="glass rounded-xl p-4 max-w-3xl mx-auto">
+        <div class="flex justify-between items-center mb-2">
+            <h3 id="modal-title" class="font-semibold">Specialist docs</h3>
+            <button onclick="hideDocs()" class="btn btn-secondary text-xs">Close</button>
+        </div>
+        <pre id="modal-content" class="mono whitespace-pre-wrap max-h-[70vh] overflow-y-auto bg-black/40 rounded p-3"></pre>
+    </div>
+</div>
+
+<script>
+const API = "/api";
+let _currentRunId = null;
+let _pollInterval = null;
+let _refinementHistory = [];
+let _currentImprovedText = "";
+window.lastProgress = 0;
+
+// ── Navigation ──────────────────────────────────────────────────────────────
+function showSection(id) {
+    document.querySelectorAll("main section").forEach(s => s.classList.add("hidden"));
+    document.getElementById(`section-${id}`).classList.remove("hidden");
+    document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
+    const nav = document.getElementById(`nav-${id}`);
+    if (nav) nav.classList.add("active");
+    const loaders = {
+        specialists: fetchSpecialists,
+        settings: () => { loadSettings(); scanSettingsModels(); },
+        help: loadHelpIndex,
+        log: loadLogPage,
+        outputs: loadOutputs,
+        runs: loadRuns,
+        runner: () => { loadRunnerModels(); loadRunnerSettings(); },
+        dashboard: loadDashboard,
+    };
+    if (loaders[id]) loaders[id]();
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function appendLog(msg, cls = "") {
+    const el = document.getElementById("logs");
+    if (!el) return;
+    const p = document.createElement("p");
+    p.className = cls;
+    p.innerText = `> [${new Date().toLocaleTimeString()}] ${msg}`;
+    el.appendChild(p);
+    el.scrollTop = el.scrollHeight;
+}
+
+function statusTag(status) {
+    return `<span class="tag tag-${status}">${status}</span>`;
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+    await updateStatus();
+    const res = await fetch(`${API}/outputs?limit=5`);
+    const data = await res.json();
+    const el = document.getElementById("dash-recent-outputs");
+    if (!data.outputs || !data.outputs.length) {
+        el.innerHTML = "<p class='text-slate-500 text-sm'>No outputs yet.</p>";
+        return;
+    }
+    el.innerHTML = data.outputs.map(o => `
+        <div class="flex items-center justify-between bg-black/30 rounded-lg px-4 py-2 border border-white/5">
+            <div>
+                <span class="font-semibold text-sm">${o.name}</span>
+                ${o.project_name ? `<span class="text-slate-400 text-xs ml-2">${o.project_name}</span>` : ""}
+                <span class="text-slate-500 text-xs ml-2">${o.mtime_human}</span>
+            </div>
+            <div class="flex gap-2 items-center">
+                ${o.stack ? `<span class="text-xs text-slate-500">${o.stack.split("|")[0].trim()}</span>` : ""}
+                <button class="btn btn-green text-xs py-1" onclick="launchOutput('${o.path}')">▶ Launch</button>
+            </div>
+        </div>
+    `).join("");
+}
+
+async function updateStatus() {
+    try {
+        const res = await fetch(`${API}/status`);
+        const data = await res.json();
+        document.getElementById("active-builds").innerText = data.active_builds ?? 0;
+        document.getElementById("system-verdict").innerText = data.last_verdict || "No runs yet";
+        document.getElementById("provider-pill").innerText = data.settings_provider || "ollama";
+        const buildBtn = document.getElementById("build-btn");
+        if (buildBtn) {
+            if ((data.active_builds ?? 0) > 0) {
+                buildBtn.disabled = true;
+                buildBtn.classList.add("opacity-50");
+                document.getElementById("progress-container")?.classList.remove("hidden");
+                pollLegacyProgress();
+            } else {
+                buildBtn.disabled = false;
+                buildBtn.classList.remove("opacity-50");
             }
         }
-
-        async function selectExemplar(url) {
-            document.getElementById('ghostUrl').value = url;
-            extractGhost();
+        const sb = document.getElementById("sidebar-status");
+        const sbt = document.getElementById("sidebar-status-text");
+        if ((data.active_builds ?? 0) > 0) {
+            sb.style.color = "#eab308"; sbt.innerText = "Building…";
+        } else {
+            sb.style.color = "#22c55e"; sbt.innerText = "Ready";
         }
+    } catch(e) { console.error(e); }
+}
 
-        async function extractGhost() {
-            const url = document.getElementById('ghostUrl').value;
-            if (!url) return;
+// ── Factory Runner ────────────────────────────────────────────────────────────
+function applyRunnerSample() {
+    const sel = document.getElementById("runner-sample");
+    if (sel.value) document.getElementById("runner-vibe").value = sel.value;
+}
 
-            const status = document.getElementById('ghostStatus');
-            const summary = document.getElementById('ghostSummary');
-            const blueprintEl = document.getElementById('ghostBlueprint');
+async function loadRunnerSettings() {
+    const res = await fetch(`${API}/settings`);
+    const data = await res.json();
+    if (!data.success) return;
+    const s = data.settings;
+    document.getElementById("runner-summary-foreman").innerText = s.foreman_model;
+    document.getElementById("runner-summary-worker").innerText = s.worker_model;
+    document.getElementById("runner-summary-provider").innerText = s.provider;
+}
 
-            status.classList.remove('hidden');
-            summary.innerText = "Deep-diving into site structure...";
-            blueprintEl.innerText = "// Initializing extraction payload...";
+async function loadRunnerModels() {
+    const res = await fetch(`${API}/models`);
+    const data = await res.json();
+    const list = document.getElementById("model-list");
+    list.innerHTML = "";
+    (data.models || []).forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        list.appendChild(opt);
+    });
+}
 
-            try {
-                const response = await fetch('/api/ghost', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
+async function refineRunnerPrompt() {
+    const vibe = document.getElementById("runner-vibe").value.trim();
+    if (!vibe) return;
+    const res = await fetch(`${API}/refine`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ prompt: vibe, history: _refinementHistory }),
+    });
+    const data = await res.json();
+    _currentImprovedText = data.improved || "";
+    if (_currentImprovedText && confirm("Apply refined vibe?\n\n" + _currentImprovedText.slice(0, 400))) {
+        _refinementHistory.push(vibe);
+        document.getElementById("runner-vibe").value = _currentImprovedText;
+    }
+}
+
+async function startRun() {
+    const vibe = document.getElementById("runner-vibe").value.trim();
+    if (!vibe) { alert("Enter a vibe first."); return; }
+
+    const payload = {
+        vibe,
+        output_name: document.getElementById("runner-output-name").value.trim() || null,
+        foreman_model: document.getElementById("runner-foreman").value.trim() || null,
+        worker_model: document.getElementById("runner-worker").value.trim() || null,
+    };
+
+    const btn = document.getElementById("runner-start-btn");
+    btn.disabled = true; btn.innerText = "Starting…";
+
+    try {
+        const res = await fetch(`${API}/run`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.detail || "Failed to start run."); return; }
+
+        _currentRunId = data.run_id;
+        document.getElementById("runner-run-id").innerText = data.run_id;
+        document.getElementById("runner-monitor").classList.remove("hidden");
+        document.getElementById("runner-complete-actions").classList.add("hidden");
+        document.getElementById("runner-stop-btn").disabled = false;
+        setRunnerStatusTag("running");
+        clearRunnerLog();
+        document.getElementById("mcp-run-count").innerText =
+            parseInt(document.getElementById("mcp-run-count").innerText || 0) + 1;
+
+        startPollRun(data.run_id, data.output_dir);
+    } finally {
+        btn.disabled = false; btn.innerText = "🚀 Start generation";
+    }
+}
+
+function clearRunnerLog() {
+    document.getElementById("runner-log").innerHTML = "";
+    document.getElementById("progress-bar").style.width = "0%";
+    document.getElementById("runner-progress-pct").innerText = "0%";
+    document.getElementById("runner-progress-label").innerText = "Starting…";
+}
+
+function setRunnerStatusTag(status) {
+    const el = document.getElementById("runner-status-tag");
+    el.className = `tag tag-${status} ml-2`;
+    el.innerText = status;
+}
+
+let _lastLogCount = 0;
+function startPollRun(runId, outputDir) {
+    if (_pollInterval) clearInterval(_pollInterval);
+    _lastLogCount = 0;
+    _pollInterval = setInterval(async () => {
+        try {
+            const res = await fetch(`${API}/run/${runId}?log_tail=60`);
+            const data = await res.json();
+
+            // Update log (only new lines)
+            const logEl = document.getElementById("runner-log");
+            const lines = data.log_tail || [];
+            if (lines.length > _lastLogCount) {
+                const newLines = lines.slice(_lastLogCount);
+                newLines.forEach(line => {
+                    const p = document.createElement("p");
+                    p.className = "log-line " + getLogClass(line);
+                    p.innerText = line;
+                    logEl.appendChild(p);
                 });
-                const data = await response.json();
+                logEl.scrollTop = logEl.scrollHeight;
+                _lastLogCount = lines.length;
+            }
 
-                if (data.success) {
-                    summary.innerText = data.summary;
-                    blueprintEl.innerText = JSON.stringify(data.blueprint, null, 2);
-                    window.ghostBlueprintPath = data.blueprint_path;
-                } else {
-                    summary.innerText = "Extraction failed.";
+            // Also poll factory progress for the progress bar
+            try {
+                const pr = await fetch(`${API}/progress`);
+                const pd = await pr.json();
+                const pct = Number(pd.percentage || 0);
+                document.getElementById("progress-bar").style.width = `${pct}%`;
+                document.getElementById("runner-progress-pct").innerText = `${pct}%`;
+                document.getElementById("runner-progress-label").innerText = pd.detail || pd.status || "Running…";
+            } catch(e) {}
+
+            setRunnerStatusTag(data.status);
+
+            if (data.status === "completed" || data.status === "failed" || data.status === "stopped") {
+                clearInterval(_pollInterval);
+                _pollInterval = null;
+                document.getElementById("runner-stop-btn").disabled = true;
+                document.getElementById("progress-bar").style.width =
+                    data.status === "completed" ? "100%" : document.getElementById("progress-bar").style.width;
+                if (data.status === "completed") {
+                    document.getElementById("runner-complete-actions").classList.remove("hidden");
+                    document.getElementById("runner-complete-actions").dataset.outputDir = outputDir;
                 }
-            } catch (error) {
-                summary.innerText = "Error: " + error.message;
             }
-        }
+        } catch(e) { console.error(e); }
+    }, 3000);
+}
 
-        function checkRefinementVisibility() {
-            const vibe = document.getElementById('vibe-input').value.trim();
-            const container = document.getElementById('refinement-container');
-            if (vibe.length > 10 && container.classList.contains('hidden')) {
-                container.classList.remove('hidden');
-            }
-        }
+function getLogClass(line) {
+    const u = line.toUpperCase();
+    if (u.includes("SUCCESS") || u.includes("✅")) return "log-SUCCESS";
+    if (u.includes("ERROR") || u.includes("❌")) return "log-ERROR";
+    if (u.includes("WARNING") || u.includes("WARN")) return "log-WARNING";
+    return "log-INFO";
+}
 
-        function dismissRefinement() {
-            document.getElementById('refinement-container').classList.add('hidden');
-            document.getElementById('improved-prompt-area').classList.add('hidden');
-        }
+async function stopCurrentRun() {
+    if (!_currentRunId) return;
+    if (!confirm(`Stop run ${_currentRunId}?`)) return;
+    await fetch(`${API}/run/${_currentRunId}/stop`, { method: "POST" });
+    setRunnerStatusTag("stopped");
+    if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
+}
 
-        async function refinePrompt() {
-            const vibe = document.getElementById('vibe-input').value;
-            const refineBtn = document.getElementById('refine-btn');
+function launchCurrentOutput() {
+    const outputDir = document.getElementById("runner-complete-actions").dataset.outputDir;
+    if (outputDir) launchOutput(outputDir);
+}
 
-            refineBtn.innerText = "Refining...";
-            refineBtn.disabled = true;
+// ── Runs list ────────────────────────────────────────────────────────────────
+async function loadRuns() {
+    const res = await fetch(`${API}/runs`);
+    const data = await res.json();
+    const el = document.getElementById("runs-list");
+    if (!data.runs || !data.runs.length) {
+        el.innerHTML = "<p class='text-slate-500 text-sm'>No runs in this session.</p>";
+        return;
+    }
+    el.innerHTML = data.runs.map(r => `
+        <div class="glass rounded-xl p-4">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="font-mono text-indigo-300 text-sm">${r.run_id}</span>
+                    ${statusTag(r.status)}
+                    <span class="text-slate-500 text-xs ml-2">${r.started_at}</span>
+                </div>
+                <div class="flex gap-2">
+                    ${r.status === "running" ? `<button class="btn btn-danger text-xs py-1" onclick="stopRun('${r.run_id}')">Stop</button>` : ""}
+                    ${r.status === "completed" ? `<button class="btn btn-green text-xs py-1" onclick="launchOutput('${r.output_dir}')">▶ Launch</button>` : ""}
+                </div>
+            </div>
+            <p class="text-xs text-slate-400 font-mono mb-1">${r.output_dir}</p>
+            <p class="text-xs text-slate-500 truncate">${r.vibe_snippet}</p>
+        </div>
+    `).join("");
+}
 
-            try {
-                const res = await fetch(`${API_BASE}/refine`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        prompt: vibe,
-                        history: refinementHistory
-                    })
-                });
+async function stopRun(runId) {
+    if (!confirm(`Stop run ${runId}?`)) return;
+    await fetch(`${API}/run/${runId}/stop`, { method: "POST" });
+    loadRuns();
+}
 
-                const data = await res.json();
-                currentImprovedText = data.improved;
+// ── Outputs ──────────────────────────────────────────────────────────────────
+async function loadOutputs() {
+    const res = await fetch(`${API}/outputs?limit=30`);
+    const data = await res.json();
+    const el = document.getElementById("outputs-list");
+    if (!data.outputs || !data.outputs.length) {
+        el.innerHTML = "<p class='text-slate-500 text-sm'>No outputs found in outputs/ directory.</p>";
+        return;
+    }
+    el.innerHTML = data.outputs.map(o => `
+        <div class="glass rounded-xl p-4">
+            <div class="flex justify-between items-start">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-semibold">${o.name}</span>
+                        ${o.project_name ? `<span class="text-indigo-300 text-sm">${o.project_name}</span>` : ""}
+                        <span class="text-slate-500 text-xs">${o.mtime_human}</span>
+                        ${o.file_count ? `<span class="text-slate-500 text-xs">${o.file_count} files</span>` : ""}
+                    </div>
+                    ${o.stack ? `<p class="text-xs text-slate-400 mb-1">${o.stack}</p>` : ""}
+                    ${o.readme_snippet ? `<p class="text-xs text-slate-500 truncate font-mono">${o.readme_snippet.slice(0,120)}</p>` : ""}
+                </div>
+                <div class="flex gap-2 ml-4 shrink-0">
+                    <button class="btn btn-green text-xs py-1" onclick="launchOutput('${o.path}')">▶ Launch</button>
+                </div>
+            </div>
+        </div>
+    `).join("");
+}
 
-                const area = document.getElementById('improved-prompt-area');
-                area.innerHTML = `<div class="prose prose-invert text-xs">${currentImprovedText.replace(/\n/g, '<br>')}</div>`;
-                area.classList.remove('hidden');
+async function launchOutput(outputDir) {
+    if (!confirm(`Launch app from:\n${outputDir}\n\nThis will open terminal windows.`)) return;
+    const res = await fetch(`${API}/outputs/launch`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ output_dir: outputDir }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+        alert("Launch failed: " + (data.detail || "unknown error"));
+        return;
+    }
+    const urls = data.launched.map(l => l.url).join("\n");
+    alert(`Launched! Allow ~15s for startup.\n\n${urls}`);
+}
 
-                document.getElementById('refine-accept-btn').classList.remove('hidden');
-                refineBtn.innerText = "Refine Again";
-                refineBtn.disabled = false;
+// ── Legacy build (unchanged) ──────────────────────────────────────────────────
+let _legacyRefinementHistory = [];
+let _legacyImprovedText = "";
 
-                appendLog("AI Suggestion generated.", "text-indigo-400");
-            } catch (e) {
-                appendLog(`Refinement failed: ${e.message}`, 'text-rose-400');
-                refineBtn.innerText = "Yes, Improve Vibe";
-                refineBtn.disabled = false;
-            }
-        }
+function checkRefinementVisibility() {
+    const vibe = document.getElementById("vibe-input").value.trim();
+    if (vibe.length > 10) document.getElementById("refinement-container").classList.remove("hidden");
+}
+function dismissRefinement() {
+    document.getElementById("refinement-container").classList.add("hidden");
+    document.getElementById("improved-prompt-area").classList.add("hidden");
+}
+async function refinePrompt() {
+    const vibe = document.getElementById("vibe-input").value.trim();
+    if (!vibe) return;
+    const btn = document.getElementById("refine-btn");
+    btn.disabled = true; btn.innerText = "Refining…";
+    try {
+        const res = await fetch(`${API}/refine`, {
+            method: "POST", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ prompt: vibe, history: _legacyRefinementHistory }),
+        });
+        const data = await res.json();
+        _legacyImprovedText = data.improved || "";
+        const area = document.getElementById("improved-prompt-area");
+        area.innerHTML = _legacyImprovedText.replace(/\n/g, "<br>");
+        area.classList.remove("hidden");
+        document.getElementById("refine-accept-btn").classList.remove("hidden");
+    } finally { btn.disabled = false; btn.innerText = "Refine"; }
+}
+function useRefinedPrompt() {
+    const input = document.getElementById("vibe-input");
+    _legacyRefinementHistory.push(input.value);
+    input.value = _legacyImprovedText;
+    dismissRefinement();
+}
+function applySamplePrompt() {
+    const sel = document.getElementById("sample-prompts");
+    if (sel.value) { document.getElementById("vibe-input").value = sel.value; checkRefinementVisibility(); }
+}
+async function triggerBuild() {
+    const vibe = document.getElementById("vibe-input").value.trim();
+    if (!vibe) { alert("Enter a prompt."); return; }
+    appendLog("Build requested.", "text-indigo-300");
+    const res = await fetch(`${API}/build`, {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ vibe_content: vibe }),
+    });
+    const data = await res.json();
+    appendLog(res.ok ? (data.message || "Build launched.") : (data.detail || "Failed."),
+              res.ok ? "text-emerald-300" : "text-rose-400");
+}
+async function pollLegacyProgress() {
+    const res = await fetch(`${API}/progress`);
+    const data = await res.json();
+    const pct = Number(data.percentage || 0);
+    const bar = document.getElementById("legacy-progress-bar");
+    if (bar) bar.style.width = `${pct}%`;
+    const pp = document.getElementById("progress-percentage");
+    if (pp) pp.innerText = `${pct}%`;
+}
 
-        function useRefinedPrompt() {
-            refinementHistory.push(document.getElementById('vibe-input').value);
-            document.getElementById('vibe-input').value = currentImprovedText;
-            dismissRefinement();
-            appendLog("Switched to AI-improved prompt.", "text-emerald-400 font-bold");
-        }
+// ── Specialists ───────────────────────────────────────────────────────────────
+async function fetchSpecialists() {
+    const grid = document.getElementById("specialist-grid");
+    grid.innerHTML = "";
+    const res = await fetch(`${API}/specialists`);
+    const data = await res.json();
+    if (!data.success) { grid.innerHTML = `<p class="text-rose-400">${data.detail}</p>`; return; }
+    for (const spec of data.specialists) {
+        const card = document.createElement("div");
+        card.className = "glass rounded-xl p-4";
+        card.innerHTML = `
+            <h3 class="font-semibold mb-1">${spec.name}</h3>
+            <p class="text-xs text-slate-400">Temp: ${spec.temperature}</p>
+            <p class="text-xs text-slate-400 mb-2">Requires: ${spec.requires.join(", ") || "none"}</p>
+            <p class="text-xs text-slate-500 mb-3 truncate">Owns: ${spec.owned_patterns.slice(0,4).join(", ")}</p>
+            <button class="btn btn-secondary text-xs py-1" onclick="showDocs('${spec.name}', \`${(spec.docs||"").replace(/`/g,"\\`").replace(/\$/g,"\\$")}\`)">Docs</button>
+        `;
+        grid.appendChild(card);
+    }
+}
+function showDocs(name, docs) {
+    document.getElementById("modal-title").innerText = `${name}`;
+    document.getElementById("modal-content").innerText = (docs || "").trim();
+    document.getElementById("docs-modal").classList.remove("hidden");
+}
+function hideDocs() { document.getElementById("docs-modal").classList.add("hidden"); }
 
-        // Poll status every 2 seconds
-        setInterval(updateStatus, 2000);
-        updateStatus();
-    </script>
+// ── Settings ──────────────────────────────────────────────────────────────────
+async function loadSettings() {
+    const res = await fetch(`${API}/settings`);
+    const data = await res.json();
+    if (!data.success) return;
+    const s = data.settings;
+    document.getElementById("settings-provider").value = s.provider;
+    document.getElementById("settings-base-url").value = s.base_url;
+    document.getElementById("settings-foreman-model").value = s.foreman_model;
+    document.getElementById("settings-worker-model").value = s.worker_model;
+    document.getElementById("settings-context-length").value = s.context_length;
+    document.getElementById("settings-timeout-seconds").value = s.timeout_seconds;
+    document.getElementById("settings-api-key").value = s.api_key;
+    const sf = document.getElementById("summary-foreman");
+    const sw = document.getElementById("summary-worker");
+    if (sf) sf.innerText = s.foreman_model;
+    if (sw) sw.innerText = s.worker_model;
+}
+async function saveSettings(event) {
+    event.preventDefault();
+    const payload = {
+        provider: document.getElementById("settings-provider").value,
+        base_url: document.getElementById("settings-base-url").value,
+        foreman_model: document.getElementById("settings-foreman-model").value,
+        worker_model: document.getElementById("settings-worker-model").value,
+        context_length: Number(document.getElementById("settings-context-length").value),
+        timeout_seconds: Number(document.getElementById("settings-timeout-seconds").value),
+        api_key: document.getElementById("settings-api-key").value || "ollama",
+    };
+    const res = await fetch(`${API}/settings`, {
+        method: "PUT", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.success) { alert("Settings saved."); await loadSettings(); }
+}
+async function scanSettingsModels() {
+    const res = await fetch(`${API}/models`);
+    const data = await res.json();
+    const list = document.getElementById("model-list-settings");
+    list.innerHTML = "";
+    (data.models || []).forEach(m => {
+        const opt = document.createElement("option"); opt.value = m.id; list.appendChild(opt);
+    });
+}
+
+// ── Logs ──────────────────────────────────────────────────────────────────────
+async function loadLogPage() {
+    const lines = document.getElementById("log-lines").value || 200;
+    const search = document.getElementById("log-search").value || "";
+    const res = await fetch(`${API}/logs?lines=${lines}&search=${encodeURIComponent(search)}`);
+    const data = await res.json();
+    document.getElementById("log-content").innerText = (data.lines || []).join("\n");
+}
+
+// ── Help ──────────────────────────────────────────────────────────────────────
+async function loadHelpIndex() {
+    const list = document.getElementById("help-doc-list");
+    list.innerHTML = "";
+    const res = await fetch(`${API}/help`);
+    const data = await res.json();
+    if (!data.success) return;
+    data.docs.forEach(doc => {
+        const btn = document.createElement("button");
+        btn.className = "w-full text-left text-xs bg-white/5 hover:bg-white/10 rounded px-3 py-2";
+        btn.innerText = doc.title;
+        btn.onclick = () => loadHelpDoc(doc.id, doc.title);
+        list.appendChild(btn);
+    });
+}
+async function loadHelpDoc(id, title) {
+    const res = await fetch(`${API}/help/${id}`);
+    const data = await res.json();
+    document.getElementById("help-doc-title").innerText = title;
+    document.getElementById("help-doc-content").innerText = data.content || "";
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+showSection("dashboard");
+setInterval(updateStatus, 3000);
+</script>
 </body>
-
 </html>

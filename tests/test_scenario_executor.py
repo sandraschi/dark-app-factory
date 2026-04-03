@@ -1,7 +1,6 @@
 """Tests for the scenario executor module."""
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.verification.scenario_parser import (
     Assertion,
@@ -15,13 +14,13 @@ from src.verification.scenario_executor import (
     _generate_sample_body,
     _resolve_path,
     execute_all_scenarios,
-    execute_api_scenario,
 )
 
 
 # ---------------------------------------------------------------------------
 # Path resolution
 # ---------------------------------------------------------------------------
+
 
 class TestResolvePath:
     def test_replaces_id(self):
@@ -34,6 +33,7 @@ class TestResolvePath:
 # ---------------------------------------------------------------------------
 # Sample body generation
 # ---------------------------------------------------------------------------
+
 
 class TestGenerateSampleBody:
     def _make_scenario(self, title, given="", body_hint="valid"):
@@ -87,10 +87,16 @@ class TestGenerateSampleBody:
 # API assertion evaluation
 # ---------------------------------------------------------------------------
 
+
 class TestEvaluateApiAssertion:
     def test_status_code_match(self):
         s = Scenario(
-            title="Test", description="", category="", given="", when="", then="",
+            title="Test",
+            description="",
+            category="",
+            given="",
+            when="",
+            then="",
             assertion=Assertion(raw_text="", expected_status=200),
         )
         r = ScenarioResult(scenario_title="Test", executed=True, status_code=200)
@@ -100,7 +106,12 @@ class TestEvaluateApiAssertion:
 
     def test_status_code_class_match(self):
         s = Scenario(
-            title="Test", description="", category="", given="", when="", then="",
+            title="Test",
+            description="",
+            category="",
+            given="",
+            when="",
+            then="",
             assertion=Assertion(raw_text="", expected_status=200),
         )
         r = ScenarioResult(scenario_title="Test", executed=True, status_code=201)
@@ -109,7 +120,12 @@ class TestEvaluateApiAssertion:
 
     def test_status_code_mismatch(self):
         s = Scenario(
-            title="Test", description="", category="", given="", when="", then="",
+            title="Test",
+            description="",
+            category="",
+            given="",
+            when="",
+            then="",
             assertion=Assertion(raw_text="", expected_status=200),
         )
         r = ScenarioResult(scenario_title="Test", executed=True, status_code=404)
@@ -118,19 +134,31 @@ class TestEvaluateApiAssertion:
 
     def test_list_response_array(self):
         s = Scenario(
-            title="Test", description="", category="", given="", when="", then="",
+            title="Test",
+            description="",
+            category="",
+            given="",
+            when="",
+            then="",
             assertion=Assertion(raw_text="", expects_list=True),
         )
         r = ScenarioResult(
-            scenario_title="Test", executed=True,
-            status_code=200, response_body='[{"id": 1}]',
+            scenario_title="Test",
+            executed=True,
+            status_code=200,
+            response_body='[{"id": 1}]',
         )
         _evaluate_api_assertion(s, r)
         assert r.assertion_met is True
 
     def test_error_response(self):
         s = Scenario(
-            title="Test", description="", category="", given="", when="", then="",
+            title="Test",
+            description="",
+            category="",
+            given="",
+            when="",
+            then="",
             assertion=Assertion(raw_text="", expects_error=True, expected_status=404),
         )
         r = ScenarioResult(scenario_title="Test", executed=True, status_code=404)
@@ -139,7 +167,12 @@ class TestEvaluateApiAssertion:
 
     def test_no_assertion(self):
         s = Scenario(
-            title="Test", description="", category="", given="", when="", then="",
+            title="Test",
+            description="",
+            category="",
+            given="",
+            when="",
+            then="",
             assertion=None,
         )
         r = ScenarioResult(scenario_title="Test", executed=True, status_code=200)
@@ -151,6 +184,7 @@ class TestEvaluateApiAssertion:
 # ---------------------------------------------------------------------------
 # Full scenario execution (mocked HTTP)
 # ---------------------------------------------------------------------------
+
 
 class TestExecuteAllScenarios:
     @pytest.fixture
@@ -191,9 +225,7 @@ class TestExecuteAllScenarios:
     @pytest.mark.asyncio
     async def test_api_scenario_connection_error(self, api_scenario):
         """If app is not running, scenario records a connection error."""
-        results = await execute_all_scenarios(
-            [api_scenario], "http://localhost:99999"
-        )
+        results = await execute_all_scenarios([api_scenario], "http://localhost:99999")
         assert len(results) == 1
         # Should have attempted execution
         assert results[0].executed is True

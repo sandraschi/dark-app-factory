@@ -28,8 +28,18 @@ def _write_manifest(base_dir: str, project_name: str) -> str:
         "theme_color": "#09090b",
         "orientation": "portrait-primary",
         "icons": [
-            {"src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any"},
-            {"src": "icons/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable"},
+            {
+                "src": "icons/icon-192.svg",
+                "sizes": "192x192",
+                "type": "image/svg+xml",
+                "purpose": "any",
+            },
+            {
+                "src": "icons/icon-512.svg",
+                "sizes": "512x512",
+                "type": "image/svg+xml",
+                "purpose": "any maskable",
+            },
         ],
     }
     path = os.path.join(base_dir, "manifest.json")
@@ -59,7 +69,9 @@ def _write_icons(base_dir: str) -> None:
     icons_dir = os.path.join(base_dir, "icons")
     os.makedirs(icons_dir, exist_ok=True)
     for size in (192, 512):
-        svg = ICON_SVG.replace("512", str(size)).replace('width="512" height="512"', f'width="{size}" height="{size}"')
+        svg = ICON_SVG.replace("512", str(size)).replace(
+            'width="512" height="512"', f'width="{size}" height="{size}"'
+        )
         path = os.path.join(icons_dir, f"icon-{size}.svg")
         with open(path, "w", encoding="utf-8") as f:
             f.write(svg)

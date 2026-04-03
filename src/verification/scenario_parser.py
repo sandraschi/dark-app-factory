@@ -16,7 +16,7 @@ for the executor to attempt real HTTP calls or browser actions.
 
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional
@@ -26,39 +26,43 @@ logger = logging.getLogger("dark_factory")
 
 class ScenarioType(Enum):
     """Classification of scenario by execution method."""
-    API = "api"          # HTTP request (GET, POST, PUT, DELETE, PATCH)
+
+    API = "api"  # HTTP request (GET, POST, PUT, DELETE, PATCH)
     BROWSER = "browser"  # Requires browser interaction (page load, click, form)
-    STATIC = "static"    # Cannot be executed mechanically (encryption, architecture)
+    STATIC = "static"  # Cannot be executed mechanically (encryption, architecture)
 
 
 @dataclass
 class HttpAction:
     """Parsed HTTP action from a WHEN clause."""
-    method: str          # GET, POST, PUT, DELETE, PATCH
-    path: str            # /users, /treatments/{id}, etc.
+
+    method: str  # GET, POST, PUT, DELETE, PATCH
+    path: str  # /users, /treatments/{id}, etc.
     body_hint: str = ""  # "valid JSON payload", "invalid JSON payload", etc.
 
 
 @dataclass
 class Assertion:
     """Parsed expected outcome from a THEN clause."""
+
     raw_text: str
-    expected_status: Optional[int] = None   # 200, 201, 404, 409, 403
-    expects_list: bool = False              # "list of X is returned"
-    expects_creation: bool = False          # "is created"
-    expects_error: bool = False             # "error is returned"
-    expects_rejection: bool = False         # "is rejected"
+    expected_status: Optional[int] = None  # 200, 201, 404, 409, 403
+    expects_list: bool = False  # "list of X is returned"
+    expects_creation: bool = False  # "is created"
+    expects_error: bool = False  # "error is returned"
+    expects_rejection: bool = False  # "is rejected"
 
 
 @dataclass
 class Scenario:
     """A single parsed scenario ready for execution."""
+
     title: str
     description: str
-    category: str                # "User Management", "Security Scenarios", etc.
-    given: str                   # Raw GIVEN text
-    when: str                    # Raw WHEN text
-    then: str                    # Raw THEN text
+    category: str  # "User Management", "Security Scenarios", etc.
+    given: str  # Raw GIVEN text
+    when: str  # Raw WHEN text
+    then: str  # Raw THEN text
     scenario_type: ScenarioType = ScenarioType.STATIC
     http_action: Optional[HttpAction] = None
     assertion: Optional[Assertion] = None
@@ -148,7 +152,9 @@ def parse_assertion(then_text: str) -> Assertion:
     return assertion
 
 
-def classify_scenario(http_action: Optional[HttpAction], then_text: str) -> ScenarioType:
+def classify_scenario(
+    http_action: Optional[HttpAction], then_text: str
+) -> ScenarioType:
     """Determine how to execute a scenario."""
     if http_action:
         return ScenarioType.API
@@ -216,17 +222,19 @@ def parse_scenarios(text: str) -> List[Scenario]:
                 assertion = parse_assertion(then_text)
                 scenario_type = classify_scenario(http_action, then_text)
 
-                scenarios.append(Scenario(
-                    title=title,
-                    description=description,
-                    category=current_category,
-                    given=given_text,
-                    when=when_text,
-                    then=then_text,
-                    scenario_type=scenario_type,
-                    http_action=http_action,
-                    assertion=assertion,
-                ))
+                scenarios.append(
+                    Scenario(
+                        title=title,
+                        description=description,
+                        category=current_category,
+                        given=given_text,
+                        when=when_text,
+                        then=then_text,
+                        scenario_type=scenario_type,
+                        http_action=http_action,
+                        assertion=assertion,
+                    )
+                )
 
         i += 1
 

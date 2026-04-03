@@ -22,7 +22,7 @@ import uuid
 from typing import Dict, List, Optional
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 
 logger = logging.getLogger("dtu")
@@ -477,7 +477,7 @@ async def analytics_track(request: Request):
 
 @app.post("/analytics/pageview")
 async def analytics_pageview(request: Request):
-    body = await request.json()
+    await request.json()
     return {"status": "ok"}
 
 
@@ -485,9 +485,19 @@ async def analytics_pageview(request: Request):
 # Puzzle API Mock (PuzzlePhil-style)
 # =====================================================================
 MOCK_PUZZLES = [
-    {"id": "pz_1", "type": "sudoku", "difficulty": "easy", "grid": [[0] * 9 for _ in range(9)]},
+    {
+        "id": "pz_1",
+        "type": "sudoku",
+        "difficulty": "easy",
+        "grid": [[0] * 9 for _ in range(9)],
+    },
     {"id": "pz_2", "type": "crossword", "difficulty": "medium", "clues": []},
-    {"id": "pz_3", "type": "wordsearch", "difficulty": "easy", "words": ["mock", "test"]},
+    {
+        "id": "pz_3",
+        "type": "wordsearch",
+        "difficulty": "easy",
+        "words": ["mock", "test"],
+    },
 ]
 
 
@@ -513,9 +523,13 @@ async def get_puzzle(puzzle_id: str):
 @app.post("/tiktok/upload")
 async def tiktok_upload(request: Request):
     try:
-        body = await request.json() if "application/json" in request.headers.get("content-type", "") else {}
+        (
+            await request.json()
+            if "application/json" in request.headers.get("content-type", "")
+            else {}
+        )
     except Exception:
-        body = {}
+        pass
     vid = f"tiktok_{uuid.uuid4().hex[:12]}"
     return {"video_id": vid, "status": "uploaded", "url": f"https://tiktok.com/@{vid}"}
 
@@ -531,13 +545,20 @@ async def tiktok_video(video_id: str):
 @app.post("/youtube/videos")
 async def youtube_upload(request: Request):
     try:
-        body = await request.json() if "application/json" in request.headers.get("content-type", "") else {}
+        body = (
+            await request.json()
+            if "application/json" in request.headers.get("content-type", "")
+            else {}
+        )
     except Exception:
         body = {}
     vid = f"yt_{uuid.uuid4().hex[:11]}"
     return {
         "id": vid,
-        "snippet": {"title": body.get("snippet", {}).get("title", "Mock Video"), "description": ""},
+        "snippet": {
+            "title": body.get("snippet", {}).get("title", "Mock Video"),
+            "description": "",
+        },
         "status": {"uploadStatus": "uploaded", "privacyStatus": "private"},
     }
 
@@ -548,7 +569,11 @@ async def youtube_list(part: str = "snippet", max_results: int = 5):
         "items": [
             {
                 "id": f"yt_mock{i}",
-                "snippet": {"title": f"Mock Video {i}", "description": "", "publishedAt": "2026-02-01T00:00:00Z"},
+                "snippet": {
+                    "title": f"Mock Video {i}",
+                    "description": "",
+                    "publishedAt": "2026-02-01T00:00:00Z",
+                },
             }
             for i in range(1, min(max_results, 4))
         ],

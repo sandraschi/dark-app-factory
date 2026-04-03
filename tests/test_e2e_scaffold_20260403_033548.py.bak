@@ -1,0 +1,76 @@
+import pytest
+import os
+import shutil
+import asyncio
+import logging
+from factory import main_flow
+from tests.utils.model_discovery import get_best_model
+
+# Setup logging for tests
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("dark_factory_e2e")
+
+E2E_CASES_DIR = "tests/data/e2e_cases"
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("level, case_name", [
+    (1, "simple"),
+    (2, "crud"),
+    (3, "complex_dtu")
+])
+async def test_factory_e2e_pipeline(level, case_name, tmp_path):
+    """
+    Parametrized E2E test for Dark App Factory levels 1, 2, and 3.
+    Matches vibe -> generation -> audit.
+    """
+    logger.info(f"--- STARTING E2E TEST: Level {level} ({case_name}) ---")
+    
+    # 1. Discover Real Models (hardware-aware)
+    # Defaulting to Ollama as per user request
+    foreman_model = get_best_model(provider="ollama", preferred_keywords=["llama3", "mistral"])
+    worker_model = get_best_model(provider="ollama", preferred_keywords=["coder", "qwen2.5"])
+
+    logger.info(f"Using models: Foreman={foreman_model}, Worker={worker_model}")
+
+    # 2. Setup Paths
+    level_dir = os.path.join(E2E_CASES_DIR, f"level{level}")
+    vibe_path = os.path.join(level_dir, "vibe.md")
+    scenarios_path = os.path.join(level_dir, "scenarios.md")
+    
+    # Use a unique output directory for this test run
+    output_dir = str(tmp_path / f"output_level{level}_{case_name}")
+    
+    # Check if vibe and scenarios exist
+    assert os.path.exists(vibe_path), f"Vibe not found at {vibe_path}"
+    assert os.path.exists(scenarios_path), f"Scenarios not found at {scenarios_path}"
+
+    # 3. Execute Factory main_flow
+    # Pass scenarios_path=None so the factory generates its own scenarios
+    # from the vibe. The test's scenarios.md is for post-build assertions only.
+    success = await main_flow(
+        vibe_path=vibe_path,
+        output_dir=output_dir,
+        scenarios_path=None,
+        foreman_model=foreman_model,
+        worker_model=worker_model
+    )
+
+    # 4. Assertions
+    assert success is True, f"Factory main_flow failed for Level {level}"
+    
+    # Verify critical output files
+    assert os.path.exists(output_dir), "Output directory was not created"
+    
+    # Check for Showboat demo
+    demos_dir = os.path.join(output_dir, "demos")
+    assert os.path.exists(demos_dir), "Showboat demos directory not created"
+    
+    # Check for Propagandist landing page
+    www_index = os.path.join(output_dir, "www", "index.html")
+    assert os.path.exists(www_index), "Landing page (www/index.html) not created"
+    
+    # Check for PWA manifest
+    manifest_json = os.path.join(output_dir, "www", "manifest.json")
+    assert os.path.exists(manifest_json), "PWA manifest.json not created"
+
+    logger.info(f"--- COMPLETED E2E TEST: Level {level} (SUCCESS) ---")

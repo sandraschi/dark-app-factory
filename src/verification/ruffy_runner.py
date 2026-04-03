@@ -63,7 +63,25 @@ def run_ruffy(output_dir: str) -> Tuple[str, str]:
     lines = ["# Ruffy Lint Report", ""]
 
     if not _has_python_files(output_dir):
-        lines.append("No Python files in output. Skipping ruff/mypy.")
+        lines.append("No Python files in output. Running Node.js syntax check instead.")
+        lines.append("")
+        lines.append("## node --check")
+        lines.append("")
+        # Check all .js files for syntax errors using node --check
+        js_errors = []
+        for root, _, files in os.walk(output_dir):
+            for fname in files:
+                if fname.endswith(".js") and not fname.endswith(".min.js"):
+                    fpath = os.path.join(root, fname)
+                    code, out, err = _run_cmd(["node", "--check", fpath], cwd=output_dir)
+                    if code != 0:
+                        rel = os.path.relpath(fpath, output_dir)
+                        js_errors.append(f"{rel}: {(err or out).strip()[:200]}")
+        if js_errors:
+            lines.extend(js_errors[:20])  # cap at 20 errors
+        else:
+            lines.append("OK (no syntax errors in .js files)")
+        lines.append("")
         report_text = "\n".join(lines)
         try:
             with open(report_path, "w", encoding="utf-8") as f:

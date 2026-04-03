@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 import argparse
 import asyncio
 import subprocess
@@ -25,16 +26,6 @@ from src.utils.progress import progress
 from src.verification import showboat_runner
 from foreman import conduct_research, generate_blueprint, read_vibe
 from worker import run_factory
-
-# Initialize Anthropic client at module level if LLMClient needs it globally,
-# otherwise, LLMClient should manage its own client instance.
-# Assuming for now that LLMClient will be updated to use this or its own.
-# If LLMClient already handles its own client, this global client might be redundant.
-# For this edit, we'll place it as requested by the diff, assuming it's a new global dependency.
-# However, the original code initializes LLMClient instances within main_flow,
-# so this global client might not be directly used by them unless LLMClient is refactored.
-# For now, we'll place it as per the user's instruction, but note this potential discrepancy.
-# client = anthropic.Anthropic() # This line is commented out as it's not directly used by the existing LLMClient instances.
 
 
 def kill_zombies(start_port=19300, end_port=19400):
@@ -242,7 +233,12 @@ def _extract_landing_page_data(specs_path: str, vibe_path: str = "vibe.md") -> d
     }
 
 
-async def generate_landing_page(output_dir: str, specs_path: str = "specs/specs.md"):
+async def generate_landing_page(
+    output_dir: str,
+    specs_path: str = "specs/specs.md",
+    foreman_model: str = None,
+    foreman_base_url: str = None,
+):
     """Generate a landing page for the built app using LLM + static site builder.
 
     Creates {output_dir}/www/ with a multi-page static site.
@@ -257,7 +253,7 @@ async def generate_landing_page(output_dir: str, specs_path: str = "specs/specs.
     os.makedirs(www_dir, exist_ok=True)
 
     # Use Foreman LLM to generate the landing page HTML
-    foreman = LLMClient(role="foreman")
+    foreman = LLMClient(role="foreman", model=foreman_model, base_url=foreman_base_url)
 
     features_block = (
         "\n".join(f"- {f}" for f in features)
@@ -317,9 +313,32 @@ async def generate_landing_page(output_dir: str, specs_path: str = "specs/specs.
     return index_path
 
 
-async def main_flow(vibe_path="vibe.md", output_dir=None, ghost_dna=None):
-    """Programmatic entry point for the Factory. Returns True if successful."""
+async def main_flow(
+    vibe_path="vibe.md",
+    output_dir=None,
+    ghost_dna=None,
+    scenarios_path="scenarios/scenarios.md",
+    foreman_model=None,
+    worker_model=None,
+    base_url=None,
+    work_dir=None,
+):
+    """Programmatic entry point for the Factory. Returns True if successful.
+
+    Args:
+        work_dir: If set, the factory will chdir here before running so that
+                  all relative paths (specs/, scenarios/, feedback.md, etc.)
+                  resolve inside work_dir rather than the repo root. Used by
+                  the e2e test suite to avoid polluting the repo root.
+    """
     logger.info("=== DARK APP FACTORY ===")
+
+    # 0. Optionally relocate working directory for test isolation
+    original_cwd = os.getcwd()
+    if work_dir:
+        os.makedirs(work_dir, exist_ok=True)
+        os.chdir(work_dir)
+        logger.info("Working directory: %s", work_dir)
 
     # 0. Kill Zombies & Prepare
     progress.reset()
@@ -327,15 +346,19 @@ async def main_flow(vibe_path="vibe.md", output_dir=None, ghost_dna=None):
     kill_zombies()
 
     # 1. Determine Output Directory
+    # When work_dir is set, output_dir must be absolute so it doesn't get
+    # re-resolved relative to work_dir after the chdir above.
     os.makedirs("outputs", exist_ok=True)
     if not output_dir:
-        output_dir = get_next_output_dir(base="outputs/output")
+        output_dir = os.path.abspath(get_next_output_dir(base="outputs/output"))
+    else:
+        output_dir = os.path.abspath(output_dir)
 
     logger.info("Target output: %s", output_dir)
 
     # Initialize shared LLM clients for token tracking
-    foreman_client = LLMClient(role="foreman")
-    worker_client = LLMClient(role="worker")
+    foreman_client = LLMClient(role="foreman", model=foreman_model, base_url=base_url)
+    worker_client = LLMClient(role="worker", model=worker_model, base_url=base_url)
 
     try:
         # 2. Foreman Research (Oracle)
@@ -386,9 +409,7 @@ async def main_flow(vibe_path="vibe.md", output_dir=None, ghost_dna=None):
                 progress.update(75, "Showboat: Generating build demo artifact...")
                 demos_dir = os.path.join(output_dir, "demos")
                 # Count generated files
-                file_count = sum(
-                    len(files) for _, _, files in os.walk(output_dir)
-                )
+                file_count = sum(len(files) for _, _, files in os.walk(output_dir))
                 demo_path = showboat_runner.create_build_demo(
                     output_dir=output_dir,
                     demo_dir=demos_dir,
@@ -404,7 +425,9 @@ async def main_flow(vibe_path="vibe.md", output_dir=None, ghost_dna=None):
             # 6. Propagandist (Landing Page)
             try:
                 progress.update(85, "Propagandist: Generating landing page...")
-                await generate_landing_page(output_dir)
+                await generate_landing_page(
+                    output_dir, foreman_model=foreman_model, foreman_base_url=base_url
+                )
             except Exception as e:
                 logger.warning("Landing page generation failed (non-fatal): %s", e)
 
@@ -434,7 +457,7 @@ async def main_flow(vibe_path="vibe.md", output_dir=None, ghost_dna=None):
                 progress.update(95, "Satisficer: Running quality audit...")
                 dtu_url_for_judge = DTU_URL if dtu else None
                 judge_passed = await run_judgement(
-                    scenarios_path="scenarios/scenarios.md",
+                    scenarios_path=scenarios_path,
                     output_dir=output_dir,
                     dtu_url=dtu_url_for_judge,
                     llm_client=foreman_client,
@@ -473,6 +496,9 @@ async def main_flow(vibe_path="vibe.md", output_dir=None, ghost_dna=None):
     except Exception as e:
         logger.error("Factory Flow Failed: %s", e)
         return False
+    finally:
+        if work_dir:
+            os.chdir(original_cwd)
 
 
 def _launch_results(output_dir, dtu):

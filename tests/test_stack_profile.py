@@ -1,7 +1,6 @@
 """Tests for src/utils/stack_profile.py -- pure logic, no LLM needed."""
 
 import json
-import pytest
 
 from src.utils.stack_profile import (
     DEFAULT_STACK,
@@ -52,7 +51,11 @@ class TestParseStackFromVibe:
 
 class TestEmbedAndExtract:
     def test_roundtrip(self):
-        profile = {"backend": "python/fastapi", "frontend": "htmx", "database": "sqlite"}
+        profile = {
+            "backend": "python/fastapi",
+            "frontend": "htmx",
+            "database": "sqlite",
+        }
         specs = "# My App\nSome specs here."
         embedded = embed_in_specs(specs, profile)
         extracted = extract_from_specs(embedded)
@@ -91,13 +94,17 @@ class TestHelperFunctions:
 
 class TestDescribeStack:
     def test_python_fastapi_react(self):
-        desc = describe_stack({"backend": "python/fastapi", "frontend": "react", "database": "postgresql"})
+        desc = describe_stack(
+            {"backend": "python/fastapi", "frontend": "react", "database": "postgresql"}
+        )
         assert "FastAPI" in desc
         assert "React" in desc
         assert "PostgreSQL" in desc
 
     def test_node_express_none(self):
-        desc = describe_stack({"backend": "node/express", "frontend": "none", "database": "sqlite"})
+        desc = describe_stack(
+            {"backend": "node/express", "frontend": "none", "database": "sqlite"}
+        )
         assert "Express" in desc
         assert "API-only" in desc
         assert "SQLite" in desc

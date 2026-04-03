@@ -17,10 +17,9 @@ final verdict instead of (or in addition to) the existing LLM-only
 verdict.
 """
 
-import json
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from src.verification.scenario_executor import ScenarioResult
 from src.verification.scenario_parser import Scenario
@@ -31,10 +30,11 @@ logger = logging.getLogger("dark_factory")
 @dataclass
 class ScenarioScore:
     """Score for a single scenario."""
+
     title: str
-    satisfaction: float       # 0.0 - 1.0
-    confidence: float         # 0.0 - 1.0 (how reliable is the score)
-    method: str               # "mechanical", "llm_assisted", "skipped"
+    satisfaction: float  # 0.0 - 1.0
+    confidence: float  # 0.0 - 1.0 (how reliable is the score)
+    method: str  # "mechanical", "llm_assisted", "skipped"
     reasoning: str = ""
     category: str = ""
 
@@ -42,6 +42,7 @@ class ScenarioScore:
 @dataclass
 class SatisfactionReport:
     """Aggregate satisfaction report across all scenarios."""
+
     total_scenarios: int = 0
     executed: int = 0
     skipped: int = 0
@@ -51,14 +52,14 @@ class SatisfactionReport:
     scores: List[ScenarioScore] = field(default_factory=list)
 
     # Aggregate metrics
-    overall_satisfaction: float = 0.0     # Weighted mean of scenario scores
-    overall_confidence: float = 0.0       # Mean confidence across scores
+    overall_satisfaction: float = 0.0  # Weighted mean of scenario scores
+    overall_confidence: float = 0.0  # Mean confidence across scores
     mechanical_satisfaction: float = 0.0  # Mean of mechanically-scored only
     category_scores: Dict[str, float] = field(default_factory=dict)
 
     # Threshold-based verdict
-    verdict: str = "UNDETERMINED"         # SATISFACTORY / PARTIAL / UNSATISFACTORY
-    verdict_threshold: float = 0.6        # Configurable pass threshold
+    verdict: str = "UNDETERMINED"  # SATISFACTORY / PARTIAL / UNSATISFACTORY
+    verdict_threshold: float = 0.6  # Configurable pass threshold
 
     def to_dict(self) -> dict:
         """Serialize for JSON output or LLM prompt embedding."""
@@ -98,9 +99,7 @@ class SatisfactionReport:
         ]
         if self.category_scores:
             lines.append("  Category breakdown:")
-            for cat, score in sorted(
-                self.category_scores.items(), key=lambda x: x[1]
-            ):
+            for cat, score in sorted(self.category_scores.items(), key=lambda x: x[1]):
                 lines.append(f"    {cat}: {score:.1%}")
         return "\n".join(lines)
 
@@ -152,7 +151,7 @@ def _score_mechanical(result: ScenarioResult) -> ScenarioScore:
         return ScenarioScore(
             title=result.scenario_title,
             satisfaction=0.5,  # Neutral prior
-            confidence=0.3,    # Low confidence = candidate for LLM
+            confidence=0.3,  # Low confidence = candidate for LLM
             method="mechanical",
             reasoning=result.assertion_evidence or "Ambiguous assertion",
         )
@@ -181,7 +180,7 @@ ACTUAL RESPONSE:
   Status Code: {result.status_code}
   Response Body (truncated): {result.response_body[:500]}
   Response Time: {result.response_time_ms}ms
-  Execution Error: {result.error or 'None'}
+  Execution Error: {result.error or "None"}
 
 MECHANICAL EVALUATION: {mechanical_score.reasoning}
 
@@ -231,9 +230,7 @@ REASONING: <one sentence>"""
         )
 
     except Exception as exc:
-        logger.warning(
-            "LLM scoring failed for '%s': %s", scenario.title, exc
-        )
+        logger.warning("LLM scoring failed for '%s': %s", scenario.title, exc)
         return mechanical_score
 
 
@@ -295,8 +292,7 @@ async def compute_satisfaction(
             and scenario
         ):
             logger.info(
-                "LLM-evaluating ambiguous scenario '%s' "
-                "(mechanical confidence=%.2f)",
+                "LLM-evaluating ambiguous scenario '%s' (mechanical confidence=%.2f)",
                 result.scenario_title,
                 mech_score.confidence,
             )
@@ -343,9 +339,7 @@ def _compute_aggregates(report: SatisfactionReport) -> None:
             mechanical_scores.append(score.satisfaction)
 
         if score.category:
-            category_accum.setdefault(score.category, []).append(
-                score.satisfaction
-            )
+            category_accum.setdefault(score.category, []).append(score.satisfaction)
 
     scored_count = sum(1 for s in report.scores if s.method != "skipped")
 
@@ -354,9 +348,7 @@ def _compute_aggregates(report: SatisfactionReport) -> None:
     if scored_count > 0:
         report.overall_confidence = confidence_sum / scored_count
     if mechanical_scores:
-        report.mechanical_satisfaction = (
-            sum(mechanical_scores) / len(mechanical_scores)
-        )
+        report.mechanical_satisfaction = sum(mechanical_scores) / len(mechanical_scores)
 
     # Category breakdown
     for cat, scores in category_accum.items():

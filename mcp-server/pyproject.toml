@@ -1,0 +1,22 @@
+[project]
+name = "dark-app-factory-mcp"
+version = "0.2.0"
+description = "Embedded fleet MCP adapter for Dark App Factory — fleet ops, generation control, assessment."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp[apps]>=3.2.0,<4",
+    "prefab-ui>=0.18.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.9.0",
+]
+
+[project.scripts]
+daf-mcp = "dark_app_factory_mcp.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dark_app_factory_mcp"]

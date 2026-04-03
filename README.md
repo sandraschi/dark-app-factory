@@ -4,19 +4,30 @@
 
 A local-first, low-cost implementation of the "Software Factory" methodology (Spec -> Scenarios -> Agent Loop).
 Inspired by [StrongDM Factory](https://factory.strongdm.ai) (they target $1k/dev/day; we do it for free).
-Designed for Vibecoders using Ollama, DeepSeek, and other local models.
+Designed for local-first development teams using Ollama, DeepSeek, and compatible local models.
 
 ## Architecture v1.7
 
-The factory floor is powered by an **Async-Parallel Orchestrator**, a **Council of 19 Specialists**, and a **SOTA Dashboard** for real-time monitoring.
+The workflow uses an async-parallel orchestrator, a set of 19 specialists, and a web dashboard for real-time monitoring.
 For a deep dive, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-- **Foreman**: High-intelligence Planner (Opus/Claude) -> Generates strict specs, scenarios, and enriched vibes.
-- **Specialist Council**: 18 domain specialists + Generalist working in dependency-resolved parallel tiers.
+- **Foreman**: Planning stage that generates specs, scenarios, and enriched prompt text.
+- **Specialists**: 18 domain specialists plus a generalist running in dependency-resolved parallel tiers.
 - **Multi-Stack**: Python (FastAPI/Flask/Django) or Node.js (Express) backends. React, HTMX, or API-only frontends.
-- **Propagandist**: Auto-generates marketing kit (press release, blog, social media, Reddit, Discord, Product Hunt, landing page).
-- **Satisficer (Judge)**: Playwright-based live UI/API auditing.
+- **Marketing Generator**: Produces a marketing kit (press release, blog, social media, Reddit, Discord, Product Hunt, landing page).
+- **Judge**: Playwright-based UI/API auditing.
 - **DTU-Lite**: Digital Twin Universe for local mocks (Stripe, Auth, etc.).
+
+## Fleet MCP (embedded, Option B)
+
+The repo includes a small FastMCP adapter under `mcp-server/` so Dark App Factory can appear in the fleet like other MCP nodes without moving code to a separate repository.
+
+| Surface | Port | Start |
+|--------|------|--------|
+| Web dashboard | 10738 | `.\web\start.ps1` |
+| MCP (streamable HTTP) | 10739 | `.\mcp-server\start.ps1` |
+
+From `mcp-server/`: `uv sync` then `uv run daf-mcp --stdio` (Claude Desktop) or `uv run daf-mcp --http --port 10739`. Tool: `factory_fleet` (health, launch dashboard, tail logs, read settings file).
 
 ## Quick Start
 
@@ -71,7 +82,7 @@ python factory.py run
 ```powershell
 .\start_factory.ps1
 ```
-Launches the SOTA Dashboard on `http://localhost:8002` with real-time progress tracking.
+Launches the dashboard on `http://localhost:8002` with real-time progress tracking.
 
 This runs the complete pipeline:
 1. Domain Research (Oracle)
@@ -79,7 +90,7 @@ This runs the complete pipeline:
 3. Worker Building (parallel specialists)
 4. Landing Page Generation
 5. DTU Mock Environment
-6. Satisficer Judging
+6. Judge verification
 7. Auto-launch + Audit
 
 Or run the worker directly:
@@ -95,7 +106,7 @@ python foreman.py log --tail 50
 python foreman.py log --export
 ```
 
-## Specialist Council (19 Members)
+## Specialists (19)
 
 | Specialist | Domain | Temperature | Requires |
 |---|---|---|---|
@@ -155,7 +166,7 @@ output_XXX/
 
 ## Digital Twin Universe (DTU)
 
-The DTU is a local mock server that replaces external APIs during testing. It enables the Satisficer (Judge) to boot and test the generated app without real API keys, credentials, or network calls.
+The DTU is a local mock server that replaces external APIs during testing. It allows the Judge to boot and test generated apps without real API keys, credentials, or network calls.
 
 ### How It Works
 
@@ -169,7 +180,7 @@ The DTU is a local mock server that replaces external APIs during testing. It en
     ...
     ```
 4.  **All external API calls** are intercepted by DTU mocks (always succeed).
-5.  **Judge** tests the app with Playwright while DTU handles all backend dependencies.
+5.  **Judge** tests the app with Playwright while DTU handles backend dependencies.
 
 ### Available Mock Services
 
@@ -193,14 +204,14 @@ The DTU is a local mock server that replaces external APIs during testing. It en
 
 For the full technical explanation of the Digital Twin pattern, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## SOTA Dashboard
+## Dashboard
 
 The factory features a real-time web UI on port 8002.
 - **Progress Tracking**: 0-100% build indicator with granular status logs.
 - **Specialist Council**: Live monitoring of each specialist's execution status and file generation.
 - **Build Queue**: Queue and relaunch vibes directly from the browser.
 
-## Industrial Startup Protocol
+## Startup Protocol
 
 To ensure zero-friction development, the factory implements a robust startup logic:
 1. **Zombie Cleanup**: Proactively scans and terminates processes blocking ports 8001 (DTU) and 8002 (Web).

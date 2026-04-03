@@ -2,11 +2,11 @@
 
 **Last Updated**: 2026-02-09 | **Version**: 1.5
 
-Dark App Factory is an industrial-grade, parallelized generative engine designed to produce SOTA web applications from high-level "vibes" using local LLMs.
+Dark App Factory is a parallelized generation pipeline designed to produce web applications from high-level prompts using local LLMs.
 
 ## 1. Core Philosophy
-- **Anti-Gaslighting**: Rigorous verification (Satisficer) ensures generated code matches observed technical reality. Prompts include explicit pressure against skeleton code, placeholders, and TODO stubs.
-- **Materialist/Reductionist**: Code is treated as empirical data. Design is driven by functional requirements first.
+- **Verification-first**: Rigorous verification (Judge) ensures generated code matches observed technical reality. Prompts include explicit pressure against skeleton code, placeholders, and TODO stubs.
+- **Requirements-first**: Code is treated as executable output, and design follows functional requirements.
 - **High-Fidelity**: No skeletons. No placeholders. Every file is generated as production-ready logic.
 - **Distribution by Default**: Every app ships with a marketing kit and landing page.
 
@@ -59,8 +59,8 @@ vibe.md  -->  [foreman enrich]  -->  enriched_vibe.md (user reviews)
 - **Validation**: Runs specialist-specific `validate()` after generation. Retries with error injection on failure.
 - **Self-Declaration**: Calls `declare_files()` per specialist to inject keyword-triggered mandatory files.
 
-### Satisficer (`judge.py`)
-- **Role**: Quality Gate.
+### Judge (`judge.py`)
+- **Role**: Quality gate.
 - **Verification**: Live UI/API audits using Playwright.
 - **Verdict**: PASS/FAIL with `critique.md` feedback loop.
 
@@ -71,12 +71,12 @@ vibe.md  -->  [foreman enrich]  -->  enriched_vibe.md (user reviews)
 - **DTU Lifecycle**: Starts DTU before build, passes `DTU_URL` to judge, shuts down DTU after all steps complete.
 
 ### Digital Twin Universe (`dtu/main.py`)
-- **Role**: Local mock server replacing external APIs during testing.
+- **Role**: Local service emulator replacing external APIs during testing.
 - **Port**: Configurable via `DTU_PORT` env var (default 8001).
 - **Service Registry**: `GET /dtu/services` returns all mock URLs and corresponding env vars.
 - **Request Log**: `GET /dtu/log` returns the last N requests for debugging.
 - **Mock Services**: Stripe, Auth, Email, SMS, Storage, Discord, Slack, Weather, Webhook, LLM (OpenAI/Anthropic), Google Calendar, Google Maps (geocoding), Analytics, Puzzles (PuzzlePhil-style), TikTok, YouTube.
-- **Deterministic**: All mocks always succeed. Payments always return `status: succeeded`. Auth always returns a valid JWT. This allows testing integration logic without external dependencies.
+- **Deterministic**: Endpoints return predictable responses for repeatable integration tests without external dependencies.
 
 ### Utils & Core Logic
 - **LLMClient (`llm_client.py`)**: AsyncOpenAI with token tracking. Accepts per-call `temperature` override.

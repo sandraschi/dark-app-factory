@@ -2,7 +2,6 @@
 
 import json
 import os
-import pytest
 
 from run_manifest import RunManifest
 
@@ -11,7 +10,11 @@ class TestManifestToComponents:
     def test_python_backend_entry(self, tmp_output_dir):
         rm = RunManifest(tmp_output_dir)
         manifest = {
-            "entry_points": {"backend": "main.py", "frontend": None, "react_entry": None}
+            "entry_points": {
+                "backend": "main.py",
+                "frontend": None,
+                "react_entry": None,
+            }
         }
         result = rm._manifest_to_components(manifest)
         assert len(result["components"]) == 1
@@ -20,7 +23,11 @@ class TestManifestToComponents:
     def test_node_backend_entry(self, tmp_output_dir):
         rm = RunManifest(tmp_output_dir)
         manifest = {
-            "entry_points": {"backend": "server.js", "frontend": None, "react_entry": None}
+            "entry_points": {
+                "backend": "server.js",
+                "frontend": None,
+                "react_entry": None,
+            }
         }
         result = rm._manifest_to_components(manifest)
         assert result["components"][0]["command"] == "node server.js"
@@ -28,7 +35,11 @@ class TestManifestToComponents:
     def test_hybrid_stack(self, tmp_output_dir):
         rm = RunManifest(tmp_output_dir)
         manifest = {
-            "entry_points": {"backend": "main.py", "frontend": "index.html", "react_entry": "src/App.tsx"}
+            "entry_points": {
+                "backend": "main.py",
+                "frontend": "index.html",
+                "react_entry": "src/App.tsx",
+            }
         }
         result = rm._manifest_to_components(manifest)
         assert len(result["components"]) == 2
@@ -38,7 +49,9 @@ class TestManifestToComponents:
 
     def test_empty_entry_points(self, tmp_output_dir):
         rm = RunManifest(tmp_output_dir)
-        manifest = {"entry_points": {"backend": None, "frontend": None, "react_entry": None}}
+        manifest = {
+            "entry_points": {"backend": None, "frontend": None, "react_entry": None}
+        }
         result = rm._manifest_to_components(manifest)
         assert result is None or len(result.get("components", [])) == 0
 
@@ -48,7 +61,11 @@ class TestLoadManifest:
         manifest_data = {
             "project_name": "TestApp",
             "stack": "Python + React",
-            "entry_points": {"backend": "main.py", "frontend": "index.html", "react_entry": "src/App.tsx"},
+            "entry_points": {
+                "backend": "main.py",
+                "frontend": "index.html",
+                "react_entry": "src/App.tsx",
+            },
             "files": ["main.py", "index.html", "src/App.tsx"],
         }
         manifest_path = os.path.join(tmp_output_dir, "manifest.json")
@@ -62,9 +79,7 @@ class TestLoadManifest:
 
     def test_load_legacy_manifest(self, tmp_output_dir):
         legacy = {
-            "components": [
-                {"name": "backend", "command": "python app.py", "cwd": "."}
-            ]
+            "components": [{"name": "backend", "command": "python app.py", "cwd": "."}]
         }
         manifest_path = os.path.join(tmp_output_dir, "manifest.json")
         with open(manifest_path, "w") as f:

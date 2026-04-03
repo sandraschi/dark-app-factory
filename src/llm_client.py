@@ -9,11 +9,11 @@ logger = logging.getLogger("dark_factory")
 class LLMClient:
     """Async LLM client with role-based model routing and token tracking."""
 
-    def __init__(self, role: str = "foreman"):
+    def __init__(self, role: str = "foreman", model: str = None, base_url: str = None):
         self.role = role
         self.client: AsyncOpenAI = None
-        self.model: str = ""
-        self.base_url: str = ""
+        self.model: str = model if model else ""
+        self.base_url: str = base_url if base_url else ""
         self.tokens_used = {"input": 0, "output": 0}
         self._configure()
 
@@ -22,24 +22,32 @@ class LLMClient:
             api_key = os.getenv(
                 "FOREMAN_API_KEY", os.getenv("OPENAI_API_KEY", "ollama")
             )
-            self.base_url = os.getenv(
-                "FOREMAN_BASE_URL",
-                os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1"),
-            )
-            self.model = os.getenv("FOREMAN_MODEL", "llama3.1:latest")
+            if not self.base_url:
+                self.base_url = os.getenv(
+                    "FOREMAN_BASE_URL",
+                    os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1"),
+                )
+            if not self.model:
+                self.model = os.getenv("FOREMAN_MODEL", "llama3.1:latest")
         else:
             api_key = os.getenv("WORKER_API_KEY", "ollama")
-            self.base_url = os.getenv("WORKER_BASE_URL", "http://localhost:11434/v1")
-            self.model = os.getenv("WORKER_MODEL", "qwen2.5-coder:latest")
+            if not self.base_url:
+                self.base_url = os.getenv("WORKER_BASE_URL", "http://localhost:11434/v1")
+            if not self.model:
+                self.model = os.getenv("WORKER_MODEL", "qwen2.5-coder:latest")
 
         self.client = AsyncOpenAI(api_key=api_key, base_url=self.base_url)
         logger.info(
             "LLMClient initialized: role=%s model=%s endpoint=%s",
-            self.role, self.model, self.base_url,
+            self.role,
+            self.model,
+            self.base_url,
         )
 
     async def generate(
-        self, prompt: str, system_prompt: str = "You are a helpful assistant.",
+        self,
+        prompt: str,
+        system_prompt: str = "You are a helpful assistant.",
         temperature: float = None,
     ) -> str:
         prompt_len = len(prompt) + len(system_prompt)
@@ -52,7 +60,11 @@ class LLMClient:
             )
 
         # Use caller-specified temperature, else role default
-        effective_temp = temperature if temperature is not None else (0.7 if self.role == "foreman" else 0.2)
+        effective_temp = (
+            temperature
+            if temperature is not None
+            else (0.7 if self.role == "foreman" else 0.2)
+        )
 
         try:
             response = await self.client.chat.completions.create(
