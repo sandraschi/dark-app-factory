@@ -225,25 +225,25 @@ To ensure zero-friction development, the factory implements a robust startup log
 - [STRONGDM_ANALYSIS.md](docs/STRONGDM_ANALYSIS.md) -- StrongDM Factory comparison, methodology, economics
 - [REMOTE_CLIENT_DEMO.md](docs/REMOTE_CLIENT_DEMO.md) -- Practical use at client site (notebook + Tailscale + goliath)
 - [FULL_AUTO_DEPLOYMENT.md](docs/FULL_AUTO_DEPLOYMENT.md) -- Gap analysis: domain, host, HTTPS, deploy (not yet implemented)
-- [MONETIZATION_PLAN.md](docs/MONETIZATION_PLAN.md) -- €100/€300 products, Austrian setup, landing page
+- [MONETIZATION_PLAN.md](docs/MONETIZATION_PLAN.md) -- 100/300 products, Austrian setup, landing page
 - [CHANGELOG.md](CHANGELOG.md) -- Version history
 - [PRD.md](PRD.md) -- Product requirements
 - [META_MCP_INTEGRATION.md](docs/META_MCP_INTEGRATION.md) -- meta-mcp cross-utilization
 
 
-## 🚀 Installation
+##  Installation
 
 ### Prerequisites
 - [uv](https://docs.astral.sh/uv/) installed (RECOMMENDED)
 - Python 3.12+
 
-### 📦 Quick Start
+###  Quick Start
 Run immediately via `uvx`:
 ```bash
 uvx foreman
 ```
 
-### 🎯 Claude Desktop Integration
+###  Claude Desktop Integration
 Add to your `claude_desktop_config.json`:
 ```json
 "mcpServers": {

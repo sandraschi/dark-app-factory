@@ -36,12 +36,13 @@
         #progress-bar { transition: width .4s ease; }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+        .sidebar-fixed { z-index: 40; }
     </style>
 </head>
 <body class="flex min-h-screen">
 
 <!-- SIDEBAR -->
-<aside class="w-56 glass fixed left-0 top-0 h-screen flex flex-col" style="z-index:40">
+<aside class="w-56 glass fixed left-0 top-0 h-screen flex flex-col sidebar-fixed">
     <div class="p-5 border-b border-white/10">
         <div class="text-base font-bold text-indigo-300">⚙ Dark App Factory</div>
         <div class="text-xs text-slate-500 mt-1">v2026</div>
@@ -118,7 +119,7 @@
             <div class="lg:col-span-2 space-y-4">
                 <div class="glass rounded-xl p-5">
                     <label class="text-xs text-slate-400 block mb-2">Sample vibes</label>
-                    <select id="runner-sample" onchange="applyRunnerSample()" class="mb-4">
+                    <select id="runner-sample" title="Sample vibes" onchange="applyRunnerSample()" class="mb-4">
                         <option value="" disabled selected>Choose a sample or write your own…</option>
                         <option value="A dentist booking app for Dr Painlessdriller in Hollabrunn, Austria. Austrian GDPR standards. Patients book online, staff view calendar. Dark non-intimidating theme.&#10;&#10;## Tech Stack&#10;- **Backend**: node/express&#10;- **Frontend**: react&#10;- **Database**: sqlite">🦷 Dentist (Node+React)</option>
                         <option value="A beekeeper management app for Julius Stich in Hollabrunn. Webshop for honey products, hive health monitoring with hivecam feeds, temperature probes, swarm calendar, harvest logging, apiary map. Dark theme.&#10;&#10;## Tech Stack&#10;- **Backend**: python/fastapi&#10;- **Frontend**: react&#10;- **Database**: sqlite">🐝 Beekeeper (FastAPI+React)</option>
@@ -343,7 +344,7 @@
         <div class="glass rounded-xl p-6">
             <div class="flex gap-2 mb-4">
                 <input id="log-search" placeholder="Search log text" class="flex-1">
-                <input id="log-lines" type="number" value="200" class="w-24">
+                <input id="log-lines" type="number" value="200" title="Number of log lines" placeholder="200" class="w-24">
                 <button onclick="loadLogPage()" class="btn btn-secondary">Refresh</button>
                 <a href="/api/logs/download" class="btn btn-primary text-center">Download</a>
             </div>
