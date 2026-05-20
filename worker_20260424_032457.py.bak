@@ -294,7 +294,7 @@ async def run_factory(
     logger.success(f"Total files to generate: {len(file_paths)}")
 
     shared_context = {
-        "file_paths": file_paths,  # planned file list — used by Sculptor for grounded App.tsx
+        "file_paths": file_paths,
         "outputs": {},
         "worker": worker,
         "stack_profile": stack_profile,
@@ -518,68 +518,25 @@ Output ONLY the complete src/App.tsx file. No markdown fences.
 
             # --- TSX/JSX import scanning ---
             if scan_path.endswith((".tsx", ".jsx", ".ts", ".js")):
-                # Pattern 1: explicit import paths  from './pages/Foo' or from './components/Bar'
-                explicit_imports = re.findall(
-                    r"from\s+['\"](?:\./|\.\./)?((?:pages|components)/[^'\"]+)['\"]",
-                    content,
+                found_refs = re.findall(
+                    r"from\s+['\"](?:\./)?(?:pages|components)/([^'\"]+)['\"]", content
                 )
-                # Pattern 2: JSX element usage  <FooBar />  or  <FooBar>
-                found_elements = re.findall(r"<([A-Z][a-zA-Z0-9]*)[\s/>]", content)
+                found_elements = re.findall(r"<([A-Z][a-zA-Z0-9]*)\s*/?>", content)
+                all_detected = list(set(found_refs + found_elements))
 
-                # Build a map: component_name -> already-known folder from explicit imports
-                known_folder: dict[str, str] = {}
-                for imp_path in explicit_imports:
-                    parts = imp_path.split("/")
-                    if len(parts) >= 2:
-                        folder = parts[0]  # "pages" or "components"
-                        name = parts[-1].replace(".tsx", "").replace(".ts", "")
-                        known_folder[name] = folder
-
-                # Process explicit imports first (highest confidence)
-                for imp_path in explicit_imports:
-                    parts = imp_path.split("/")
-                    if len(parts) < 2:
-                        continue
-                    folder = parts[0]
-                    name = parts[-1].replace(".tsx", "").replace(".ts", "")
-                    target_path = f"src/{folder}/{name}.tsx"
-                    if target_path not in generated_files and name not in tsx_blacklist:
-                        logger.info(f"Deep-Crawl discovered (explicit import): {target_path}")
-                        raw_code = await sculptor.generate(
-                            target_path, specs, shared_context, worker
-                        )
-                        code = clean_code(raw_code)
-                        full_save_path = os.path.join(output_dir, target_path)
-                        os.makedirs(os.path.dirname(full_save_path), exist_ok=True)
-                        with open(full_save_path, "w", encoding="utf-8") as f:
-                            f.write(code)
-                        generated_files.add(target_path)
-                        next_crawl_batch.append(target_path)
-
-                # Process JSX elements not covered by explicit imports
-                for item in found_elements:
+                for item in all_detected:
                     if item in tsx_blacklist:
                         continue
-                    # Skip if already generated via explicit import
-                    if item in known_folder:
-                        continue
-                    # Heuristic: if a matching file already exists in pages/ or components/, skip
-                    already_pages = f"src/pages/{item}.tsx" in generated_files
-                    already_comp = f"src/components/{item}.tsx" in generated_files
-                    if already_pages or already_comp:
-                        continue
-                    # Folder heuristic: check if a file was explicitly imported with this name
-                    # from a known folder; otherwise default to components/
-                    folder = "pages" if (
-                        item.endswith("Page") or item.endswith("View") or item.endswith("Screen")
-                    ) else "components"
+                    # Pick the right folder: *Page components go in pages/, rest in components/
+                    folder = "pages" if item.endswith("Page") else "components"
                     target_path = f"src/{folder}/{item}.tsx"
                     if target_path not in generated_files:
-                        logger.info(f"Deep-Crawl discovered (jsx element): {target_path}")
+                        logger.info(f"Deep-Crawl discovered (tsx): {target_path}")
                         raw_code = await sculptor.generate(
                             target_path, specs, shared_context, worker
                         )
                         code = clean_code(raw_code)
+                        target_path = target_path.lstrip("/\\")
                         full_save_path = os.path.join(output_dir, target_path)
                         os.makedirs(os.path.dirname(full_save_path), exist_ok=True)
                         with open(full_save_path, "w", encoding="utf-8") as f:
@@ -640,14 +597,14 @@ Output ONLY the complete src/App.tsx file. No markdown fences.
                         next_crawl_batch.append(target_path)
 
         progress.update(
-            75 + int(current_depth * (8 / max_crawl_depth)),
+            70 + int(current_depth * (10 / max_crawl_depth)),
             f"Deep-Crawl: Scanning depth {current_depth}...",
         )
         pages_to_scan = next_crawl_batch
         if not pages_to_scan:
             break
 
-    # 6. Generate manifest.json
+    # 6. Generate manifest.json (Priority 1: Critical Fix)
     import json
 
     manifest = {

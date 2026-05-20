@@ -640,14 +640,14 @@ Output ONLY the complete src/App.tsx file. No markdown fences.
                         next_crawl_batch.append(target_path)
 
         progress.update(
-            75 + int(current_depth * (8 / max_crawl_depth)),
+            70 + int(current_depth * (10 / max_crawl_depth)),
             f"Deep-Crawl: Scanning depth {current_depth}...",
         )
         pages_to_scan = next_crawl_batch
         if not pages_to_scan:
             break
 
-    # 6. Generate manifest.json
+    # 6. Generate manifest.json (Priority 1: Critical Fix)
     import json
 
     manifest = {

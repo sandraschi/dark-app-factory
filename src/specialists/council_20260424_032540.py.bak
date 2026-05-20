@@ -243,41 +243,14 @@ class Sculptor(Specialist):
             - Render <App /> with a <StrictMode> wrapper.
             """
         elif file_path == "src/App.tsx":
-            # Ground App.tsx generation in the planned file list so routes match reality.
-            planned_files = shared_context.get("file_paths", [])
-            planned_pages = sorted(set(
-                p.replace("src/pages/", "").replace(".tsx", "")
-                for p in planned_files
-                if p.startswith("src/pages/") and p.endswith(".tsx")
-            ))
-            planned_components = sorted(set(
-                p.replace("src/components/", "").replace(".tsx", "")
-                for p in planned_files
-                if p.startswith("src/components/") and p.endswith(".tsx")
-            ))
-            pages_str = "\n".join(f"  - {p}" for p in planned_pages) or "  (none planned yet — scaffold generically)"
-            comps_str = "\n".join(f"  - {c}" for c in planned_components) or "  (none planned yet)"
             prompt = f"""
             Generate the SOTA HIGH-FIDELITY shell for the application: /src/App.tsx.
-
-            PLANNED PAGES (will be in src/pages/):
-{pages_str}
-
-            PLANNED COMPONENTS (will be in src/components/):
-{comps_str}
-
-            STRICT IMPORT RULES:
-            - ONLY import pages/components that appear in the planned lists above.
-            - Do NOT import or reference any component not in those lists.
-            - import {{ AnimatePresence, motion }} from 'framer-motion'  -- NAMED IMPORTS ONLY.
-              NEVER write: import FramerMotion from 'framer-motion'
-            - Use <AnimatePresence mode="wait"> (NOT exitBeforeEnter, deprecated)
-            - Routing: use react-router-dom <Routes>/<Route> for all planned pages.
-            - Include a Navbar only if 'Navbar' appears in PLANNED COMPONENTS; else build one inline.
-            - Design: Dark glassmorphism (bg-gray-950 text-white min-h-screen), premium typography.
-
-            SPECS CONTEXT:
-            {specs[:20000]}
+            - Import Framer Motion EXACTLY as named imports: `import {{ AnimatePresence, motion }} from 'framer-motion';` -- NEVER use a default import or namespace import.
+            - Use <AnimatePresence mode="wait"> (NOT exitBeforeEnter, which is deprecated) for page transitions.
+            - Implement a GORGEOUS Responsive Navbar with Glassmorphism (backdrop-blur).
+            - Routing: use react-router-dom for all pages defined in the specs.
+            - Design: Dark mode by default, high-contrast, premium typography.
+            - Context: {specs[:50000]}
             """
         else:
             prompt = f"""
@@ -471,63 +444,38 @@ class Professor(Specialist):
     ) -> str:
         import os
 
-        skills_dir = "skills"
-        available_skills: list[str] = []
-        if os.path.exists(skills_dir):
-            available_skills = [f for f in os.listdir(skills_dir) if f.endswith(".md")]
-
-        if not available_skills:
-            return "No skills available in skills/ directory."
-
-        skill_descriptions = {
-            "dentist-sota.md": "Austrian dental practice, patient-facing, BookingFlow, Impressum, Vienna locale",
-            "booking-appointment.md": "Calendar-based booking, slot availability, service businesses (medical, salon, consultant, tutor, repair)",
-            "healthcare-practice.md": "Medical practice management, patient records, prescriptions, DSGVO health data, Austrian compliance",
-            "ecommerce-store.md": "Online store, product catalogue, cart, checkout, Stripe, Austrian VAT/DSGVO",
-            "saas-dashboard.md": "SaaS multi-tenant dashboard, admin back-office, billing, analytics, API keys, team management",
-            "cms-blog.md": "CMS, blog/articles, author back-office, SEO, RSS, Markdown editor",
-            "task-project-management.md": "Task tracker, Kanban board, project management, team collaboration, real-time updates",
-            "inventory-management.md": "Stock and inventory management, warehouse, barcode, movements, low-stock alerts",
-            "realtime-chat.md": "Real-time chat, channels, direct messages, reactions, threads, WebSocket/SSE",
-            "iot-dashboard.md": "IoT device monitoring, MQTT, telemetry charts, rule engine, smart home, robotics HUD",
-            "mcp-windows-app-wrapper.md": "MCP server wrapping a Windows app (VLC, 7-Zip etc.) with FastMCP + FastAPI webapp",
-        }
-
-        index_lines = "\n".join(
-            f"  {fname}: {desc}"
-            for fname, desc in skill_descriptions.items()
-            if fname in available_skills
-        )
-        for fname in available_skills:
-            if fname not in skill_descriptions:
-                index_lines += f"\n  {fname}: (no description)"
-
-        skill_selection_prompt = (
-            "You are a skill router. Select the single best skill file for these app specs.\n\n"
-            f"SKILL INDEX:\n{index_lines}\n\n"
-            f"APP SPECS:\n{specs[:8000]}\n\n"
-            "Rules:\n"
-            "- Output ONLY the exact filename (e.g. booking-appointment.md). Nothing else.\n"
-            "- If no skill clearly matches, output: None\n"
-            "- Prefer the most specific match (e.g. healthcare-practice.md beats booking-appointment.md for medical records)\n"
-            "- booking-appointment.md is a good base for ANY appointment-booking vibe unless a more specific skill matches\n"
-        )
+        # 1. Analyze Specs to find the best skill
+        skill_selection_prompt = f"""
+        Analyze these application specs and identify the most relevant domain.
+        Available local skills: {os.listdir("skills") if os.path.exists("skills") else "None"}
+        
+        Hints: If specs mention MCP server, VLC, 7-Zip, or wrapping a Windows
+        executable with MCP tools + web dashboard, choose mcp-windows-app-wrapper.md.
+        
+        Specs: {specs[:50000]}
+        
+        Output ONLY the filename of the best matching skill or "None".
+        """
 
         skill_filename = await worker.generate(
             skill_selection_prompt,
-            system_prompt="You are a skill router. Output ONLY a filename or None.",
+            system_prompt="You are the Skill Selector. Output ONLY the filename.",
         )
-        skill_filename = skill_filename.strip().strip('"').strip("'").split("\n")[0].strip()
+        skill_filename = skill_filename.strip().strip('"').strip("'")
 
-        skill_path = os.path.join(skills_dir, skill_filename)
-        if skill_filename and skill_filename != "None" and os.path.exists(skill_path):
-            with open(skill_path, "r", encoding="utf-8") as f:
+        skill_content = ""
+        if (
+            skill_filename
+            and skill_filename != "None"
+            and os.path.exists(f"skills/{skill_filename}")
+        ):
+            with open(f"skills/{skill_filename}", "r", encoding="utf-8") as f:
                 skill_content = f.read()
+            # Inject into shared context for all specialists to see
             shared_context["SKILL_DATA"] = skill_content
-            shared_context["SKILL_FILE"] = skill_filename
-            return f"Successfully loaded skill: {skill_filename} ({len(skill_content)} chars)"
+            return f"Successfully loaded skill: {skill_filename}"
 
-        return f"No matching skill loaded (LLM chose: {skill_filename!r}, available: {available_skills})"
+        return "No specific skill loaded."
 
 
 # =====================================================================

@@ -294,7 +294,7 @@ async def run_factory(
     logger.success(f"Total files to generate: {len(file_paths)}")
 
     shared_context = {
-        "file_paths": file_paths,  # planned file list — used by Sculptor for grounded App.tsx
+        "file_paths": file_paths,
         "outputs": {},
         "worker": worker,
         "stack_profile": stack_profile,
@@ -360,88 +360,7 @@ async def run_factory(
             shared_context[name] = result
             shared_context["outputs"].update(result)
 
-    # 5a. App.tsx Reconciliation Pass (React only)
-    # After all specialists have run, read the ACTUAL generated file tree and
-    # regenerate App.tsx so its imports and routes match reality exactly.
-    # This eliminates the #1 cause of Vite startup crashes.
-    if is_react_frontend(stack_profile):
-        app_tsx_path = os.path.join(output_dir, "src", "App.tsx")
-        if os.path.exists(app_tsx_path):
-            progress.update(72, "Reconciler: Aligning App.tsx with generated file tree...")
-            logger.info("Reconciler: Rebuilding App.tsx from actual file tree...")
-
-            # Collect all generated TSX pages and components
-            pages_dir = os.path.join(output_dir, "src", "pages")
-            components_dir = os.path.join(output_dir, "src", "components")
-            actual_pages: list[str] = []
-            actual_components: list[str] = []
-
-            if os.path.isdir(pages_dir):
-                for fname in sorted(os.listdir(pages_dir)):
-                    if fname.endswith(".tsx"):
-                        actual_pages.append(fname[:-4])  # strip .tsx
-
-            if os.path.isdir(components_dir):
-                for fname in sorted(os.listdir(components_dir)):
-                    if fname.endswith(".tsx"):
-                        actual_components.append(fname[:-4])
-
-            # Build reconciliation prompt grounded in the real file tree
-            pages_list = "\n".join(
-                f"  - {p}  (route: /{p.lower().replace('page', '').replace('view', '')})"
-                for p in actual_pages
-            ) or "  (none generated)"
-            components_list = "\n".join(f"  - {c}" for c in actual_components) or "  (none generated)"
-
-            reconcile_prompt = f"""
-Regenerate src/App.tsx for a React + Vite + react-router-dom application.
-
-CRITICAL: Use ONLY the files that ACTUALLY EXIST listed below. Do NOT invent any component names.
-
-EXISTING PAGES (in src/pages/):
-{pages_list}
-
-EXISTING COMPONENTS (in src/components/):
-{components_list}
-
-RULES:
-- Import ONLY components from the EXISTING lists above. Never import a component not listed.
-- import {{ AnimatePresence, motion }} from 'framer-motion'  (named imports, never default)
-- Use <AnimatePresence mode="wait"> for page transitions (NOT exitBeforeEnter, deprecated)
-- Add a Navbar if Navbar exists in EXISTING COMPONENTS, otherwise skip it
-- Route each page: <Route path="/pagename" element={{<PageName />}} />
-- Default route "/" maps to the first page in the list
-- Dark glassmorphism layout: bg-gray-950 text-white min-h-screen
-- Include a functional Navbar inline in this file if no Navbar component exists
-- Export default App
-
-Output ONLY the complete src/App.tsx file. No markdown fences.
-"""
-            sculptor = council["Sculptor"]
-            raw_reconciled = await sculptor.generate(
-                "src/App.tsx", reconcile_prompt, shared_context, worker
-            )
-            reconciled_code = clean_code(raw_reconciled)
-
-            # Validate: no default framer-motion import, has export default
-            is_valid, val_err = sculptor.validate("src/App.tsx", reconciled_code, specs)
-            if not is_valid:
-                logger.warning(f"Reconciler validation failed ({val_err}), retrying once...")
-                reconcile_prompt += f"\n\n[FIX REQUIRED]: {val_err}"
-                raw_reconciled = await sculptor.generate(
-                    "src/App.tsx", reconcile_prompt, shared_context, worker
-                )
-                reconciled_code = clean_code(raw_reconciled)
-
-            with open(app_tsx_path, "w", encoding="utf-8") as f:
-                f.write(reconciled_code)
-            generated_files.add("src/App.tsx")
-            shared_context.setdefault("Sculptor", {})["src/App.tsx"] = reconciled_code
-            logger.success(
-                f"Reconciler: App.tsx rebuilt ({len(actual_pages)} pages, {len(actual_components)} components)"
-            )
-
-    # 5b. Deep-Crawl (Bounded) -- scan App.tsx AFTER reconciliation
+    # 5. Deep-Crawl (Bounded) -- stack-aware
     logger.info("Deep-Crawl: Scanning for missing components...")
     max_crawl_depth, current_depth = 3, 0
     scanned_pages = set()
@@ -518,68 +437,25 @@ Output ONLY the complete src/App.tsx file. No markdown fences.
 
             # --- TSX/JSX import scanning ---
             if scan_path.endswith((".tsx", ".jsx", ".ts", ".js")):
-                # Pattern 1: explicit import paths  from './pages/Foo' or from './components/Bar'
-                explicit_imports = re.findall(
-                    r"from\s+['\"](?:\./|\.\./)?((?:pages|components)/[^'\"]+)['\"]",
-                    content,
+                found_refs = re.findall(
+                    r"from\s+['\"](?:\./)?(?:pages|components)/([^'\"]+)['\"]", content
                 )
-                # Pattern 2: JSX element usage  <FooBar />  or  <FooBar>
-                found_elements = re.findall(r"<([A-Z][a-zA-Z0-9]*)[\s/>]", content)
+                found_elements = re.findall(r"<([A-Z][a-zA-Z0-9]*)\s*/?>", content)
+                all_detected = list(set(found_refs + found_elements))
 
-                # Build a map: component_name -> already-known folder from explicit imports
-                known_folder: dict[str, str] = {}
-                for imp_path in explicit_imports:
-                    parts = imp_path.split("/")
-                    if len(parts) >= 2:
-                        folder = parts[0]  # "pages" or "components"
-                        name = parts[-1].replace(".tsx", "").replace(".ts", "")
-                        known_folder[name] = folder
-
-                # Process explicit imports first (highest confidence)
-                for imp_path in explicit_imports:
-                    parts = imp_path.split("/")
-                    if len(parts) < 2:
-                        continue
-                    folder = parts[0]
-                    name = parts[-1].replace(".tsx", "").replace(".ts", "")
-                    target_path = f"src/{folder}/{name}.tsx"
-                    if target_path not in generated_files and name not in tsx_blacklist:
-                        logger.info(f"Deep-Crawl discovered (explicit import): {target_path}")
-                        raw_code = await sculptor.generate(
-                            target_path, specs, shared_context, worker
-                        )
-                        code = clean_code(raw_code)
-                        full_save_path = os.path.join(output_dir, target_path)
-                        os.makedirs(os.path.dirname(full_save_path), exist_ok=True)
-                        with open(full_save_path, "w", encoding="utf-8") as f:
-                            f.write(code)
-                        generated_files.add(target_path)
-                        next_crawl_batch.append(target_path)
-
-                # Process JSX elements not covered by explicit imports
-                for item in found_elements:
+                for item in all_detected:
                     if item in tsx_blacklist:
                         continue
-                    # Skip if already generated via explicit import
-                    if item in known_folder:
-                        continue
-                    # Heuristic: if a matching file already exists in pages/ or components/, skip
-                    already_pages = f"src/pages/{item}.tsx" in generated_files
-                    already_comp = f"src/components/{item}.tsx" in generated_files
-                    if already_pages or already_comp:
-                        continue
-                    # Folder heuristic: check if a file was explicitly imported with this name
-                    # from a known folder; otherwise default to components/
-                    folder = "pages" if (
-                        item.endswith("Page") or item.endswith("View") or item.endswith("Screen")
-                    ) else "components"
+                    # Pick the right folder: *Page components go in pages/, rest in components/
+                    folder = "pages" if item.endswith("Page") else "components"
                     target_path = f"src/{folder}/{item}.tsx"
                     if target_path not in generated_files:
-                        logger.info(f"Deep-Crawl discovered (jsx element): {target_path}")
+                        logger.info(f"Deep-Crawl discovered (tsx): {target_path}")
                         raw_code = await sculptor.generate(
                             target_path, specs, shared_context, worker
                         )
                         code = clean_code(raw_code)
+                        target_path = target_path.lstrip("/\\")
                         full_save_path = os.path.join(output_dir, target_path)
                         os.makedirs(os.path.dirname(full_save_path), exist_ok=True)
                         with open(full_save_path, "w", encoding="utf-8") as f:
@@ -640,14 +516,14 @@ Output ONLY the complete src/App.tsx file. No markdown fences.
                         next_crawl_batch.append(target_path)
 
         progress.update(
-            75 + int(current_depth * (8 / max_crawl_depth)),
+            70 + int(current_depth * (10 / max_crawl_depth)),
             f"Deep-Crawl: Scanning depth {current_depth}...",
         )
         pages_to_scan = next_crawl_batch
         if not pages_to_scan:
             break
 
-    # 6. Generate manifest.json
+    # 6. Generate manifest.json (Priority 1: Critical Fix)
     import json
 
     manifest = {

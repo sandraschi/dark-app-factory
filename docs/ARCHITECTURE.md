@@ -1,293 +1,179 @@
-# Dark App Factory Architecture
+# Architecture
 
-**Last Updated**: 2026-02-09 | **Version**: 1.5
-
-Dark App Factory is a parallelized generation pipeline designed to produce web applications from high-level prompts using local LLMs.
-
-## 1. Core Philosophy
-- **Verification-first**: Rigorous verification (Judge) ensures generated code matches observed technical reality. Prompts include explicit pressure against skeleton code, placeholders, and TODO stubs.
-- **Requirements-first**: Code is treated as executable output, and design follows functional requirements.
-- **High-Fidelity**: No skeletons. No placeholders. Every file is generated as production-ready logic.
-- **Distribution by Default**: Every app ships with a marketing kit and landing page.
-
-## 2. Pipeline Overview
+## Pipeline overview
 
 ```
-vibe.md  -->  [foreman enrich]  -->  enriched_vibe.md (user reviews)
-                                        |
-                                        v
-          [foreman plan]  -->  specs.md + scenarios.md (with stack profile)
-                                        |
-                                        v
-                                 Worker Council (build)
-                                   Tier 0: Professor
-                                   Tier 1: Plumber, Sculptor, Nervos, Raggy, WebFinder,
-                                           Archivist, Maestro, Auditor, Picasso, Registrar
-                                   Tier 2: Librarian, Shakespeare, Morpheus, Tesla,
-                                           Amodei, Houdini
-                                   Tier 3: Propagandist
-                                   Tier 4: Generalist (catch-all)
-                                   Deep-Crawl (missing imports)
-                                        |
-                                        v
-                                 Landing Page (factory.py Step 6)
-                                        |
-                                        v
-                                 Judge (Playwright + LLM verdict)
-                                   |-- App booted via RunManifest with DTU env vars
-                                   |-- All external API calls route to DTU mocks
-                                   |-- Playwright verifies UI/API against scenarios
+vibe.md
+  │
+  ▼
+┌─────────────────────────────────────────────────────┐
+│  FOREMAN  (foreman.py)                              │
+│  Reads vibe, produces specs.md + scenarios.md        │
+│  LLM: high-capability model, called once per run    │
+└───────────────────────┬─────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────┐
+│  WORKER  (worker.py)                                │
+│                                                     │
+│  Step 1  DTU starts on :8001                        │
+│  Step 2  Stack profile detected from specs          │
+│  Step 3  File manifest planned (all paths)          │
+│  Step 4  Specialist Council runs (parallel tiers)   │
+│  Step 5a App.tsx Reconciler (React only)            │
+│  Step 5b Deep-crawl (missing import resolution)     │
+│  Step 6  manifest.json + landing page generated     │
+│  Step 7  Judge: boots app, runs Playwright checks   │
+│  Step 8  Output directory finalised                 │
+└───────────────────────┬─────────────────────────────┘
+                        │
+                        ▼
+                  output_XXX/
 ```
 
-**DTU lifecycle**: The Digital Twin Universe starts *before* the Worker build (Step 4) and remains alive through Judge (Step 7). RunManifest injects DTU env vars (`STRIPE_API_URL`, `AUTH_API_URL`, etc.) into the generated app's process environment, so the app talks to DTU mocks instead of real external services.
+## Foreman
 
-## 3. Component Hierarchy
+`foreman.py` takes `vibe.md` and produces two files:
 
-### Foreman (`foreman.py`)
-- **Role**: Architect, Planner, Enricher.
-- **Subcommands**: `plan`, `enrich`, `research`, `help`, `log`.
-- **Enrich**: LLM expands terse vibe into rich domain brief. User reviews before planning.
-- **Plan**: Converts vibe into specs with embedded stack profile.
-- **Oracle**: Leverages search data for 2026-standard compliance.
-- **Documentation**: Hosts the Help Oracle multilevel documentation system.
+- `specs/specs.md` — technical specification: pages, data model, integrations, stack profile
+- `scenarios/scenarios.md` — user scenarios used by the Judge for Playwright test generation
 
-### Worker (`worker.py`)
-- **Role**: Execution Engine.
-- **Specialist Council**: Orchestrates 19 domain-specific AI Specialists.
-- **Parallel Pipeline**: Executes specialist tasks in dependency-aware tiers via `asyncio.gather`.
-- **Deep-Crawl**: Recursively scans generated code to find and implement missing components (TSX + Python imports).
-- **Validation**: Runs specialist-specific `validate()` after generation. Retries with error injection on failure.
-- **Self-Declaration**: Calls `declare_files()` per specialist to inject keyword-triggered mandatory files.
+The Foreman also handles `enrich`: given a terse vibe, it expands it into a structured brief before planning.
 
-### Judge (`judge.py`)
-- **Role**: Quality gate.
-- **Verification**: Live UI/API audits using Playwright.
-- **Verdict**: PASS/FAIL with `critique.md` feedback loop.
+The stack profile is embedded in `specs.md` as a JSON block. The Worker reads it to select specialist configurations, dependency sets, and folder structures.
 
-### Factory (`factory.py`)
-- **Role**: Full Pipeline Orchestrator.
-- **Steps**: Research -> Plan -> DTU -> Build -> Landing Page -> Judge -> Launch.
-- **Landing Page**: Generates self-contained `www/index.html` using Foreman LLM.
-- **DTU Lifecycle**: Starts DTU before build, passes `DTU_URL` to judge, shuts down DTU after all steps complete.
+## Specialist Council
 
-### Digital Twin Universe (`dtu/main.py`)
-- **Role**: Local service emulator replacing external APIs during testing.
-- **Port**: Configurable via `DTU_PORT` env var (default 8001).
-- **Service Registry**: `GET /dtu/services` returns all mock URLs and corresponding env vars.
-- **Request Log**: `GET /dtu/log` returns the last N requests for debugging.
-- **Mock Services**: Stripe, Auth, Email, SMS, Storage, Discord, Slack, Weather, Webhook, LLM (OpenAI/Anthropic), Google Calendar, Google Maps (geocoding), Analytics, Puzzles (PuzzlePhil-style), TikTok, YouTube.
-- **Deterministic**: Endpoints return predictable responses for repeatable integration tests without external dependencies.
+19 specialists run in dependency-resolved parallel tiers. Each specialist owns a set of file path patterns and is responsible for generating those files.
 
-### Utils & Core Logic
-- **LLMClient (`llm_client.py`)**: AsyncOpenAI with token tracking. Accepts per-call `temperature` override.
-- **Stack Profile (`stack_profile.py`)**: Multi-stack parsing/embedding (Node/Python, React/HTMX).
-- **Git Manager (`git_manager.py`)**: Automated repository initialization and build versioning.
-- **Run Manifest (`run_manifest.py`)**: Multi-component boot orchestrator. Stack-aware. Accepts `dtu_url` parameter and injects DTU env vars into child process environment.
-- **DarkLogger (`logger.py`)**: Singleton logging with rotation (5MB, 5 backups) and Rich console output.
-- **Help Oracle (`help_oracle.py`)**: Tiered (basic to expert) on-demand documentation.
+| Specialist | Owns | Requires |
+|------------|------|----------|
+| Professor | skill context injection | — |
+| Registrar | `package.json`, `requirements.txt`, `Dockerfile`, `.env*`, `vite.config.ts` | — |
+| Nervos | WebSocket / messaging layer | — |
+| Plumber | `main.py`, `server.js`, `routers/`, `routes/`, `schemas/`, `models/` | Professor |
+| Sculptor | `src/App.tsx`, `src/pages/**`, `src/components/**` | Professor |
+| Morpheus | `auth/`, security middleware | Plumber |
+| Raggy | RAG / vector search modules | Plumber |
+| WebFinder | Web scraping, external API clients | Plumber |
+| Archivist | ePub/PDF/Mobi parsing | Plumber |
+| Maestro | Audio / music modules | Nervos |
+| Auditor | Excel/Word, data validation | — |
+| Picasso | SVG, illustrations | — |
+| Shakespeare | Marketing copy | — |
+| Tesla | Robotics, IoT, ROS | Nervos |
+| Amodei | AI/LLM integration, Ollama | Plumber, Sculptor |
+| Houdini | Animations, Three.js | Sculptor |
+| Librarian | `README.md`, docs | Plumber |
+| Propagandist | `marketing/` kit | Shakespeare, Librarian |
+| Generalist | Everything not claimed | All above |
 
-## 4. Specialist Council (19 Members)
+Tiers are resolved from the `requires` graph. Specialists in the same tier run with `asyncio.gather`. Each specialist validates its own output and retries up to `MAX_RETRIES` times on failure.
 
-### Tier 0 (Foundation)
-| Specialist | Domain | Temp | Requires | Key Feature |
-|---|---|---|---|---|
-| Professor | Skill battery injection | 0.2 | - | Domain knowledge seeding |
+## App.tsx Reconciler (v1.8.0)
 
-### Tier 1 (Core Builders)
-| Specialist | Domain | Temp | Requires | Key Feature |
-|---|---|---|---|---|
-| Plumber | Backend (Python/Node) | 0.15 | Professor | `/health` mandate, validate(server startup), declare_files(routers/schemas) |
-| Sculptor | Frontend (React/HTMX) | 0.4 | Professor | validate(export stmt), dep_context from Professor |
-| Registrar | Infrastructure (deps, Docker) | 0.1 | - | validate(JSON parse, pkg count), declare_files(requirements/Dockerfile/vite) |
-| Nervos | Heartbeat, messaging, plugins | 0.2 | - | Python: BackgroundTasks, python-telegram-bot. Node: socket.io |
-| Raggy | RAG, vector search, embeddings | 0.2 | - | Python: chromadb, langchain, FAISS. declare_files(retriever/embeddings) |
-| WebFinder | Web scraping, APIs | 0.2 | - | Python: httpx, BeautifulSoup4, feedparser |
-| Archivist | ePub/PDF/Mobi parsing | 0.2 | - | Python: ebooklib, PyPDF2/pdfplumber |
-| Maestro | Audio, music | 0.3 | - | Python: pydub, librosa, mido. Node: Tone.js |
-| Auditor | Excel/Word, data validation | 0.2 | - | Python: openpyxl, python-docx, pandas |
-| Picasso | SVG, illustrations | 0.5 | - | Inline SVG orchestration |
+Specialists run independently and do not know what other specialists will produce. This caused `App.tsx` to reference pages and components that didn't exist, crashing Vite on startup.
 
-### Tier 2 (Downstream)
-| Specialist | Domain | Temp | Requires | Key Feature |
-|---|---|---|---|---|
-| Librarian | Documentation, README | 0.6 | Plumber | validate(markdown headers), dep_context from Plumber |
-| Shakespeare | Marketing copy, content | 0.7 | - | Narratives, SEO, in-app copy |
-| Morpheus | Security, auth, encryption | 0.1 | Plumber | validate(crypto imports), declare_files(middleware/crypto), dep_context from Plumber routes |
-| Tesla | Robotics, IOT, ROS | 0.15 | Nervos | Python: rclpy, paho-mqtt, python-osc, pyserial. dep_context from Nervos |
-| Amodei | AI/LLM integration, Ollama | 0.3 | Plumber, Sculptor | Python: Ollama client, SSE, httpx streaming. declare_files(llm_client/streaming/ChatFloater) |
-| Houdini | Animations, Three.js | 0.45 | Sculptor | Framer Motion, GSAP. dep_context from Sculptor components |
+The reconciler runs after all specialists complete (step 5a). It:
 
-### Tier 3 (Distribution)
-| Specialist | Domain | Temp | Requires | Key Feature |
-|---|---|---|---|---|
-| Propagandist | Marketing distribution | 0.65 | Shakespeare, Librarian | 8 platform-specific assets: press release, blog, social, email, Reddit, Discord, PH, landing page |
+1. Reads the actual contents of `src/pages/` and `src/components/` on disk
+2. Builds an explicit list of what was generated
+3. Regenerates `App.tsx` with imports and routes grounded in that list
+4. Validates the result (framer-motion named imports, export default, no phantom imports)
+5. Retries once if validation fails
 
-### Tier 4 (Catch-All)
-| Specialist | Domain | Temp | Requires | Key Feature |
-|---|---|---|---|---|
-| Generalist | Everything unmatched | 0.3 | All above | Catches files not owned by any specialist |
+This is the safety net for the most common build failure. The Sculptor's initial `App.tsx` generation is also grounded in the planned file list from `shared_context`, so mismatches are caught at two points.
 
-## 5. Sophistication Mechanisms
+## Deep-crawl (step 5b)
 
-### Context Injection
-`base.py` provides `get_dependency_context(shared_context)`. Extracts outputs from `requires` specialists, capped at 8000 chars. Injected into prompts under "UPSTREAM CONTEXT" heading.
+After the reconciler, the deep-crawl scans generated files for import references and JSX element usage that point to files not yet generated. It resolves them by calling the appropriate specialist.
 
-### Validation Hooks
-`base.py` provides `validate(file_path, code, specs)` returning `(bool, str)`. Worker retries up to 3 times if validation fails, injecting the error message into the retry prompt.
+Priority order:
+1. Explicit import paths (`from './pages/Foo'` → `src/pages/Foo.tsx`, Sculptor)
+2. JSX element names not covered by any explicit import (heuristic: `*Page`, `*View`, `*Screen` → `pages/`, else `components/`)
 
-### Self-Declaration
-`base.py` provides `declare_files(specs, stack_profile)` returning `List[str]`. Worker calls this after initial planning and adds declared files to the generation queue. Keyword-based: if specs mention "auth", Morpheus declares security files.
+Maximum depth: `MAX_CRAWL_DEPTH` passes (default 3).
 
-### Temperature Tuning
-Each specialist passes its `temperature` to `LLMClient.generate()`. Deterministic specialists (Plumber: 0.15, Morpheus: 0.1, Registrar: 0.1) produce reliable, reproducible output. Creative specialists (Shakespeare: 0.7, Propagandist: 0.65) produce diverse, engaging content.
+## Skills system
 
-### Multi-Stack Routing
-All specialists check `stack_profile["backend"]` and `stack_profile["frontend"]` to branch their prompts. Python backends get FastAPI/Flask/Django patterns with appropriate imports (uvicorn, flask, django). Node backends get Express/middleware patterns.
+The Professor specialist loads a domain skill file at the start of each build. Skills inject mandatory pages, data models, compliance requirements, and integration patterns into all specialist prompts.
 
-## 6. Reliability Enhancements
-- **Context Hardening**: All specialists receive up to 50,000 chars of specs + 8,000 chars of upstream context.
-- **Anti-Runt Logic**: Generated code < 50 chars triggers immediate retry with escalated pressure.
-- **Anti-Gaslighting Protocol**: Explicit prompt instructions forbidding skeleton code, placeholder functions, pass stubs.
-- **Structured Logging**: DarkLogger with rotation ensures all operations are persistent and auditable.
-- **Health Mandate**: Every backend must expose GET /health.
-- **API Docs**: FastAPI backends must keep /docs and /redoc active.
+Skill selection: the Professor shows the LLM a compact index (filename + description) and the first 8k chars of specs. The LLM returns a filename. The Professor reads that file and stores its content in `shared_context["SKILL_DATA"]`, where every other specialist can read it.
 
-## 7. Digital Twin Universe (DTU) -- Technical Deep Dive
+See [SKILLS.md](SKILLS.md) for the full list and how to add new ones.
 
-### The Pattern
+## Digital Twin Universe (DTU)
 
-The Digital Twin is a well-established pattern in industrial engineering (Industry 4.0, NASA, automotive). The concept: create a local, deterministic replica of external services so that the system under test operates in a fully controlled environment. No network calls, no API keys, no rate limits, no cost.
+The DTU starts on port `8001` before the build. It provides mock implementations of common external APIs so the Judge can boot and test the generated app without real credentials.
 
-In the context of the Dark App Factory, the DTU replaces every external API dependency (payments, auth, email, storage, etc.) with a local FastAPI server that always succeeds. This allows the Satisficer (Judge) to boot and test the generated app without requiring real Stripe keys, real email providers, or real auth0 accounts.
+Generated apps are written by Plumber to read all external URLs from environment variables. `run_manifest.py` injects those variables pointing at DTU when running the app during testing.
 
-### How It Works
+Available mocks: Stripe, Auth, Email, SMS, Storage, Discord, Slack, Weather, generic Webhook.
 
+Debug endpoints:
 ```
-                        PRODUCTION                    TESTING (with DTU)
-                        ---------                     ------------------
-Generated App           Generated App
-    |                       |
-    | STRIPE_API_URL=       | STRIPE_API_URL=
-    | https://api.stripe    | http://localhost:8001/stripe
-    |                       |
-    v                       v
-Stripe API (real)       DTU Mock (local, always succeeds)
+GET :8001/health
+GET :8001/dtu/services     # registered mocks
+GET :8001/dtu/log          # request audit log
 ```
 
-The key mechanism is **environment variable injection**:
+## Judge
 
-1. **Plumber Specialist** generates code that reads ALL external API URLs from env vars:
-   - Python: `os.environ.get("STRIPE_API_URL", "https://api.stripe.com")`
-   - Node: `process.env.STRIPE_API_URL || "https://api.stripe.com"`
-   - Default values are the real production URLs.
+The Judge runs after the build completes. It:
 
-2. **DTU Server** (`dtu/main.py`) starts on port 8001 (configurable via `DTU_PORT`) and exposes mock endpoints for 9 services.
+1. Boots the generated app via `run_manifest.py` (with DTU env vars)
+2. Waits for the server to respond on its expected port
+3. Runs Playwright checks from `scenarios/scenarios.md`
+4. Scores the result against `JUDGE_PASS_THRESHOLD`
+5. Writes a critique report if below threshold
 
-3. **RunManifest** receives `dtu_url` parameter. When booting the generated app, it injects env vars:
-   ```
-   STRIPE_API_URL=http://localhost:8001/stripe
-   AUTH_API_URL=http://localhost:8001/auth
-   EMAIL_API_URL=http://localhost:8001/email
-   SMS_API_URL=http://localhost:8001/sms
-   STORAGE_API_URL=http://localhost:8001/storage
-   DISCORD_WEBHOOK_URL=http://localhost:8001/discord
-   SLACK_WEBHOOK_URL=http://localhost:8001/slack
-   WEATHER_API_URL=http://localhost:8001/weather
-   WEBHOOK_URL=http://localhost:8001/webhook
-   ```
+The critique is available to the reconciler for a rework loop (v2.0 feature, see [OPENAI_AGENTS_SDK_PROPOSAL.md](OPENAI_AGENTS_SDK_PROPOSAL.md)).
 
-4. **Factory** starts DTU *before* the Worker build and keeps it alive through Judge.
+## Dashboard
 
-5. **Judge** passes `--dtu-url` to RunManifest so the generated app connects to DTU during Playwright testing.
+`start_factory.ps1` starts both the web dashboard (`8002`) and the DTU (`8001`). The dashboard polls `/api/progress` for build status and `/api/deliberations` (SSE) for real-time specialist events.
 
-### Service Registry
+## MCP server
 
-DTU exposes `GET /dtu/services` which returns the full registry:
+`mcp-server/` is a thin FastMCP adapter that exposes the factory to Claude Desktop and RoboFang. Tools: `factory_run`, `factory_status`, `factory_outputs`, `factory_assess`, `factory_fleet`, `factory_stop`, `factory_launch`.
 
-```json
-{
-    "dtu_version": "0.2.0",
-    "port": 8001,
-    "services": {
-        "stripe": {"base_url": "http://localhost:8001/stripe", "env_var": "STRIPE_API_URL"},
-        "auth": {"base_url": "http://localhost:8001/auth", "env_var": "AUTH_API_URL"},
-        ...
-    },
-    "env_vars": {
-        "STRIPE_API_URL": "http://localhost:8001/stripe",
-        "AUTH_API_URL": "http://localhost:8001/auth",
-        ...
-    }
-}
+Port `10739` (streamable HTTP) or `--stdio` for Claude Desktop.
+
+## Output structure
+
+```
+output_XXX/
+  main.py / server.js           # Backend entry point
+  requirements.txt              # Python deps
+  package.json                  # Node deps (or frontend-only)
+  vite.config.ts
+  Dockerfile
+  .env.example
+  src/
+    App.tsx                     # Router shell (reconciled)
+    pages/                      # Page components
+    components/                 # Shared components
+    hooks/                      # Custom React hooks
+    store/                      # State management
+  routers/                      # FastAPI routers (Python)
+  schemas/                      # Pydantic schemas (Python)
+  models/                       # DB models
+  routes/                       # Express routes (Node)
+  auth/                         # Auth middleware
+  README.md                     # Auto-generated docs for this app
+  www/index.html                # Landing page
+  marketing/                    # Press release, blog, social kit
+  skills/                       # Skill summary used for this build
 ```
 
-This allows programmatic discovery -- a future meta-mcp agent could query the registry and configure services dynamically.
+## Model economics
 
-### Request Audit Log
+The Foreman is called once per run. All file generation goes through the Worker. For a typical 40-file React + FastAPI build, the Worker handles roughly 50–70 LLM calls. Using a local 14B coder model keeps this fast and free. The Foreman benefits from a stronger model but the cost per run is small even with a remote API.
 
-DTU logs all incoming requests to an in-memory buffer. `GET /dtu/log?limit=50` returns the last N entries. This is useful for the Judge to verify that the generated app actually called the expected external APIs during testing.
+Recommended setup:
+- Foreman: `llama3.1:70b` (local) or `claude-sonnet-4-6` (remote, ~$0.05/plan)
+- Worker: `qwen2.5-coder:14b` Q4 at ~40 tok/s on a 24GB GPU
 
-### Mock Behavior
+## v2.0 direction
 
-All mocks are **deterministic and always succeed**:
-- Stripe: Payments always return `status: succeeded`
-- Auth: Login always returns a valid mock JWT
-- Email/SMS: Always return `status: sent`/`status: delivered`
-- Storage: Upload always returns a mock URL
-- Webhooks: Always return `received: true`
-
-This is intentional. The DTU tests *integration logic* (does the app call Stripe when a payment is submitted?), not *external service behavior* (does Stripe actually charge the card?). The latter requires real integration tests with live APIs.
-
-### Extending DTU
-
-To add a new mock service:
-
-1. Add the endpoint to `dtu/main.py`:
-   ```python
-   @app.post("/newservice/endpoint")
-   async def new_endpoint(request: Request):
-       return {"status": "ok", "id": f"ns_{uuid.uuid4().hex[:12]}"}
-   ```
-
-2. Add it to the `SERVICE_REGISTRY` dict in `dtu/main.py`.
-
-3. Add the env var to `DTU_ENV_VARS` in `run_manifest.py`.
-
-4. Add the env var instruction to Plumber's prompt in `council.py`.
-
-5. The generated app will automatically use the mock during testing.
-259: 
-260: ## 8. Monitoring & Progress Layer
-261: 
-262: The factory implements a thread-safe, singleton-based monitoring system via `src.utils.progress.ProgressTracker`.
-263: 
-264: ### Progress Tracking
-265: - **Milestones**: The pipeline registers major milestones (Planning, Building, Judging) with defined weighting.
-266: - **Specialist Tracking**: Each specialist reports its own status (PENDING, RUNNING, DONE, FAILED) and the files it generates.
-267: - **API Integration**: The `ProgressTracker` state is exposed via the `/api/progress` endpoint on the dashboard.
-268: 
-269: ### Dashboard Real-Time Feed
-270: The Dashboard UI (`web/index.html`) polls the progress API to provide a glassmorphic visualization of the "Factory Floor," showing exactly where the bottlenecks are in the specialist tiers.
-271: 
-272: ## 9. Operational Resilience
-273: 
-274: Dark App Factory is designed for high-industrial availability.
-275: 
-276: ### Industrial Startup Protocol
-277: - **Zombie Neutralization**: Before starting, the factory runs `scripts/cleanup_zombies.ps1` to force-kill any processes listening on the internal service ports (8001 for DTU, 8002 for Dashboard).
-278: - **Auto-Installer**: `start_factory.ps1` ensures all dependencies are present and the environment is clean before initializing the LLM engine.
-279: 
-280: ### Singleton Synchronization
-281: To prevent state fragmentation, the `DarkLogger` and `ProgressTracker` use a shared initialization pattern, ensuring that logs from sub-processes (Worker/Judge) are unified in the primary log files and available to the dashboard.
-
-## 10. Future Techniques (StrongDM-Inspired)
-
-### Pyramid Summaries (Deferred)
-
-**Source**: [factory.strongdm.ai/techniques/pyramid-summaries](https://factory.strongdm.ai/techniques/pyramid-summaries)
-
-Reversible summarization at multiple zoom levels. E.g. "Summarize this spec section in 2 words. Now 4. Now 8. Now 16." Each level preserves meaning while expanding/contracting detail. Agents survey many items at compressed level, expand only relevant ones. Combines with MapReduce + Clustering.
-
-**Current state**: We use flat 50k char injection for specs and 8k cap for dependency context. No multi-resolution compression.
-
-**When to add**: Context overflow, large specs (10+ pages), 50+ file outputs, or "survey N scenarios, run subset" without loading all N. See `docs/STRONGDM_ANALYSIS.md`.
+The current orchestration loop is hand-rolled. The [OpenAI Agents SDK proposal](OPENAI_AGENTS_SDK_PROPOSAL.md) covers migrating to a declarative agent framework with native MCP fleet attachment and a Judge-triggered rework loop. This is the path to the "multi-agent recursive self-healing" goal in the PRD.

@@ -2,33 +2,6 @@
 
 All notable changes to the Dark App Factory will be documented in this file.
 
-## [1.8.0] - 2026-04-24
-
-### Fixed (Critical)
-- **App.tsx Vite startup crash**: The #1 failure mode. Sculptor was generating `App.tsx` with hallucinated page/component names that didn't match what other specialists actually produced. Two-pronged fix:
-  1. **Sculptor prompt grounded in planned file list** — `App.tsx` generation now receives the full planned `file_paths` list from `shared_context` and is instructed to only import pages/components that appear in it.
-  2. **App.tsx Reconciliation Pass** (new `worker.py` step 5a) — after ALL specialists finish, the worker reads the *actual* `src/pages/` and `src/components/` directories on disk, then regenerates `App.tsx` using only the real file names. This is the safety net that catches any remaining mismatches. Result: App.tsx can no longer reference a component that doesn't exist.
-- **Framer-motion default import crash**: `import FramerMotion from 'framer-motion'` followed by `<FramerMotion.AnimatePresence>` is invalid. Sculptor's validate() hook now catches this pattern and forces a retry with the correct named-import form: `import { AnimatePresence, motion } from 'framer-motion'`.
-- **Duplicate files in both `components/` and `pages/`**: Deep-crawl was using a naive `endswith("Page")` heuristic to decide which folder to put discovered components in, causing the same component to appear in both directories. Rewritten to: (1) prioritise explicit import paths (`from './pages/Foo'` → `pages/` folder), (2) only fall back to heuristics for bare JSX element names with no import path, and (3) skip components already generated under either folder.
-- **`can_handle` glob matching too broad**: `src/components/*` was matching `src/components/ui/deep/Button.tsx` because `pattern[:-1]` just checked `startswith`. Now correctly distinguishes `/*` (single level) from `/**` (recursive).
-
-### Added
-- **9 production-grade skill files** covering the most common app domains. Each skill provides mandatory pages/routes, data model (with actual SQL), backend specifics, frontend specifics, and DTU integration notes. Skills are injected into all specialist prompts as domain expertise.
-  - `booking-appointment.md` — Slot availability algorithm, booking wizard, DSGVO consent, AT phone validation
-  - `healthcare-practice.md` — Patient records, SVNR hashing, DSGVO Art. 9, AES-256 at-rest encryption, Austrian Aufbewahrungspflicht
-  - `ecommerce-store.md` — Product catalogue, cart, Stripe checkout, Austrian VAT breakdown, EU compliance
-  - `saas-dashboard.md` — Multi-tenant, admin back-office, JWT auth flow, audit logs, Stripe webhooks
-  - `cms-blog.md` — Post/author/category model, full-text search, RSS/sitemap, SEO meta, structured data
-  - `task-project-management.md` — Kanban, fractional index reorder, WebSocket real-time, @mention notifications
-  - `inventory-management.md` — Stock movements, FIFO valuation, barcode lookup, EAN-13, Austrian USt rates
-  - `realtime-chat.md` — WebSocket events, typing indicators, Redis pubsub, virtual scrolling, unread counts
-  - `iot-dashboard.md` — MQTT ingestion, timeseries telemetry, rule engine, SSE streaming, command dispatch
-- **Professor skill router rewrite** — Replaced the vague "Analyze specs" prompt (which was fed the entire 50k-char specs and dumped a raw `os.listdir` into the prompt) with a compact static skill index. The LLM receives a table of `filename: one-line-description` entries and short specs (8k chars), making skill selection fast and reliable. Also stores `SKILL_FILE` in `shared_context` for traceability.
-
-### Changed
-- `worker.py` step numbering: old step 5 (Deep-Crawl) is now step 5b; new App.tsx Reconciliation Pass is step 5a. Progress percentages adjusted accordingly (reconciliation at 72%, deep-crawl at 75%+).
-- `shared_context["file_paths"]` comment updated to note it is read by Sculptor for grounded App.tsx generation.
-
 ## [1.7.0] - 2025-02-08
 
 ### Added

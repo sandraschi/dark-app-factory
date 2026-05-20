@@ -52,27 +52,10 @@ class Specialist(abc.ABC):
         pass
 
     def can_handle(self, file_path: str) -> bool:
-        """Glob-style ownership matching.
-
-        Supports:
-          - Exact match:           'server.js'
-          - Single-level wildcard: 'src/components/*'  matches src/components/Foo.tsx
-          - Multi-level wildcard:  'src/components/**' matches src/components/ui/Button.tsx
-          - Catch-all:             '*'
-        """
+        """Simple prefix/extension matching for ownership."""
         for pattern in self.owned_patterns:
-            if pattern == "*":
-                return True
-            if pattern.endswith("/**"):
-                # Multi-level: match any file under the prefix directory
-                prefix = pattern[:-3]  # strip /**
-                if file_path.startswith(prefix + "/") or file_path == prefix:
-                    return True
-            elif pattern.endswith("/*"):
-                # Single-level: match files directly inside the directory
-                prefix = pattern[:-2]  # strip /*
-                rest = file_path[len(prefix):]
-                if file_path.startswith(prefix + "/") and "/" not in rest.lstrip("/"):
+            if pattern.endswith("*"):
+                if file_path.startswith(pattern[:-1]):
                     return True
             elif file_path == pattern:
                 return True

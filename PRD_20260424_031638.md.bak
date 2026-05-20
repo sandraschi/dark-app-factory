@@ -83,5 +83,5 @@ See [MONETIZATION_PLAN.md](docs/MONETIZATION_PLAN.md). Two product legs: €100 
 - [x] **v1.5**: Dashboard, Progress Protocol, Industrial Startup.
 - [x] **v1.6**: Remote client demo doc, full auto deployment gap analysis, monetization plan.
 - [ ] **v1.7**: Token usage reporting. GitManager integration. RunManifest manifest.json.
-- [ ] **v2.0**: Multi-agent recursive self-healing via OpenAI Agents SDK — declarative Specialist Council, Judge guardrail with rework loop, Adjudicator synthesis. See [proposal](docs/OPENAI_AGENTS_SDK_PROPOSAL.md). meta-mcp agent lifecycle. **Pyramid Summaries** (StrongDM technique).
+- [ ] **v2.0**: Multi-agent recursive self-healing. meta-mcp agent lifecycle. **Pyramid Summaries** (StrongDM technique).
 - [ ] **v2.1**: Full auto deployment (Phase 1: deploy.sh + config. Phase 2: meta-mcp deploy tools. Phase 3: INWX + Hetzner + HTTPS).

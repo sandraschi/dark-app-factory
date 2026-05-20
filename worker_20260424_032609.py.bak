@@ -647,7 +647,7 @@ Output ONLY the complete src/App.tsx file. No markdown fences.
         if not pages_to_scan:
             break
 
-    # 6. Generate manifest.json
+    # 6. Generate manifest.json (Priority 1: Critical Fix)
     import json
 
     manifest = {
