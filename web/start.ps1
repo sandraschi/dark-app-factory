@@ -1,4 +1,7 @@
-﻿Param([switch]$Headless)
+﻿param(
+    [switch]$Headless,
+    [switch]$Automated
+)
 
 # --- SOTA Headless Standard ---
 if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch 'Hidden')) {
@@ -7,10 +10,6 @@ if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch 'Hidden')) {
 }
 $WindowStyle = if ($Headless) { 'Hidden' } else { 'Normal' }
 # ------------------------------
-
-param(
-    [switch]$Automated
-)
 
 # Dark App Factory web launcher (FastAPI + static index.html)
 $WebPort = 10738
@@ -41,17 +40,15 @@ $env:PORT = "$WebPort"
 
 Write-Host "Starting Dark App Factory web server on http://127.0.0.1:$WebPort ..." -ForegroundColor Green
 
-# Start the backend in the background
 $proc = Start-Process uv -ArgumentList "run", "--no-project", "--with", "fastapi", "--with", "uvicorn", "--with", "pydantic", "--with", "openai", "--with", "rich", "--with", "python-dotenv", "--with", "tenacity", "python", ".\web\server.py" -NoNewWindow -PassThru
 
-# Basic readiness polling
 $retry = 0
-$maxRetries = 20
+$maxRetries = 30
 Write-Host "Waiting for backend to be ready..." -ForegroundColor Gray
 while ($retry -lt $maxRetries) {
     try {
         $client = New-Object System.Net.WebClient
-        $null = $client.DownloadString("http://127.0.0.1:$WebPort/api/status")
+        $null = $client.DownloadString("http://127.0.0.1:$WebPort/api/v1/health")
         Write-Host "Backend is ready!" -ForegroundColor Green
         break
     } catch {
@@ -67,7 +64,4 @@ if (-not $Automated) {
     Write-Host "Automated mode: skipping browser launch." -ForegroundColor Gray
 }
 
-# Keep script alive to monitor the process
 Wait-Process -Id $proc.Id -ErrorAction SilentlyContinue
-
-
