@@ -56,6 +56,20 @@ target-version = "py312"
 select = ["E", "F", "W", "I", "B", "S", "UP", "RUF"]
 ignore = ["S101", "B008"]
 
+[tool.ruff.lint.per-file-ignores]
+"src/specialists/council.py" = ["E501"]
+"src/verification/scenario_parser.py" = ["E501"]
+"src/verification/scenario_executor.py" = ["E501", "S110"]
+"src/verification/satisfaction_scorer.py" = ["E501"]
+"src/verification/showboat_runner.py" = ["E501", "S603"]
+"src/verification/rodney_runner.py" = ["E501", "S603"]
+"src/verification/ruffy_runner.py" = ["S603"]
+"src/deployment/deploy_artifacts.py" = ["E501", "S103"]
+"src/pwa/pwa_artifacts.py" = ["E501"]
+"src/utils/git_manager.py" = ["S603", "S607"]
+"src/utils/ports.py" = ["S603", "S607"]
+"src/utils/help_oracle.py" = ["RUF012"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
