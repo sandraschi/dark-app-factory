@@ -9,6 +9,7 @@ import Skills from "./pages/Skills";
 import Tools from "./pages/Tools";
 import Inbox from "./pages/Inbox";
 import Depot from "./pages/Depot";
+import Build from "./pages/Build";
 import { useBackendStore, useLLMStore } from "./store/llm";
 import { useEffect } from "react";
 import { apiGet } from "./lib/api";
@@ -83,6 +84,7 @@ export default function App() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="build" element={<Build />} />
           <Route path="inbox" element={<Inbox />} />
           <Route path="depot" element={<Depot />} />
           <Route path="tools" element={<Tools />} />
