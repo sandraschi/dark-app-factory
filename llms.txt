@@ -1,32 +1,69 @@
 # dark-app-factory
-> **"Software Factories for the Rest of Us."** A local-first, low-cost implementation of the "Software Factory" methodology (Spec -> Scenarios -> Agent Loop). Inspired by [StrongDM Factory](https://fact...
 
-This project includes automated llms.txt generation for AI accessibility.
+> **"Software Factories for the Rest of Us."** A local-first, low-cost implementation of the
+> Software Factory methodology (Spec -> Scenarios -> Agent Loop). Generates a working web
+> application from a plain-text description using local Ollama models. Inspired by
+> [StrongDM Factory](https://factory.strongdm.ai), which targets $1,000/dev/day in API
+> tokens; this does the same methodology for roughly nothing.
 
-## Docs
-- [Readme](README.md): **"Software Factories for the Rest of Us."**
-- [Strongdm Analysis](docs\STRONGDM_ANALYSIS.md): **Source**: [factory.strongdm.ai](https://factory.strongdm.ai)
-- [Assessment](ASSESSMENT.md): **Assessor**: Claude Opus 4.6 (Cursor)
-- [Nextsteps](NEXTSTEPS.md): **Author**: Gemini 3 (Antigravity)
-- [Changelog](CHANGELOG.md): All notable changes to the Dark App Factory will be documented in this file.
-- [Prd](PRD.md): > **Mission**: Democratize "Software Factory" methodology for the vibecoder community using low-cost...
-- [Vibe Current](vibe_current.md): i am beekeeper julius stich located in hollabrunn, i want a nice webshop and also a site for myself ...
-- [Jury Room Plan](docs\JURY_ROOM_PLAN.md): **Status**: Planned for March implementation
-- [Feedback](feedback.md): - **Missing**: start page crashes with vite error, store page not correctly made or pointed to
-- [Vibe](vibe.md): > "I want a dentist website for my friend Joe Painlessdriller in Hollabrunn, Schlossgasse 1. It must...
+Last updated: 2026-07-30 (v0.2.1-beta)
 
-## Api
-- [Verify Docs Api](verify_docs_api.py): Api definitions and implementations
+## Start here
 
-## Examples
-- [Demos](demos/): Demo code and implementations
-- [Remote Client Demo](docs\REMOTE_CLIENT_DEMO.md): Demo usage and code samples
+- [README.md](README.md): What it is, quick start, project status.
+- [docs/INSTALL.md](docs/INSTALL.md): Prerequisites, setup, model recommendations.
+- [docs/USAGE.md](docs/USAGE.md): Vibe format, CLI reference, workflows, troubleshooting.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): Pipeline, Specialist Council, reconciler, DTU, Judge, boot and verification contract.
+- [docs/CONFIGURATION.md](docs/CONFIGURATION.md): Every environment variable.
+- [docs/SKILLS.md](docs/SKILLS.md): Domain skill files and how to add one.
+
+## Current state
+
+- [CHANGELOG.md](CHANGELOG.md): Version history. v0.2.1-beta is the boot and verify path fix.
+- [reports/deep-assess-2026-07-29.md](reports/deep-assess-2026-07-29.md): **Current** deep
+  assessment. Open defects, what was fixed, and the remaining plan. Read this before
+  trusting any older assessment document.
+- [PRD.md](PRD.md): Product requirements and roadmap.
+
+## Historical, superseded
+
+- [ASSESSMENT.md](ASSESSMENT.md): OBSOLETE (round 6, 2025-02-08). Useful for the
+  round-by-round history table only.
+- [NEXTSTEPS.md](NEXTSTEPS.md): OBSOLETE (2026-02-09 Gemini handover). Most Priority 1 items
+  are done; see the correction header in the file.
+- [reports/assess-2026-07-29.md](reports/assess-2026-07-29.md): OBSOLETE fleet SOTA scan,
+  predates the 0.2.0-beta fix pass.
+
+## Planning and business
+
+- [docs/STRONGDM_ANALYSIS.md](docs/STRONGDM_ANALYSIS.md): Comparison with StrongDM Factory.
+- [docs/MONETIZATION_PLAN.md](docs/MONETIZATION_PLAN.md): Product legs and Austrian setup.
+- [docs/REMOTE_CLIENT_DEMO.md](docs/REMOTE_CLIENT_DEMO.md): Running at a client site via Tailscale.
+- [docs/FULL_AUTO_DEPLOYMENT.md](docs/FULL_AUTO_DEPLOYMENT.md): Gap analysis for domain, host, HTTPS. Not implemented.
+- [docs/OPENAI_AGENTS_SDK_PROPOSAL.md](docs/OPENAI_AGENTS_SDK_PROPOSAL.md): v2.0 architecture proposal.
+- [docs/META_MCP_INTEGRATION.md](docs/META_MCP_INTEGRATION.md): meta-mcp cross-utilisation plan.
+- [docs/MOBILE_ROADMAP.md](docs/MOBILE_ROADMAP.md): Mobile roadmap.
+- [docs/JURY_ROOM_PLAN.md](docs/JURY_ROOM_PLAN.md): Planned feature.
+
+## Code map
+
+```
+factory.py        Pipeline orchestrator (zombie hunt, DTU lifecycle, phase sequencing)
+foreman.py        Planner (enrich, plan, research, help, log)
+worker.py         Execution engine (Specialist Council, reconciler, deep-crawl)
+judge.py          Quality gate (port allocation, scenario execution, verdict)
+run_manifest.py   Boot orchestrator (dependency install, ports, process-tree lifecycle)
+dtu/main.py       Digital Twin Universe (mock external APIs)
+src/specialists/  base.py (abstract Specialist), council.py (19 specialists)
+src/utils/        logger, progress, ports, git_manager, help_oracle, stack_profile
+src/verification/ scenario parser and executor, satisfaction scorer, rodney, ruffy, showboat
+mcp-server/       FastMCP adapter for Claude Desktop and RoboFang
+web_sota/         React + Vite + Tailwind dashboard
+native/           Tauri wrapper and NSIS installer
+```
 
 ## Configuration
-- [Pyproject](pyproject.toml): Python project configuration and dependencies
-- [Package](package.json): Node.js project configuration and dependencies
-- [Config](.git\config): Application configuration files
 
-## Optional
-- [Changelog](CHANGELOG.md): Project changelog information
-- [Mobile Roadmap](docs\MOBILE_ROADMAP.md): Project roadmap information
+- [.env.example](.env.example): Copy to `.env`. Models, ports, boot and install settings.
+- [pyproject.toml](pyproject.toml): Python project configuration and dependencies.
+- [justfile](justfile): Task runner. Run `just` for the interactive command dashboard.

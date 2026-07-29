@@ -74,3 +74,11 @@ native/target/
 native/gen/
 web_sota/dist/
 *.mcpb
+
+# Boot and install logs for generated apps
+.factory-logs/
+**/.factory-logs/
+
+# Editor and tool backups
+*.bak
+*.bak-*

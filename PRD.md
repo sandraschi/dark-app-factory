@@ -82,6 +82,16 @@ See [MONETIZATION_PLAN.md](docs/MONETIZATION_PLAN.md). Two product legs: €100 
 - [x] **v1.4**: DTU integration (9 mocks, env var injection, pipeline wiring).
 - [x] **v1.5**: Dashboard, Progress Protocol, Industrial Startup.
 - [x] **v1.6**: Remote client demo doc, full auto deployment gap analysis, monetization plan.
-- [ ] **v1.7**: Token usage reporting. GitManager integration. RunManifest manifest.json.
+- [x] **v1.7**: Token usage reporting. GitManager integration. RunManifest manifest.json.
+- [x] **v1.8**: App.tsx reconciler, 9 production skill files, Professor skill router.
+- [x] **v0.2.0-beta**: SOTA React webapp (web_sota/), session context files, CORS, MCPB packaging.
+- [x] **v0.2.1-beta**: Boot and verify path. Dependency install before boot, assigned ports
+      instead of shared-port probing, process-tree termination, boot report, deterministic
+      FAIL when the app never starts. See [reports/deep-assess-2026-07-29.md](reports/deep-assess-2026-07-29.md).
+- [ ] **v0.3**: Closure pass (imports cross-checked against declared dependencies),
+      JS/TS static gates (tsc --noEmit, node --check, vite build), deep-crawl bare-import
+      fix, feedback out of vibe.md.
+- [ ] **v0.4**: Automated FAIL to repair to re-judge convergence loop driven by real
+      compiler and runtime errors.
 - [ ] **v2.0**: Multi-agent recursive self-healing via OpenAI Agents SDK — declarative Specialist Council, Judge guardrail with rework loop, Adjudicator synthesis. See [proposal](docs/OPENAI_AGENTS_SDK_PROPOSAL.md). meta-mcp agent lifecycle. **Pyramid Summaries** (StrongDM technique).
 - [ ] **v2.1**: Full auto deployment (Phase 1: deploy.sh + config. Phase 2: meta-mcp deploy tools. Phase 3: INWX + Hetzner + HTTPS).

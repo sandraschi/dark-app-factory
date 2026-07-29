@@ -1,5 +1,24 @@
 # Dark App Factory -- Deep Technical Assessment
 
+> **OBSOLETE (2026-07-30).** This document reflects the state as of round 6 (2025-02-08).
+> Superseded by [reports/deep-assess-2026-07-29.md](reports/deep-assess-2026-07-29.md).
+> Kept for the round-by-round history table, which is still useful.
+>
+> Corrections to the "Known Issues" section below:
+> - HIGH RunManifest default layout mismatch: FIXED. `manifest.json` is written after build.
+> - MEDIUM Token usage never reported: FIXED.
+> - MEDIUM GitManager unwired: FIXED.
+> - LOW foreman.py import path inconsistency: FIXED.
+> - DEFERRED kitchen-sink dependencies: PARTIALLY FIXED. Unjustified deps are now gated by
+>   `Registrar.validate()`. Missing deps are still not detected, which is the open blocker.
+>
+> Two defects this document does not mention, both found 2026-07-29 and both more serious
+> than anything listed here:
+> 1. The Judge never installed the generated app's dependencies before booting it, so the
+>    boot always failed. Fixed in 0.2.1-beta.
+> 2. Startup detection probed shared dev ports and could audit an unrelated server, which
+>    means a PASS was possible for a build that never started. Fixed in 0.2.1-beta.
+
 **Assessor**: Claude Opus 4.6 (Cursor)
 **Last Updated**: 2025-02-08
 **Rounds Completed**: 6

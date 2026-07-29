@@ -91,10 +91,24 @@ output_XXX/
 The Judge does this automatically, but you can also run it manually:
 
 ```powershell
-python run_manifest.py --output output_XXX
+python run_manifest.py output_XXX
 ```
 
-This boots the app with DTU environment variables injected so all external API calls (Stripe, email, etc.) hit local mocks instead of real services.
+This installs the generated app's dependencies (bun, pnpm or npm for Node,
+pip for Python), allocates two free ports, boots the app with `PORT` and
+`VITE_PORT` set, and injects the DTU environment variables so all external API
+calls (Stripe, email, etc.) hit local mocks instead of real services.
+
+Useful flags:
+
+```powershell
+python run_manifest.py output_XXX --no-install          # dependencies already installed
+python run_manifest.py output_XXX --dtu-url http://localhost:8001
+```
+
+Install output and per-process boot logs land in
+`output_XXX/.factory-logs/`. That is the first place to look when an app
+does not come up.
 
 ## CLI reference
 
@@ -178,4 +192,29 @@ Usually a missing route or a component returning null. Check the browser console
 Context window too small or model too large for available VRAM. Try a smaller model for workers, or increase `OLLAMA_CONTEXT_LENGTH`.
 
 **Judge reports all checks failed**
-The app didn't boot. Check `logs/factory.log` for the Python/Node startup error. Usually a missing dependency or a DB connection string pointing at a non-existent host.
+The app didn't boot. Look at `output_XXX/.factory-logs/` first: `install-node.log`
+and `install-python.log` show dependency failures, and `backend.log` /
+`frontend.log` show the startup error. The Judge verdict also carries the
+install result and per-process exit codes.
+
+Most common causes, in order:
+
+1. A package the code imports is missing from `package.json` or
+   `requirements.txt`. The factory does not yet cross-check imports against
+   declared dependencies, so this is the usual culprit. Add the package and
+   re-run the Judge.
+2. A DB connection string pointing at a host that does not exist.
+3. A syntax or reference error in the entry point. There is currently no
+   JS/TS static gate (Ruffy covers Python only), so `node --check server.js`
+   is worth running by hand.
+
+**Judge passed but the app clearly does not work**
+This should no longer be possible for a build that never started: since
+0.2.1-beta a Judge run where nothing listened on the assigned port returns FAIL
+deterministically. If you see it anyway, check that `APP_PORT_START` /
+`APP_PORT_END` do not overlap a port one of your own dev servers is using.
+
+**Port already in use on a re-run**
+`kill_zombies()` clears the factory's own ports and the app port window at the
+start of every run. If a stray process survives, `python factory.py run` will
+clear it on the next start, or kill it manually.

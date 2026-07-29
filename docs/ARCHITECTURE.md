@@ -23,7 +23,8 @@ vibe.md
 │  Step 5a App.tsx Reconciler (React only)            │
 │  Step 5b Deep-crawl (missing import resolution)     │
 │  Step 6  manifest.json + landing page generated     │
-│  Step 7  Judge: boots app, runs Playwright checks   │
+│  Step 7  Judge: installs deps, boots app on assigned│
+│          ports, executes scenarios, verdict         │
 │  Step 8  Output directory finalised                 │
 └───────────────────────┬─────────────────────────────┘
                         │
@@ -121,13 +122,68 @@ GET :8001/dtu/log          # request audit log
 
 The Judge runs after the build completes. It:
 
-1. Boots the generated app via `run_manifest.py` (with DTU env vars)
-2. Waits for the server to respond on its expected port
-3. Runs Playwright checks from `scenarios/scenarios.md`
-4. Scores the result against `JUDGE_PASS_THRESHOLD`
-5. Writes a critique report if below threshold
+1. Allocates two free ports from the app port window (default 19300-19400)
+2. Boots the generated app via `run_manifest.py`, which installs dependencies
+   first and receives the assigned ports plus the DTU env vars
+3. Confirms the app is actually listening on a port the factory assigned
+4. Parses `scenarios/scenarios.md` and executes each scenario against the live app
+5. Runs Rodney (or Playwright as fallback) for general UI verification
+6. Scores the result against `JUDGE_PASS_THRESHOLD`
+7. Writes `critique.md` to both the repo root and the output directory on FAIL
 
 The critique is available to the reconciler for a rework loop (v2.0 feature, see [OPENAI_AGENTS_SDK_PROPOSAL.md](OPENAI_AGENTS_SDK_PROPOSAL.md)).
+
+### Boot and verification contract (0.2.1-beta)
+
+Three properties hold, and each of them replaces a defect that made the Judge
+unable to evaluate anything reliably.
+
+**Dependencies are installed before boot.** The factory emits source files only.
+`RunManifest.boot()` runs the install first: `bun install`, else `pnpm install`,
+else `npm install --legacy-peer-deps`, plus `pip install -r requirements.txt`
+when a `requirements.txt` is present. The node step is skipped when
+`node_modules` already exists. Without this every boot failed with
+"Cannot find module" and the Judge scored a dead server.
+
+**Ports are assigned, not discovered.** The Judge allocates ports and exports
+them to the child as `PORT` / `VITE_PORT`. Startup detection polls only those
+ports. The previous implementation probed a shared list of common dev ports
+(3000, 8000, 5173, 5174, 8080) and treated any listener as the generated app,
+which on a developer machine could point the audit at an unrelated server and
+report a pass for a build that never started. The default window sits outside
+the common dev range for exactly this reason.
+
+**A dead app cannot pass.** If nothing ever listened on an assigned port, the
+Judge returns FAIL deterministically with the install errors, per-process exit
+codes and boot log tails attached. The LLM verdict is demoted to advisory in
+that case. This is the anti-gaslighting backstop for the whole pipeline.
+
+Supporting details:
+
+- Child stdout and stderr go to `output_XXX/.factory-logs/<component>.log`.
+  They were previously written to unread pipes, which deadlocks a verbose
+  process such as Vite once the OS pipe buffer fills.
+- `terminate()` kills the whole process tree. `Popen.terminate()` on a
+  `shell=True` process only kills the shell, leaving the real server alive and
+  holding its port, which then fed the next run a false successful boot.
+- `RunManifest.boot()` returns a `boot_report` dict (install result, assigned
+  ports, process exit codes, log excerpts) that is injected into the Judge
+  prompt as mechanical evidence alongside the scenario results.
+- `kill_zombies()` covers the ports the system actually binds
+  (3000, 5173, 5174, 8000, 8001, 8002, 8080, 10738, 10739) in addition to the
+  app port window.
+
+Port and process helpers live in `src/utils/ports.py`, shared by `factory.py`,
+`judge.py` and `run_manifest.py`.
+
+### Known gap
+
+There is still no check that the packages a generated file imports appear in
+`package.json` or `requirements.txt`. Installing dependencies fixes the boot
+mechanism, but an app whose `server.js` requires `express` while `package.json`
+never declares it will still fail to start. Static checking for JS and TS is
+also absent: Ruffy covers ruff and mypy, which are Python only. Both are
+tracked in `reports/deep-assess-2026-07-29.md` as the Day 2 work.
 
 ## Dashboard
 
@@ -164,6 +220,10 @@ output_XXX/
   www/index.html                # Landing page
   marketing/                    # Press release, blog, social kit
   skills/                       # Skill summary used for this build
+  manifest.json                 # Entry points, consumed by run_manifest.py
+  critique.md                   # Judge verdict, written on FAIL
+  .factory-logs/                # Install and per-process boot logs
+  demos/                        # Showboat audit artifact, screenshots
 ```
 
 ## Model economics

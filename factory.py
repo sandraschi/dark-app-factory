@@ -5,7 +5,6 @@ import subprocess
 import time
 import os
 import sys
-import socket
 import re
 import urllib.request
 from dotenv import load_dotenv
@@ -23,106 +22,39 @@ if os.path.join(BASE_DIR, "src") not in sys.path:
 from src.utils.logger import logger
 from src.llm_client import LLMClient
 from src.utils.progress import progress
+from src.utils.ports import (
+    KNOWN_FACTORY_PORTS,
+    find_free_ports,
+    is_port_free,
+    kill_pid_tree,
+    kill_ports,
+)
 from src.verification import showboat_runner
 from foreman import conduct_research, generate_blueprint, read_vibe
 from worker import run_factory
 
 
-def kill_zombies(start_port=19300, end_port=19400):
-    """Kills any process listening on ports in the given range. Cross-platform support."""
-    logger.info("Hunting zombie processes on ports %d-%d...", start_port, end_port)
+def kill_zombies(start_port=19300, end_port=19400, include_known=True):
+    """Kill processes holding ports the factory or its generated apps use.
 
-    platform = sys.platform
-    pids_to_kill = set()
+    The previous version scanned only 19300-19400, a range nothing in this
+    system actually binds (DTU 8001, dashboard 8002/10738, Vite 5173,
+    Express 3000). Leaked servers therefore survived, held their ports, and
+    caused the next run's startup probe to report a false success.
+    """
+    logger.info("Hunting zombie processes...")
+    targets = [(start_port, end_port)]
+    if include_known:
+        targets.extend(KNOWN_FACTORY_PORTS)
 
     try:
-        if platform == "win32":
-            result = subprocess.run(
-                "netstat -ano | findstr LISTENING",
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-            if result.stdout:
-                for line in result.stdout.splitlines():
-                    parts = line.split()
-                    if len(parts) >= 5:
-                        address = parts[1]
-                        pid = parts[4]
-                        if ":" in address:
-                            port_str = address.rsplit(":", 1)[1]
-                            try:
-                                port = int(port_str)
-                                if start_port <= port <= end_port:
-                                    pids_to_kill.add(pid)
-                            except ValueError:
-                                pass
+        killed = kill_ports(targets)
+        if killed:
+            logger.info("Terminated %d zombie process(es).", killed)
         else:
-            # Linux/macOS using lsof
-            try:
-                result = subprocess.run(
-                    ["lsof", "-nP", "-iTCP", "-sTCP:LISTEN"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                )
-                if result.stdout:
-                    for line in result.stdout.splitlines()[1:]:  # Skip header
-                        parts = line.split()
-                        if len(parts) >= 9:
-                            pid = parts[1]
-                            address = parts[8]
-                            if ":" in address:
-                                port_str = address.rsplit(":", 1)[1]
-                                try:
-                                    port = int(port_str)
-                                    if start_port <= port <= end_port:
-                                        pids_to_kill.add(pid)
-                                except ValueError:
-                                    pass
-            except FileNotFoundError:
-                logger.warning("lsof not found. Skipping zombie hunt on Unix.")
-
-        if not pids_to_kill:
             logger.info("No zombies found.")
-            return
-
-        logger.info("Found %d zombie processes. Terminating...", len(pids_to_kill))
-        for pid in pids_to_kill:
-            if platform == "win32":
-                subprocess.run(
-                    f"taskkill /F /PID {pid}",
-                    shell=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            else:
-                subprocess.run(
-                    ["kill", "-9", pid],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            logger.debug("Killed PID %s", pid)
-
     except Exception as e:
         logger.error("Failed to hunt zombies: %s", e)
-
-
-def find_free_ports(count=2, start_port=19300, end_port=19400):
-    """Finds 'count' consecutive free ports."""
-    for port in range(start_port, end_port - count + 1):
-        if all(is_port_free(p) for p in range(port, port + count)):
-            return [port + i for i in range(count)]
-
-    raise RuntimeError(
-        f"Could not find {count} free ports in range {start_port}-{end_port}"
-    )
-
-
-def is_port_free(port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(("localhost", port)) != 0
 
 
 def run_step(description, command):
@@ -143,34 +75,40 @@ DTU_URL = f"http://localhost:{DTU_PORT}"
 def spin_up_dtu():
     """Start the Digital Twin Universe mock server.
 
-    Returns the subprocess handle if started successfully, else None.
+    Returns the subprocess handle if the process is alive, else None.
+
+    Note: the handle is returned whenever the process is running, even if
+    the health check is unhappy. Returning None for a live process would
+    orphan it, and the orphan then holds the DTU port and blocks every
+    subsequent run.
     """
     logger.info("Spinning up Digital Twin Universe on port %d...", DTU_PORT)
     dtu_env = os.environ.copy()
     dtu_env["DTU_PORT"] = str(DTU_PORT)
 
+    dtu_script = os.path.join(BASE_DIR, "dtu", "main.py")
     dtu_process = subprocess.Popen(
-        [sys.executable, "dtu/main.py"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        [sys.executable, dtu_script],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
         env=dtu_env,
     )
     time.sleep(3)
-    if dtu_process.poll() is None:
-        # Verify DTU is actually responding
-        try:
-            resp = urllib.request.urlopen(f"{DTU_URL}/health", timeout=5)
-            if resp.status == 200:
-                logger.info("DTU is online and healthy (%s)", DTU_URL)
-                return dtu_process
-        except Exception as e:
-            logger.warning("DTU process alive but health check failed: %s", e)
-            return dtu_process
-    else:
-        logger.error(
-            "DTU process exited immediately (exit code %s)", dtu_process.returncode
-        )
+
+    if dtu_process.poll() is not None:
+        logger.error("DTU process exited immediately (exit code %s)", dtu_process.returncode)
         return None
+
+    try:
+        resp = urllib.request.urlopen(f"{DTU_URL}/health", timeout=5)
+        if resp.status == 200:
+            logger.info("DTU is online and healthy (%s)", DTU_URL)
+        else:
+            logger.warning("DTU health check returned status %s", resp.status)
+    except Exception as e:
+        logger.warning("DTU process alive but health check failed: %s", e)
+
+    return dtu_process
 
 
 def get_next_output_dir(base="output"):
@@ -255,11 +193,7 @@ async def generate_landing_page(
     # Use Foreman LLM to generate the landing page HTML
     foreman = LLMClient(role="foreman", model=foreman_model, base_url=foreman_base_url)
 
-    features_block = (
-        "\n".join(f"- {f}" for f in features)
-        if features
-        else "- Cutting-edge application"
-    )
+    features_block = "\n".join(f"- {f}" for f in features) if features else "- Cutting-edge application"
 
     html_prompt = f"""
     Generate a SINGLE, SELF-CONTAINED index.html landing page for:
@@ -374,9 +308,7 @@ async def main_flow(
         progress.update(15, "Digital Twin: Spinning up environment...")
         dtu = spin_up_dtu()
         if not dtu:
-            logger.warning(
-                "DTU failed to start. Continuing without Digital Twin integration."
-            )
+            logger.warning("DTU failed to start. Continuing without Digital Twin integration.")
 
         try:
             # 5. Worker (Build)
@@ -425,9 +357,7 @@ async def main_flow(
             # 6. Propagandist (Landing Page)
             try:
                 progress.update(85, "Propagandist: Generating landing page...")
-                await generate_landing_page(
-                    output_dir, foreman_model=foreman_model, foreman_base_url=base_url
-                )
+                await generate_landing_page(output_dir, foreman_model=foreman_model, foreman_base_url=base_url)
             except Exception as e:
                 logger.warning("Landing page generation failed (non-fatal): %s", e)
 
@@ -491,8 +421,12 @@ async def main_flow(
         finally:
             if dtu:
                 logger.info("Shutting down DTU...")
-                dtu.terminate()
-                dtu.wait(timeout=5)
+                kill_pid_tree(dtu.pid)
+                try:
+                    dtu.wait(timeout=5)
+                except Exception:
+                    logger.warning("DTU did not exit cleanly; forcing port release.")
+                    kill_ports([DTU_PORT])
     except Exception as e:
         logger.error("Factory Flow Failed: %s", e)
         return False
@@ -560,9 +494,7 @@ def _launch_results(output_dir, dtu):
         audit_port = client_port
 
     # 3. Launch Questionnaire
-    subprocess.Popen(
-        'start "Feedback Loop" cmd /c "python questionnaire.py"', shell=True
-    )
+    subprocess.Popen('start "Feedback Loop" cmd /c "python questionnaire.py"', shell=True)
 
     # 4. Automated Audit
     if audit_port:

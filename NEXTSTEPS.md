@@ -1,5 +1,28 @@
 # Dark App Factory -- Next Steps (Gemini Handover)
 
+> **OBSOLETE (2026-07-30).** Written 2026-02-09 during the Gemini session. Superseded by
+> [reports/deep-assess-2026-07-29.md](reports/deep-assess-2026-07-29.md), which reflects the
+> current state of the code. Kept for history.
+>
+> What has changed since this document was written:
+> - 1.1 RunManifest default layout: DONE. `write_manifest_from_output()` writes
+>   `manifest.json` after the build.
+> - 1.2 Wire GitManager: DONE. `factory.py` calls `initialize()` and `commit_changes()`.
+> - 1.3 Token usage reporting: DONE. `get_usage_summary()` is logged at end of run.
+> - 1.4 subprocess for Worker/Judge: DONE. Both are direct async calls now.
+> - 2.2 Dynamic dependency selection: PARTIAL. `Registrar.validate()` gates unjustified
+>   deps via `GATED_DEPS`, but nothing checks for *missing* ones. That is the open blocker.
+> - 2.3 Normalize import paths: DONE. All entry points set `sys.path` consistently.
+> - 2.4 Cross-platform kill zombies: DONE, then rewritten in 0.2.1-beta. Now lives in
+>   `src/utils/ports.py` and covers the ports the system actually binds.
+> - 4.3 Test suite: DONE. 135 tests, plus `tests/test_boot_path.py`.
+> - Still open and still correct: 2.1 DTU request verification in Judge, 3.1 WebSockets,
+>   3.2 dependency graph visualisation, 3.3 feedback loop automation, 3.4 multi-run
+>   convergence, 3.6 full auto deployment, 3.7 Pyramid Summaries.
+> - Note also: 3.3 "Feedback Loop Automation" understates a defect. `questionnaire.py`
+>   appends feedback into `vibe.md`, mutating the user's own input file. `vibe.md` in this
+>   repo is currently corrupted as a result.
+
 **Author**: Gemini 3 (Antigravity)
 **Date**: 2026-02-09
 **Context**: Continuing the Dark App Factory build-out.

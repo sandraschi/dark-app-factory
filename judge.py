@@ -1,8 +1,9 @@
 import argparse
+import json
+
 # ruff: noqa: E402
 import os
 import sys
-import json
 
 # Normalize import paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -11,13 +12,14 @@ if BASE_DIR not in sys.path:
 if os.path.join(BASE_DIR, "src") not in sys.path:
     sys.path.insert(1, os.path.join(BASE_DIR, "src"))
 
-from src.utils.logger import logger
 from run_manifest import RunManifest
 from src.llm_client import LLMClient
+from src.utils.logger import logger
+from src.utils.ports import find_free_ports
 from src.verification import rodney_runner, showboat_runner
-from src.verification.scenario_parser import parse_scenarios
-from src.verification.scenario_executor import execute_all_scenarios
 from src.verification.satisfaction_scorer import compute_satisfaction
+from src.verification.scenario_executor import execute_all_scenarios
+from src.verification.scenario_parser import parse_scenarios
 
 
 class PlaywrightVerifier:
@@ -59,7 +61,7 @@ def read_file(path: str) -> str:
     if not os.path.exists(path):
         logger.error(f"File not found at {path}")
         return ""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 
@@ -112,9 +114,7 @@ async def run_judgement(
     auditor = Auditor()
 
     logger.info("Running automated audit (Static & Contextual)...")
-    audit_report = await auditor.generate(
-        "full_audit", scenarios, {"files": files_present}, judge
-    )
+    audit_report = await auditor.generate("full_audit", scenarios, {"files": files_present}, judge)
 
     # 3. Scenario-Based Execution Verification
     #
@@ -125,12 +125,26 @@ async def run_judgement(
     # Also performs the existing Rodney/Playwright UI check for general
     # page-load verification and screenshot artifacts.
     if dtu_url:
-        logger.info(
-            "Satisficer Stage 2: Booting app with DTU integration (%s)...", dtu_url
-        )
+        logger.info("Satisficer Stage 2: Booting app with DTU integration (%s)...", dtu_url)
     else:
         logger.info("Satisficer Stage 2: Booting app for scenario execution...")
-    orchestrator = RunManifest(output_dir, dtu_url=dtu_url)
+
+    # Assign ports up front so startup detection watches a port we own.
+    # Probing shared dev ports (3000/5173/...) can latch onto an unrelated
+    # server and pass an app that never booted.
+    boot_failed = False
+    try:
+        backend_port, frontend_port = find_free_ports(2)
+    except RuntimeError as e:
+        logger.error("Port allocation failed: %s", e)
+        backend_port, frontend_port = 19300, 19301
+
+    orchestrator = RunManifest(
+        output_dir,
+        dtu_url=dtu_url,
+        backend_port=backend_port,
+        frontend_port=frontend_port,
+    )
     ui_report = {"summary": "Execution check skipped (offline mode)"}
     screenshot_dir = os.path.join(output_dir, "demos", "screenshots")
     satisfaction_report = None
@@ -138,14 +152,22 @@ async def run_judgement(
     try:
         orchestrator.boot()
 
-        # Detect app URL
-        app_port = _detect_app_port(orchestrator)
-        app_url = (
-            f"http://localhost:{app_port}" if app_port else "http://localhost:3000"
-        )
+        # Use the port we assigned, not a probe of common dev ports.
+        app_url = orchestrator.app_url or f"http://localhost:{frontend_port}"
+
+        if not orchestrator.is_live:
+            logger.error(
+                "Generated app never listened on its assigned ports "
+                "(backend=%s, frontend=%s). Scenario execution will be skipped.",
+                backend_port,
+                frontend_port,
+            )
+            boot_failed = True
+        else:
+            logger.info("Generated app is live at %s", app_url)
 
         # 3a. Parse and execute scenarios against live app
-        parsed_scenarios = parse_scenarios(scenarios)
+        parsed_scenarios = parse_scenarios(scenarios) if not boot_failed else []
         if parsed_scenarios:
             logger.info(
                 "Executing %d parsed scenarios against %s...",
@@ -173,12 +195,18 @@ async def run_judgement(
                 satisfaction_report.overall_satisfaction * 100,
             )
         else:
-            logger.warning(
-                "No parseable scenarios found -- skipping scenario execution."
-            )
+            logger.warning("No parseable scenarios found -- skipping scenario execution.")
 
         # 3b. General UI Verification (Rodney -> Playwright fallback)
-        if rodney_runner.is_available():
+        if boot_failed:
+            logger.warning("Skipping UI verification: app is not running.")
+            ui_report = {
+                "success": False,
+                "tool": "none",
+                "summary": "App never started; no UI to verify.",
+                "errors": ["boot failed"],
+            }
+        elif rodney_runner.is_available():
             logger.info("Using Rodney for general UI verification...")
             rodney_checks = [
                 {"selector": "body", "action": "exists", "name": "body_exists"},
@@ -206,15 +234,13 @@ async def run_judgement(
                 )
         else:
             logger.info("Rodney not available, falling back to Playwright...")
-            verifier = PlaywrightVerifier()
+            verifier = PlaywrightVerifier(app_url)
             ui_report = await verifier.verify_ui(scenarios)
 
         if ui_report.get("success"):
             logger.info("UI Verification Result: %s", ui_report.get("summary", "PASS"))
         else:
-            logger.warning(
-                "UI Verification encountered issues, but proceeding with audit."
-            )
+            logger.warning("UI Verification encountered issues, but proceeding with audit.")
 
     except Exception as e:
         logger.warning("Execution verification failed (boot issue?): %s", e)
@@ -228,15 +254,24 @@ async def run_judgement(
     if dtu_url:
         dtu_logs = await query_dtu_logs(dtu_url)
         if dtu_logs:
-            logger.info(
-                f"DTU Interaction Verified: Observed {len(dtu_logs)} service calls."
-            )
+            logger.info(f"DTU Interaction Verified: Observed {len(dtu_logs)} service calls.")
         else:
-            logger.warning(
-                "DTU integrated but no service logs observed (possible failed interaction)."
-            )
+            logger.warning("DTU integrated but no service logs observed (possible failed interaction).")
 
     # 4. Final Verdict
+    boot_report = orchestrator.boot_report
+    boot_summary = json.dumps(
+        {
+            "dependencies_installed": boot_report.get("install_ok"),
+            "install_errors": boot_report.get("install_errors", []),
+            "app_url": boot_report.get("app_url"),
+            "app_reachable": boot_report.get("is_live"),
+            "process_status": boot_report.get("process_status", []),
+            "log_excerpts": {k: v[-800:] for k, v in boot_report.get("log_excerpts", {}).items()},
+        },
+        indent=2,
+    )
+
     screenshots_info = ""
     if ui_report.get("screenshots"):
         screenshots_info = f"\nScreenshots captured ({ui_report['tool']}): {', '.join(ui_report['screenshots'])}"
@@ -247,9 +282,11 @@ async def run_judgement(
         satisfaction_summary = json.dumps(satisfaction_report.to_dict(), indent=2)
 
     # Robust slicing for f-string
-    safe_scenarios = (scenarios[:2000] if scenarios else "")
-    safe_files = (", ".join(files_present[:50]) if isinstance(files_present, list) else str(files_present))
-    safe_dtu = (json.dumps(dtu_logs[:20], indent=2) if isinstance(dtu_logs, list) and dtu_logs else "No DTU logs observed.")
+    safe_scenarios = scenarios[:2000] if scenarios else ""
+    safe_files = ", ".join(files_present[:50]) if isinstance(files_present, list) else str(files_present)
+    safe_dtu = (
+        json.dumps(dtu_logs[:20], indent=2) if isinstance(dtu_logs, list) and dtu_logs else "No DTU logs observed."
+    )
 
     prompt = f"""
     Review these scenarios and the ACTUAL state of the generated app in '{output_dir}'.
@@ -268,6 +305,9 @@ async def run_judgement(
 
     RUFFY LINT REPORT (ruff check, ruff format, mypy):
     {lint_report if lint_report else "Not available."}
+
+    BOOT REPORT (dependency install and process startup, mechanical):
+    {boot_summary}
 
     UI/EXECUTION REPORT:
     Tool: {ui_report.get("tool", "none")}
@@ -293,9 +333,25 @@ async def run_judgement(
     """
 
     logger.info("Synthesizing final verdict...")
-    verdict = await judge.generate(
-        prompt, system_prompt="You are a strict QA Lead. No gaslighting. No leniency."
-    )
+    verdict = await judge.generate(prompt, system_prompt="You are a strict QA Lead. No gaslighting. No leniency.")
+
+    # Hard gate: an app that never started cannot pass, regardless of what
+    # the LLM concludes from the file listing. This is the anti-gaslighting
+    # backstop for the whole pipeline.
+    if boot_failed:
+        reason = (
+            "VERDICT: FAIL\n"
+            "SATISFACTION: 0%\n"
+            "CRITIQUE: The generated application never started. "
+            f"Dependency install ok: {boot_report.get('install_ok')}. "
+            f"Install errors: {boot_report.get('install_errors')}. "
+            f"Process status: {boot_report.get('process_status')}.\n"
+            "No runtime behaviour could be verified, so no scenario can be "
+            "considered satisfied. Boot logs are in the .factory-logs "
+            "directory of the output.\n\n"
+            "--- LLM commentary (advisory only) ---\n"
+        )
+        verdict = reason + verdict
 
     logger.info("AUDIT VERDICT:\n%s", verdict)
 
@@ -303,8 +359,14 @@ async def run_judgement(
     _create_showboat_audit(output_dir, verdict, ui_report, files_present, dtu_logs)
 
     if "VERDICT: FAIL" in verdict.upper():
-        with open("critique.md", "w", encoding="utf-8") as f:
-            f.write(verdict)
+        # Root copy feeds the next Foreman run; the output copy stays with
+        # the build it actually judged so runs stop overwriting each other.
+        for target in ("critique.md", os.path.join(output_dir, "critique.md")):
+            try:
+                with open(target, "w", encoding="utf-8") as f:
+                    f.write(verdict)
+            except OSError as e:
+                logger.warning("Could not write critique to %s: %s", target, e)
         logger.error("Quality Gate Failed. Critique saved to critique.md")
         return False
     else:
@@ -313,21 +375,24 @@ async def run_judgement(
 
 
 def _detect_app_port(orchestrator: RunManifest) -> int:
-    """Try to detect which port the generated app is listening on.
+    """Deprecated. Retained only so external callers do not break.
 
-    Inspects RunManifest processes for port info. Falls back to 3000.
+    Ports are now assigned explicitly and reported by RunManifest. The old
+    behaviour scanned a shared list of common dev ports and could return a
+    port belonging to an unrelated process.
     """
-    # Simple heuristic: check env vars set during boot
-    import socket
+    return orchestrator.boot_report.get("listening_port") or 0
 
-    for candidate in [3000, 8000, 5173, 5174, 19300]:
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                if s.connect_ex(("localhost", candidate)) == 0:
-                    return candidate
-        except Exception:
-            continue
-    return 3000
+
+def _unused_legacy_port_probe() -> int:
+    """Removed. Kept as a stub to document why.
+
+    The old probe scanned 3000/8000/5173/5174/19300 for any listening
+    socket and returned the first hit. On a machine with other dev servers
+    running this silently pointed the judge at an unrelated application,
+    which is how a build that never started could be reported as passing.
+    """
+    raise NotImplementedError("Ports are assigned explicitly by RunManifest.")
 
 
 def _create_showboat_audit(
@@ -405,12 +470,8 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     judge_parser = subparsers.add_parser("judge", help="Run judgement on app")
-    judge_parser.add_argument(
-        "--scenarios", default="scenarios/scenarios.md", help="Path to scenarios file"
-    )
-    judge_parser.add_argument(
-        "--output", default="output", help="Target output directory to judge"
-    )
+    judge_parser.add_argument("--scenarios", default="scenarios/scenarios.md", help="Path to scenarios file")
+    judge_parser.add_argument("--output", default="output", help="Target output directory to judge")
     judge_parser.add_argument(
         "--dtu-url",
         default=None,

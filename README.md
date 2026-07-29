@@ -60,6 +60,7 @@ Ports: dashboard `10738`, MCP `10739`.
 | [docs/USAGE.md](docs/USAGE.md) | Vibe format, CLI reference, common workflows |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | All env vars and `.env` options |
 | [docs/SKILLS.md](docs/SKILLS.md) | Domain skill files — what they cover and how to add new ones |
+| [reports/deep-assess-2026-07-29.md](reports/deep-assess-2026-07-29.md) | Current deep assessment: open defects and the fix plan |
 | [docs/OPENAI_AGENTS_SDK_PROPOSAL.md](docs/OPENAI_AGENTS_SDK_PROPOSAL.md) | v2.0 architecture proposal |
 | [docs/STRONGDM_ANALYSIS.md](docs/STRONGDM_ANALYSIS.md) | Comparison with StrongDM Factory |
 | [docs/REMOTE_CLIENT_DEMO.md](docs/REMOTE_CLIENT_DEMO.md) | Running at a client site via Tailscale |
@@ -69,4 +70,8 @@ Ports: dashboard `10738`, MCP `10739`.
 
 ## Project status
 
-v1.8.0 — functional for React + Python/Node stacks. The Judge catches most Vite startup errors and boot failures. Complex apps with many specialists will sometimes need a second pass.
+v0.2.1-beta. Functional for React + Python/Node stacks. The App.tsx reconciler catches most Vite startup errors, and the Judge now installs the generated app's dependencies, boots it on ports the factory assigns, and fails deterministically when the app does not come up.
+
+Known gap before a generated app can be relied on to run first time: nothing yet cross-checks the packages a generated file imports against `package.json` / `requirements.txt`, and there is no JS/TS static gate (Ruffy is ruff + mypy, Python only). Both are the next work item. See [reports/deep-assess-2026-07-29.md](reports/deep-assess-2026-07-29.md) for the current assessment and plan.
+
+Complex apps with many specialists will sometimes need a second pass.
