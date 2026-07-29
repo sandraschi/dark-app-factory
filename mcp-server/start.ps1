@@ -1,4 +1,4 @@
-﻿Param([switch]$Headless)
+Param([switch]$Headless)
 
 # --- SOTA Headless Standard ---
 if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch 'Hidden')) {
@@ -8,7 +8,7 @@ if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch 'Hidden')) {
 $WindowStyle = if ($Headless) { 'Hidden' } else { 'Normal' }
 # ------------------------------
 
-# Dark App Factory â€” embedded MCP HTTP (fleet / local)
+# Dark App Factory â€" embedded MCP HTTP (fleet / local)
 $ErrorActionPreference = "Stop"
 $McpPort = 10739
 $RepoRoot = Split-Path -Parent $PSScriptRoot
@@ -27,4 +27,12 @@ $env:MCP_PATH = "/mcp"
 Write-Host "Starting dark-app-factory MCP on http://127.0.0.1:${McpPort}/mcp ..." -ForegroundColor Green
 uv sync
 uv run daf-mcp --http --host 127.0.0.1 --port $McpPort --path /mcp
+
+
+$FleetStartPath = Join-Path $RepoRoot "scripts\FleetStartMode.ps1"
+if (-not (Test-Path -LiteralPath $FleetStartPath)) {
+    Write-Host "ERROR: Missing vendored launcher helper: $FleetStartPath" -ForegroundColor Red
+    exit 1
+}
+. $FleetStartPath
 

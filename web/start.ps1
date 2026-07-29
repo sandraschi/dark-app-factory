@@ -1,67 +1,37 @@
-﻿param(
+﻿# Fleet unified launcher - do not edit logic here.
+# Change fleet-start.config.ps1 at the repo root instead.
+param(
     [switch]$Headless,
-    [switch]$Automated
+    [switch]$BackendOnly,
+    [switch]$FrontendOnly,
+    [switch]$NoBrowser,
+    [switch]$ReuseIfRunning
 )
 
-# --- SOTA Headless Standard ---
-if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch 'Hidden')) {
-    Start-Process pwsh -ArgumentList '-NoProfile', '-File', $PSCommandPath, '-Headless' -WindowStyle Hidden
-    exit
+$ErrorActionPreference = 'Stop'
+$ReposRoot = if ($env:FLEET_REPOS_ROOT) { $env:FLEET_REPOS_ROOT } else { 'D:\Dev\repos' }
+$EnginePath = Join-Path $ReposRoot 'mcp-central-docs\scripts\Invoke-FleetWebappStart.ps1'
+if (-not (Test-Path -LiteralPath $EnginePath)) {
+    Write-Host "ERROR: Missing fleet start engine: $EnginePath" -ForegroundColor Red
+    exit 1
 }
-$WindowStyle = if ($Headless) { 'Hidden' } else { 'Normal' }
-# ------------------------------
+. $EnginePath
 
-# Dark App Factory web launcher (FastAPI + static index.html)
-$WebPort = 10738
-$McpPort = 10739
-$ProjectRoot = Split-Path -Parent $PSScriptRoot
-
-function Kill-Port($Port) {
-    Write-Host "Checking for port squatters on $Port..." -ForegroundColor Yellow
-    $connections = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue
-    if ($connections) {
-        foreach ($c in $connections) {
-            $p = Get-Process -Id $c.OwningProcess -ErrorAction SilentlyContinue
-            if ($p) {
-                Write-Host "Found squatter $($p.ProcessName) (PID: $($p.Id)) on port $Port. Terminating..." -ForegroundColor Red
-                Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-            }
-        }
-        Start-Sleep -Seconds 1
-    }
-}
-
-Kill-Port $WebPort
-Kill-Port $McpPort
-
-Set-Location $ProjectRoot
-$env:PYTHONPATH = "$ProjectRoot;$ProjectRoot\src"
-$env:PORT = "$WebPort"
-
-Write-Host "Starting Dark App Factory web server on http://127.0.0.1:$WebPort ..." -ForegroundColor Green
-
-$proc = Start-Process uv -ArgumentList "run", "--no-project", "--with", "fastapi", "--with", "uvicorn", "--with", "pydantic", "--with", "openai", "--with", "rich", "--with", "python-dotenv", "--with", "tenacity", "python", ".\web\server.py" -NoNewWindow -PassThru
-
-$retry = 0
-$maxRetries = 30
-Write-Host "Waiting for backend to be ready..." -ForegroundColor Gray
-while ($retry -lt $maxRetries) {
-    try {
-        $client = New-Object System.Net.WebClient
-        $null = $client.DownloadString("http://127.0.0.1:$WebPort/api/v1/health")
-        Write-Host "Backend is ready!" -ForegroundColor Green
+$configCandidates = @(
+    (Join-Path $PSScriptRoot 'fleet-start.config.ps1'),
+    (Join-Path (Split-Path -Parent $PSScriptRoot) 'fleet-start.config.ps1')
+)
+$configPath = $null
+foreach ($candidate in $configCandidates) {
+    if (Test-Path -LiteralPath $candidate) {
+        $configPath = $candidate
         break
-    } catch {
-        $retry++
-        Start-Sleep -Seconds 1
     }
 }
-
-if (-not $Automated) {
-    Write-Host "Launching browser..." -ForegroundColor Cyan
-    Start-Process "http://127.0.0.1:$WebPort"
-} else {
-    Write-Host "Automated mode: skipping browser launch." -ForegroundColor Gray
+if (-not $configPath) {
+    Write-Host 'ERROR: Missing fleet-start.config.ps1 (repo root or beside start.ps1).' -ForegroundColor Red
+    exit 1
 }
 
-Wait-Process -Id $proc.Id -ErrorAction SilentlyContinue
+Start-FleetWebapp @PSBoundParameters -ConfigPath $configPath -LauncherRoot $PSScriptRoot
+
