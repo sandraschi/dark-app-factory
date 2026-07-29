@@ -255,6 +255,7 @@ async def run_factory(
         Morpheus,
         Tesla,
         Amodei,
+        Hawks,
     )
 
     council = {
@@ -276,6 +277,7 @@ async def run_factory(
         "Morpheus": Morpheus(),
         "Tesla": Tesla(),
         "Amodei": Amodei(),
+        "Hawks": Hawks(),
         "Generalist": Generalist(),
     }
 
