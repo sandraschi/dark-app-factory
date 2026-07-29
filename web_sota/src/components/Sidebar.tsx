@@ -8,6 +8,7 @@ import {
   BookOpen,
   Wrench,
   Inbox,
+  HardDrive,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import { useUIStore } from "../store/ui";
 const NAV_ITEMS = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/inbox", icon: Inbox, label: "Inbox" },
+  { to: "/depot", icon: HardDrive, label: "Depot" },
   { to: "/tools", icon: Wrench, label: "Tools" },
   { to: "/skills", icon: BookOpen, label: "Skills" },
   { to: "/chat", icon: MessageSquare, label: "Chat" },
