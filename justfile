@@ -53,6 +53,7 @@ fmt:
 # Serve factory dashboard (backend)
 serve:
     Set-Location '{{justfile_directory()}}'
+    $env:PYTHONPATH = '{{justfile_directory()}}'
     uv run uvicorn web.server:app --host 127.0.0.1 --port 10738 --reload
 
 # Serve frontend dev server (Vite)
