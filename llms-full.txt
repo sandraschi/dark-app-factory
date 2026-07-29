@@ -194,10 +194,6 @@ React 19 + Vite 6 + TailwindCSS 3 + Zustand + React Router. 8 pages:
 - CORS on both web and MCP endpoints (fleet standard)
 
 ### Known gaps
-- No import-to-dependency closure check (generated code may import packages not in manifest)
-- No JS/TS static gates (Ruffy is ruff + mypy, Python only)
-- Deep-crawl can materialise icon-library components as local files
-- Sculptor framer-motion guard is literal string match (not regex)
 - e2e_scaffold test hangs without timeout (needs pytest-timeout)
 
 ## Key Files

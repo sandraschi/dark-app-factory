@@ -43,6 +43,10 @@
   output directory, so runs stop overwriting each other's critique.
 - `judge._detect_app_port()` is deprecated; it reads the assigned port from the boot report
   rather than probing.
+- ruffy_runner.py: added JS/TS static gates (tsc --noEmit, vite build, node --check) and
+  import-to-dependency closure check.
+- worker.py deep-crawl: bare package import identifiers no longer materialised as local files.
+- README.md, llms-full.txt: updated known-gaps list.
 
 ### Known issue
 - `tests/test_e2e_scaffold.py` hangs (does not complete in 4 minutes). The remaining 135

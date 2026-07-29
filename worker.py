@@ -525,6 +525,26 @@ Output ONLY the complete src/App.tsx file. No markdown fences.
                     r"from\s+['\"](?:\./|\.\./)?((?:pages|components)/[^'\"]+)['\"]",
                     content,
                 )
+                # Pattern 1b: named imports from bare package specifiers
+                # e.g. import { FaTooth } from "react-icons/fa"
+                # Also catches default+namespace: import Motion from "framer-motion"
+                named_imports = re.findall(
+                    r"import\s+\{([^}]+)\}\s+from\s+['\"](?!\.)[^'\"]+['\"]",
+                    content,
+                )
+                default_imports = re.findall(
+                    r"import\s+(\w+)\s+from\s+['\"](?!\.)[^'\"]+['\"]",
+                    content,
+                )
+                # Collect all identifiers from named imports into a set
+                bare_package_identifiers: set[str] = set()
+                for block in named_imports:
+                    for ident in block.split(","):
+                        bare = ident.strip().split(" as ")[0].strip()
+                        if bare:
+                            bare_package_identifiers.add(bare)
+                for ident in default_imports:
+                    bare_package_identifiers.add(ident)
                 # Pattern 2: JSX element usage  <FooBar />  or  <FooBar>
                 found_elements = re.findall(r"<([A-Z][a-zA-Z0-9]*)[\s/>]", content)
 
@@ -564,6 +584,10 @@ Output ONLY the complete src/App.tsx file. No markdown fences.
                         continue
                     # Skip if already generated via explicit import
                     if item in known_folder:
+                        continue
+                    # Skip if the identifier comes from a bare package import
+                    # (catches icon libraries, UI kits, etc.)
+                    if item in bare_package_identifiers:
                         continue
                     # Heuristic: if a matching file already exists in pages/ or components/, skip
                     already_pages = f"src/pages/{item}.tsx" in generated_files

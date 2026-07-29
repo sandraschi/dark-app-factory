@@ -70,8 +70,6 @@ Ports: dashboard `10738`, MCP `10739`.
 
 ## Project status
 
-v0.2.1-beta. Functional for React + Python/Node stacks. The App.tsx reconciler catches most Vite startup errors, and the Judge now installs the generated app's dependencies, boots it on ports the factory assigns, and fails deterministically when the app does not come up.
-
-Known gap before a generated app can be relied on to run first time: nothing yet cross-checks the packages a generated file imports against `package.json` / `requirements.txt`, and there is no JS/TS static gate (Ruffy is ruff + mypy, Python only). Both are the next work item. See [reports/deep-assess-2026-07-29.md](reports/deep-assess-2026-07-29.md) for the current assessment and plan.
+v0.2.1-beta. The pipeline now includes JS/TS static gates (`tsc --noEmit`, `vite build`, `node --check`), an import-to-dependency closure check that verifies every imported package is declared in `package.json`/`requirements.txt`, and the deep-crawl no longer materialises icon-library components as local files.
 
 Complex apps with many specialists will sometimes need a second pass.
