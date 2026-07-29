@@ -25,7 +25,7 @@ from src.verification.satisfaction_scorer import (
 class TestScoreMechanical:
     def test_not_executed_scores_zero(self):
         result = ScenarioResult(
-            scenario_title="Test", executed=False, skipped_reason="No httpx"
+            scenario_title="Test", scenario_type="api", executed=False, skipped_reason="No httpx"
         )
         score = _score_mechanical(result)
         assert score.satisfaction == 0.0
@@ -34,6 +34,7 @@ class TestScoreMechanical:
     def test_connection_error_low_score(self):
         result = ScenarioResult(
             scenario_title="Test",
+            scenario_type="api",
             executed=True,
             error="Connection refused",
             status_code=None,
@@ -45,6 +46,7 @@ class TestScoreMechanical:
     def test_assertion_passed(self):
         result = ScenarioResult(
             scenario_title="Test",
+            scenario_type="api",
             executed=True,
             status_code=200,
             assertion_met=True,
@@ -58,6 +60,7 @@ class TestScoreMechanical:
     def test_assertion_failed_not_500(self):
         result = ScenarioResult(
             scenario_title="Test",
+            scenario_type="api",
             executed=True,
             status_code=422,
             assertion_met=False,
@@ -71,6 +74,7 @@ class TestScoreMechanical:
     def test_assertion_failed_500(self):
         result = ScenarioResult(
             scenario_title="Test",
+            scenario_type="api",
             executed=True,
             status_code=500,
             assertion_met=False,
@@ -83,6 +87,7 @@ class TestScoreMechanical:
     def test_ambiguous_assertion(self):
         result = ScenarioResult(
             scenario_title="Test",
+            scenario_type="api",
             executed=True,
             status_code=200,
             assertion_met=None,

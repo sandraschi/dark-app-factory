@@ -61,3 +61,15 @@ logs/
 target/
 
 _dashboard/
+
+# Assessment reports
+reports/
+
+# Backup files
+*.bak
+*.bak.*
+
+# Build / artifacts
+native/target/
+native/gen/
+*.mcpb

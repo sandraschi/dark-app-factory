@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "SessionStart": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "text",
+        "text": "## Session Context (Dark App Factory)\n\nYou have access to a software factory that generates full-stack web apps from plain-text descriptions.\n\n**Before starting work:**\n1. Check factory status: factory_fleet(operation=\"web_status\")\n2. List completed builds: factory_outputs(limit=10)\n\n**At end of work:**\n- Assess generated output with factory_assess\n- Start the generated app with factory_launch"
+      }]
+    }]
+  }
+}

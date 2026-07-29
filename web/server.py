@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -17,6 +18,22 @@ from src.utils.logger import logger
 from src.utils.progress import progress
 
 app = FastAPI(title="Dark App Factory Dashboard")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:10738",
+        "http://127.0.0.1:10738",
+        "http://localhost:10739",
+        "http://127.0.0.1:10739",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+        "tauri://localhost",
+    ],
+    allow_origin_regex=r"https?://(?:[a-zA-Z0-9-]+\.ts\.net|.*?\.tail-[a-f0-9]+\.ts\.net|tauri\.localhost|localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?$|^tauri://localhost$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 ghost_extractor = GhostExtractor()
 
 ROOT_DIR = Path(__file__).resolve().parent.parent

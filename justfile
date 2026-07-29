@@ -1,4 +1,5 @@
-﻿set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
+set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
+import 'scripts/just/fleet.just'
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
@@ -31,3 +32,25 @@ audit-deps:
     Set-Location '{{justfile_directory()}}'
     uv run safety check
 
+# Run tests
+test:
+    Set-Location '{{justfile_directory()}}'
+    uv run pytest tests/ -q
+
+# Run ruff format check
+fmt:
+    Set-Location '{{justfile_directory()}}'
+    uv run ruff format src/ --check
+
+# Serve factory dashboard
+serve:
+    Set-Location '{{justfile_directory()}}'
+    uv run uvicorn web.server:app --host 127.0.0.1 --port 10738 --reload
+
+# Run all gates: lint + test + fmt
+gates-green: lint test fmt
+
+# Bootstrap: install dev deps
+bootstrap:
+    uv sync --group dev
+    Write-Host "Dependencies synced." -ForegroundColor Green

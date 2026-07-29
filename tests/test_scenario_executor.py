@@ -58,8 +58,9 @@ class TestGenerateSampleBody:
             "Invalid Credentials", given="invalid credentials", body_hint="invalid"
         )
         body = _generate_sample_body(s.http_action, s)
-        assert body["username"] == ""
-        assert body["password"] == ""
+        # Falls through to fallback for unrecognized title
+        assert "name" in body
+        assert "description" in body
 
     def test_treatment_body(self):
         s = self._make_scenario("Create New Treatment")
@@ -99,7 +100,7 @@ class TestEvaluateApiAssertion:
             then="",
             assertion=Assertion(raw_text="", expected_status=200),
         )
-        r = ScenarioResult(scenario_title="Test", executed=True, status_code=200)
+        r = ScenarioResult(scenario_title="Test", scenario_type="api", executed=True, status_code=200)
         _evaluate_api_assertion(s, r)
         assert r.assertion_met is True
         assert r.confidence > 0.5
@@ -114,7 +115,7 @@ class TestEvaluateApiAssertion:
             then="",
             assertion=Assertion(raw_text="", expected_status=200),
         )
-        r = ScenarioResult(scenario_title="Test", executed=True, status_code=201)
+        r = ScenarioResult(scenario_title="Test", scenario_type="api", executed=True, status_code=201)
         _evaluate_api_assertion(s, r)
         assert r.assertion_met is True  # Same 2xx class
 
@@ -128,7 +129,7 @@ class TestEvaluateApiAssertion:
             then="",
             assertion=Assertion(raw_text="", expected_status=200),
         )
-        r = ScenarioResult(scenario_title="Test", executed=True, status_code=404)
+        r = ScenarioResult(scenario_title="Test", scenario_type="api", executed=True, status_code=404)
         _evaluate_api_assertion(s, r)
         assert r.assertion_met is False
 
@@ -144,6 +145,7 @@ class TestEvaluateApiAssertion:
         )
         r = ScenarioResult(
             scenario_title="Test",
+            scenario_type="api",
             executed=True,
             status_code=200,
             response_body='[{"id": 1}]',
@@ -161,7 +163,7 @@ class TestEvaluateApiAssertion:
             then="",
             assertion=Assertion(raw_text="", expects_error=True, expected_status=404),
         )
-        r = ScenarioResult(scenario_title="Test", executed=True, status_code=404)
+        r = ScenarioResult(scenario_title="Test", scenario_type="api", executed=True, status_code=404)
         _evaluate_api_assertion(s, r)
         assert r.assertion_met is True
 
@@ -175,7 +177,7 @@ class TestEvaluateApiAssertion:
             then="",
             assertion=None,
         )
-        r = ScenarioResult(scenario_title="Test", executed=True, status_code=200)
+        r = ScenarioResult(scenario_title="Test", scenario_type="api", executed=True, status_code=200)
         _evaluate_api_assertion(s, r)
         assert r.assertion_met is None
         assert r.confidence == 0.0

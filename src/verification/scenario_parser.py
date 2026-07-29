@@ -19,7 +19,6 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional
 
 logger = logging.getLogger("dark_factory")
 
@@ -46,7 +45,7 @@ class Assertion:
     """Parsed expected outcome from a THEN clause."""
 
     raw_text: str
-    expected_status: Optional[int] = None  # 200, 201, 404, 409, 403
+    expected_status: int | None = None  # 200, 201, 404, 409, 403
     expects_list: bool = False  # "list of X is returned"
     expects_creation: bool = False  # "is created"
     expects_error: bool = False  # "error is returned"
@@ -64,8 +63,8 @@ class Scenario:
     when: str  # Raw WHEN text
     then: str  # Raw THEN text
     scenario_type: ScenarioType = ScenarioType.STATIC
-    http_action: Optional[HttpAction] = None
-    assertion: Optional[Assertion] = None
+    http_action: HttpAction | None = None
+    assertion: Assertion | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -73,9 +72,7 @@ class Scenario:
 # ---------------------------------------------------------------------------
 
 _CATEGORY_RE = re.compile(r"^##\s+(.+)$", re.MULTILINE)
-_SCENARIO_TITLE_RE = re.compile(
-    r"^\s*-\s*\[[ x]\]\s*\*\*(.+?)\*\*:\s*(.+)$", re.MULTILINE
-)
+_SCENARIO_TITLE_RE = re.compile(r"^\s*-\s*\[[ x]\]\s*\*\*(.+?)\*\*:\s*(.+)$", re.MULTILINE)
 _GIVEN_RE = re.compile(r"^\s*-\s*GIVEN:\s*(.+)$", re.MULTILINE)
 _WHEN_RE = re.compile(r"^\s*-\s*WHEN:\s*(.+)$", re.MULTILINE)
 _THEN_RE = re.compile(r"^\s*-\s*THEN:\s*(.+)$", re.MULTILINE)
@@ -93,7 +90,7 @@ _HTTP_RE = re.compile(
 _STATUS_RE = re.compile(r"(\d{3})\s+\w+", re.IGNORECASE)
 
 
-def parse_http_action(when_text: str) -> Optional[HttpAction]:
+def parse_http_action(when_text: str) -> HttpAction | None:
     """Extract HTTP method and path from a WHEN clause."""
     match = _HTTP_RE.search(when_text)
     if not match:
@@ -109,12 +106,12 @@ def parse_http_action(when_text: str) -> Optional[HttpAction]:
     # Determine body hint
     body_hint = ""
     lower = when_text.lower()
-    if "valid json payload" in lower:
-        body_hint = "valid"
-    elif "invalid json payload" in lower:
+    if "invalid json payload" in lower:
         body_hint = "invalid"
     elif "duplicating" in lower:
         body_hint = "duplicate"
+    elif "valid json payload" in lower:
+        body_hint = "valid"
 
     return HttpAction(method=raw_method, path=path, body_hint=body_hint)
 
@@ -152,23 +149,21 @@ def parse_assertion(then_text: str) -> Assertion:
     return assertion
 
 
-def classify_scenario(
-    http_action: Optional[HttpAction], then_text: str
-) -> ScenarioType:
+def classify_scenario(http_action: HttpAction | None, then_text: str) -> ScenarioType:
     """Determine how to execute a scenario."""
-    if http_action:
-        return ScenarioType.API
-
     lower = then_text.lower()
     # Static/architectural scenarios that can't be mechanically tested
     static_keywords = ["encrypted", "aes-256", "encryption", "hashing"]
     if any(kw in lower for kw in static_keywords):
         return ScenarioType.STATIC
 
+    if http_action:
+        return ScenarioType.API
+
     return ScenarioType.BROWSER
 
 
-def parse_scenarios(text: str) -> List[Scenario]:
+def parse_scenarios(text: str) -> list[Scenario]:
     """Parse a scenarios.md file into a list of Scenario objects.
 
     Args:
@@ -248,7 +243,7 @@ def parse_scenarios(text: str) -> List[Scenario]:
     return scenarios
 
 
-def parse_scenarios_file(path: str) -> List[Scenario]:
+def parse_scenarios_file(path: str) -> list[Scenario]:
     """Parse a scenarios.md file from disk."""
     filepath = Path(path)
     if not filepath.exists():

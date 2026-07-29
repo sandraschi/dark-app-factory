@@ -1,0 +1,6 @@
+{
+  "name": "dark-app-factory",
+  "version": "0.1.0",
+  "description": "Software Factory for local AI — generate web apps from plain text",
+  "hooks": "../hooks/hooks.json"
+}

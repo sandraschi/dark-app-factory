@@ -1,0 +1,49 @@
+{
+    "$schema": "https://schema.tauri.app/config/2",
+    "productName": "Dark App Factory",
+    "version": "0.1.0",
+    "identifier": "com.sandraschi.dark-app-factory",
+    "build": {
+        "frontendDist": "../web"
+    },
+    "app": {
+        "windows": [
+            {
+                "label": "main",
+                "title": "Dark App Factory",
+                "width": 1280,
+                "height": 860,
+                "minWidth": 700,
+                "minHeight": 500,
+                "resizable": true
+            }
+        ],
+        "security": {
+            "csp": null
+        }
+    },
+    "bundle": {
+        "active": true,
+        "targets": ["nsis"],
+        "icon": ["icons/icon.png", "icons/icon.ico"],
+        "resources": [
+            "resources/dark-app-factory-backend.exe",
+            "resources/.env.example"],
+        "windows": {
+            "webviewInstallMode": { "type": "skip" },
+            "nsis": {
+                "installMode": "currentUser",
+                "installerHooks": "./windows/hooks.nsh"
+            }
+        }
+    },
+    "plugins": {}
+}
+
+
+
+
+
+
+
+
