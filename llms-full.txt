@@ -194,7 +194,8 @@ React 19 + Vite 6 + TailwindCSS 3 + Zustand + React Router. 8 pages:
 - CORS on both web and MCP endpoints (fleet standard)
 
 ### Known gaps
-- e2e_scaffold test hangs without timeout (needs pytest-timeout)
+- e2e_scaffold tests are marked @pytest.mark.slow (require Ollama, 10+ min each). Run with `just test-e2e`.
+- Active builds tracked in-memory only (survive restart via /api/runs)
 
 ## Key Files
 

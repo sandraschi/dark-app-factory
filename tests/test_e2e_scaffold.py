@@ -12,7 +12,9 @@ logger = logging.getLogger("dark_factory_e2e")
 E2E_CASES_DIR = os.path.join(os.path.dirname(__file__), "data", "e2e_cases")
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
+@pytest.mark.timeout(600)
 @pytest.mark.parametrize("level, case_name", [
     (1, "simple"),
     (2, "crud"),

@@ -32,10 +32,18 @@ audit-deps:
     Set-Location '{{justfile_directory()}}'
     uv run safety check
 
-# Run tests
+# Run fast tests (excludes slow Ollama-dependent e2e)
 test:
     Set-Location '{{justfile_directory()}}'
-    uv run pytest tests/ -q
+    uv run pytest tests/ -q -m "not slow" --deselect tests/test_e2e_scaffold.py
+
+# Run full test suite including e2e (requires Ollama, 10+ min per test)
+test-e2e:
+    Set-Location '{{justfile_directory()}}'
+    uv run pytest tests/test_e2e_scaffold.py -v --timeout=600
+
+# Run all gates: lint + test + fmt
+gates-green: lint test fmt
 
 # Run ruff format check
 fmt:
