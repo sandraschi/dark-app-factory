@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import _strptime  # noqa: F401 -- PyInstaller must bundle this eagerly
 import os
 import sys
 from pathlib import Path
@@ -20,11 +19,11 @@ if __name__ == "__main__":
     from fastapi import FastAPI
     from dark_app_factory_mcp.server import mcp as _mcp
 
-    app = FastAPI(title="dark-app-factory")
-    app.mount("/mcp", _mcp.http_app(path="/"))
+    _mcp_http = _mcp.http_app()
+    app = FastAPI(title="dark-app-factory", lifespan=_mcp_http.lifespan)
+    app.mount("/mcp", _mcp_http)
 
     host = os.environ.get("DAF_HOST", "127.0.0.1")
     port = int(os.environ.get("DAF_PORT", os.environ.get("MCP_PORT", "10738")))
     log_level = os.environ.get("DAF_LOG_LEVEL", "info")
     uvicorn.run(app, host=host, port=port, log_level=log_level)
-

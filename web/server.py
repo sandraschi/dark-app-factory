@@ -632,7 +632,10 @@ async def fleet_launch(request: FleetLaunchRequest):
     return {"success": True, "message": f"Launched {path.name}"}
 
 
-if os.path.exists(UI_DIR / "index.html"):
+SOTA_DIR = ROOT_DIR / "web_sota" / "dist"
+if SOTA_DIR.exists() and (SOTA_DIR / "index.html").exists():
+    app.mount("/", StaticFiles(directory=str(SOTA_DIR), html=True), name="sota")
+elif os.path.exists(UI_DIR / "index.html"):
     app.mount("/", StaticFiles(directory=str(UI_DIR), html=True), name="static")
 
 

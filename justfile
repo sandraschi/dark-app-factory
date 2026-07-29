@@ -42,10 +42,20 @@ fmt:
     Set-Location '{{justfile_directory()}}'
     uv run ruff format src/ --check
 
-# Serve factory dashboard
+# Serve factory dashboard (backend)
 serve:
     Set-Location '{{justfile_directory()}}'
     uv run uvicorn web.server:app --host 127.0.0.1 --port 10738 --reload
+
+# Serve frontend dev server (Vite)
+dev:
+    Set-Location '{{justfile_directory()}}'
+    Start-Process "bun" -ArgumentList "run --cwd web_sota dev"
+
+# Build the SOTA frontend
+build-web:
+    Set-Location '{{justfile_directory()}}'
+    bun run --cwd web_sota build
 
 # Run all gates: lint + test + fmt
 gates-green: lint test fmt

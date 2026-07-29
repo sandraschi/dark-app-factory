@@ -19,7 +19,6 @@ evidence for the SatisfactionScorer to evaluate probabilistically.
 import logging
 import time
 from dataclasses import dataclass
-from typing import List, Optional
 
 from src.verification.scenario_parser import (
     HttpAction,
@@ -40,7 +39,7 @@ class ScenarioResult:
     skipped_reason: str = ""
 
     # HTTP response data (for API scenarios)
-    status_code: Optional[int] = None
+    status_code: int | None = None
     response_body: str = ""
     response_time_ms: float = 0.0
 
@@ -49,7 +48,7 @@ class ScenarioResult:
     screenshot_path: str = ""
 
     # Assertion evaluation (raw, pre-scoring)
-    assertion_met: Optional[bool] = None  # True/False/None (ambiguous)
+    assertion_met: bool | None = None  # True/False/None (ambiguous)
     assertion_evidence: str = ""  # Why we think it passed or failed
     confidence: float = 0.0  # 0.0-1.0 how sure we are
 
@@ -57,16 +56,14 @@ class ScenarioResult:
     error: str = ""
 
 
-def _generate_sample_body(
-    http_action: HttpAction, scenario: Scenario
-) -> Optional[dict]:
+def _generate_sample_body(http_action: HttpAction, scenario: Scenario) -> dict | None:
     """Generate a plausible request body based on scenario context."""
     if http_action.method in ("GET", "DELETE"):
         return None
 
     lower_title = scenario.title.lower()
     lower_given = scenario.given.lower()
-    lower_when = scenario.when.lower()
+    scenario.when.lower()
     is_invalid = "invalid" in http_action.body_hint or "invalid" in lower_given
 
     if "user" in lower_title or "register" in lower_title or "signup" in lower_title:
@@ -147,8 +144,7 @@ def _evaluate_api_assertion(scenario: Scenario, result: ScenarioResult) -> None:
         if result.status_code == assertion.expected_status:
             passed += 1
             evidence_parts.append(
-                f"Status code matched: expected {assertion.expected_status}, "
-                f"got {result.status_code}"
+                f"Status code matched: expected {assertion.expected_status}, got {result.status_code}"
             )
         else:
             # Allow range matches (2xx for 200-299, etc.)
@@ -162,8 +158,7 @@ def _evaluate_api_assertion(scenario: Scenario, result: ScenarioResult) -> None:
                 )
             else:
                 evidence_parts.append(
-                    f"Status code mismatch: expected {assertion.expected_status}, "
-                    f"got {result.status_code}"
+                    f"Status code mismatch: expected {assertion.expected_status}, got {result.status_code}"
                 )
 
     # Check 2: Response structure matches expectation
@@ -173,11 +168,7 @@ def _evaluate_api_assertion(scenario: Scenario, result: ScenarioResult) -> None:
         if result.response_body.strip().startswith("["):
             passed += 1
             evidence_parts.append("Response is a JSON array (list expected)")
-        elif (
-            '"results"' in body_lower
-            or '"data"' in body_lower
-            or '"items"' in body_lower
-        ):
+        elif '"results"' in body_lower or '"data"' in body_lower or '"items"' in body_lower:
             passed += 0.8
             evidence_parts.append("Response contains list-like wrapper field")
         else:
@@ -195,9 +186,7 @@ def _evaluate_api_assertion(scenario: Scenario, result: ScenarioResult) -> None:
                 "(creation endpoint exists but test payload may not match schema)"
             )
         else:
-            evidence_parts.append(
-                f"Creation may have failed: status={result.status_code}"
-            )
+            evidence_parts.append(f"Creation may have failed: status={result.status_code}")
 
     if assertion.expects_error:
         checks += 1
@@ -217,8 +206,7 @@ def _evaluate_api_assertion(scenario: Scenario, result: ScenarioResult) -> None:
         result.assertion_met = None
         result.confidence = 0.3
         evidence_parts.append(
-            "THEN clause is too ambiguous for mechanical verification -- "
-            "needs LLM-assisted evaluation"
+            "THEN clause is too ambiguous for mechanical verification -- needs LLM-assisted evaluation"
         )
 
     result.assertion_evidence = "; ".join(evidence_parts)
@@ -376,11 +364,11 @@ def execute_browser_scenario(
 
 
 async def execute_all_scenarios(
-    scenarios: List[Scenario],
+    scenarios: list[Scenario],
     base_url: str,
     screenshot_dir: str = "",
     timeout: float = 10.0,
-) -> List[ScenarioResult]:
+) -> list[ScenarioResult]:
     """Execute all parsed scenarios against the running app.
 
     Args:
@@ -403,10 +391,7 @@ async def execute_all_scenarios(
             result = ScenarioResult(
                 scenario_title=scenario.title,
                 scenario_type=ScenarioType.STATIC.value,
-                skipped_reason=(
-                    "Static/architectural scenario -- "
-                    "requires code inspection, not runtime execution"
-                ),
+                skipped_reason=("Static/architectural scenario -- requires code inspection, not runtime execution"),
                 confidence=0.0,
             )
         else:

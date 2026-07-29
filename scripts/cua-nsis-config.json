@@ -1,0 +1,14 @@
+{
+    "product_name": "Dark App Factory",
+    "install_dir": "%LOCALAPPDATA%\\Dark App Factory",
+    "operator_exe": "dark-app-factory-native.exe",
+    "backend_process_names": ["dark-app-factory-native", "dark-app-factory-backend"],
+    "backend_port": 10738,
+    "health_path": "/api/v1/health",
+    "diagnostics_path": "/api/v1/diagnostics",
+    "feature_smoke_path": "/api/v1/system/info",
+    "window_title_re": "Dark App Factory",
+    "nsis_glob": "native/target/release/bundle/nsis/Dark App Factory_*_x64-setup.exe",
+    "bridge_ok_text": "REST bridge reachable",
+    "uninstall_registry_filter": "*Dark App Factory*"
+}

@@ -19,12 +19,11 @@ import logging
 import os
 import shutil
 import subprocess
-from typing import Optional
 
 logger = logging.getLogger("dark_factory")
 
 # Prefer uvx for zero-install execution; fall back to bare binary
-_SHOWBOAT_CMD: Optional[list] = None
+_SHOWBOAT_CMD: list | None = None
 
 
 def _get_showboat_cmd() -> list:
@@ -56,7 +55,7 @@ def is_available() -> bool:
         return False
     try:
         result = subprocess.run(
-            cmd + ["--version"],
+            [*cmd, "--version"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -66,7 +65,7 @@ def is_available() -> bool:
         return False
 
 
-def _run(args: list, workdir: Optional[str] = None) -> subprocess.CompletedProcess:
+def _run(args: list, workdir: str | None = None) -> subprocess.CompletedProcess:
     """Execute a showboat subcommand. Returns CompletedProcess."""
     cmd = _get_showboat_cmd()
     if not cmd:
@@ -84,7 +83,7 @@ def _run(args: list, workdir: Optional[str] = None) -> subprocess.CompletedProce
     )
 
 
-def init(demo_path: str, title: str, workdir: Optional[str] = None) -> bool:
+def init(demo_path: str, title: str, workdir: str | None = None) -> bool:
     """Create a new demo document.
 
     Args:
@@ -99,7 +98,7 @@ def init(demo_path: str, title: str, workdir: Optional[str] = None) -> bool:
     return True
 
 
-def note(demo_path: str, text: str, workdir: Optional[str] = None) -> bool:
+def note(demo_path: str, text: str, workdir: str | None = None) -> bool:
     """Append a commentary note to the demo document."""
     result = _run(["note", demo_path, text], workdir=workdir)
     if result.returncode != 0:
@@ -112,7 +111,7 @@ def exec_cmd(
     demo_path: str,
     lang: str,
     code: str,
-    workdir: Optional[str] = None,
+    workdir: str | None = None,
 ) -> tuple:
     """Run a command, capture output into the demo document.
 
@@ -126,7 +125,7 @@ def exec_cmd(
     return (result.returncode == 0, result.stdout)
 
 
-def image(demo_path: str, script: str, workdir: Optional[str] = None) -> bool:
+def image(demo_path: str, script: str, workdir: str | None = None) -> bool:
     """Run a script expected to produce an image, embed in demo document."""
     result = _run(["image", demo_path, script], workdir=workdir)
     if result.returncode != 0:
@@ -135,13 +134,13 @@ def image(demo_path: str, script: str, workdir: Optional[str] = None) -> bool:
     return True
 
 
-def pop(demo_path: str, workdir: Optional[str] = None) -> bool:
+def pop(demo_path: str, workdir: str | None = None) -> bool:
     """Remove the most recent entry from a demo document."""
     result = _run(["pop", demo_path], workdir=workdir)
     return result.returncode == 0
 
 
-def verify(demo_path: str, workdir: Optional[str] = None) -> tuple:
+def verify(demo_path: str, workdir: str | None = None) -> tuple:
     """Re-run all code blocks and diff against recorded output.
 
     Returns:
@@ -163,7 +162,7 @@ def create_build_demo(
     project_name: str = "Dark App",
     files_generated: int = 0,
     stack_desc: str = "",
-) -> Optional[str]:
+) -> str | None:
     """Create a full build demo artifact for a factory run.
 
     This is the high-level function used by the factory pipeline.

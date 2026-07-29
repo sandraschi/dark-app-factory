@@ -5,7 +5,6 @@ import os
 
 from src.utils.logger import logger
 
-
 # Minimal SVG icon (gradient square, Dark App Factory style)
 ICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -69,9 +68,7 @@ def _write_icons(base_dir: str) -> None:
     icons_dir = os.path.join(base_dir, "icons")
     os.makedirs(icons_dir, exist_ok=True)
     for size in (192, 512):
-        svg = ICON_SVG.replace("512", str(size)).replace(
-            'width="512" height="512"', f'width="{size}" height="{size}"'
-        )
+        svg = ICON_SVG.replace("512", str(size)).replace('width="512" height="512"', f'width="{size}" height="{size}"')
         path = os.path.join(icons_dir, f"icon-{size}.svg")
         with open(path, "w", encoding="utf-8") as f:
             f.write(svg)
@@ -129,7 +126,7 @@ def add_pwa_artifacts(output_dir: str, project_name: str = "Dark App") -> list[s
             _write_service_worker(base_dir)
             written.append(os.path.join(base_dir, "sw.js"))
 
-            with open(index_path, "r", encoding="utf-8") as f:
+            with open(index_path, encoding="utf-8") as f:
                 html = f.read()
             html = _inject_pwa_meta(html)
             with open(index_path, "w", encoding="utf-8") as f:

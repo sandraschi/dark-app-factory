@@ -19,7 +19,6 @@ verdict.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List
 
 from src.verification.scenario_executor import ScenarioResult
 from src.verification.scenario_parser import Scenario
@@ -49,13 +48,13 @@ class SatisfactionReport:
     errored: int = 0
 
     # Per-scenario scores
-    scores: List[ScenarioScore] = field(default_factory=list)
+    scores: list[ScenarioScore] = field(default_factory=list)
 
     # Aggregate metrics
     overall_satisfaction: float = 0.0  # Weighted mean of scenario scores
     overall_confidence: float = 0.0  # Mean confidence across scores
     mechanical_satisfaction: float = 0.0  # Mean of mechanically-scored only
-    category_scores: Dict[str, float] = field(default_factory=dict)
+    category_scores: dict[str, float] = field(default_factory=dict)
 
     # Threshold-based verdict
     verdict: str = "UNDETERMINED"  # SATISFACTORY / PARTIAL / UNSATISFACTORY
@@ -72,9 +71,7 @@ class SatisfactionReport:
             "overall_confidence": round(self.overall_confidence, 3),
             "mechanical_satisfaction": round(self.mechanical_satisfaction, 3),
             "verdict": self.verdict,
-            "category_scores": {
-                k: round(v, 3) for k, v in self.category_scores.items()
-            },
+            "category_scores": {k: round(v, 3) for k, v in self.category_scores.items()},
             "scenarios": [
                 {
                     "title": s.title,
@@ -91,8 +88,7 @@ class SatisfactionReport:
         """Human-readable summary for logs and reports."""
         lines = [
             f"Satisfaction Report: {self.verdict}",
-            f"  Overall: {self.overall_satisfaction:.1%} satisfaction "
-            f"({self.overall_confidence:.1%} confidence)",
+            f"  Overall: {self.overall_satisfaction:.1%} satisfaction ({self.overall_confidence:.1%} confidence)",
             f"  Mechanical: {self.mechanical_satisfaction:.1%}",
             f"  Scenarios: {self.executed}/{self.total_scenarios} executed, "
             f"{self.skipped} skipped, {self.errored} errored",
@@ -235,8 +231,8 @@ REASONING: <one sentence>"""
 
 
 async def compute_satisfaction(
-    scenarios: List[Scenario],
-    results: List[ScenarioResult],
+    scenarios: list[Scenario],
+    results: list[ScenarioResult],
     llm_client=None,
     llm_confidence_threshold: float = 0.5,
     pass_threshold: float = 0.6,
@@ -285,20 +281,13 @@ async def compute_satisfaction(
     for result, mech_score in mechanical_scores:
         scenario = scenario_map.get(result.scenario_title)
 
-        if (
-            llm_client
-            and mech_score.confidence < llm_confidence_threshold
-            and result.executed
-            and scenario
-        ):
+        if llm_client and mech_score.confidence < llm_confidence_threshold and result.executed and scenario:
             logger.info(
                 "LLM-evaluating ambiguous scenario '%s' (mechanical confidence=%.2f)",
                 result.scenario_title,
                 mech_score.confidence,
             )
-            final_score = await _score_with_llm(
-                scenario, result, mech_score, llm_client
-            )
+            final_score = await _score_with_llm(scenario, result, mech_score, llm_client)
         else:
             final_score = mech_score
 
@@ -324,7 +313,7 @@ def _compute_aggregates(report: SatisfactionReport) -> None:
     weighted_sum = 0.0
     confidence_sum = 0.0
     mechanical_scores = []
-    category_accum: Dict[str, List[float]] = {}
+    category_accum: dict[str, list[float]] = {}
 
     for score in report.scores:
         if score.method == "skipped":

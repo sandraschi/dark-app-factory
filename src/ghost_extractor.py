@@ -1,7 +1,7 @@
-import os
 import json
 import logging
-from typing import List, Dict
+import os
+
 from src.llm_client import LLMClient
 
 # Setup logging
@@ -19,7 +19,7 @@ class GhostExtractor:
         self.output_dir = os.path.join(os.getcwd(), "ghosts")
         os.makedirs(self.output_dir, exist_ok=True)
 
-    async def suggest_exemplars(self, query: str) -> List[Dict]:
+    async def suggest_exemplars(self, query: str) -> list[dict]:
         """
         Suggest potential exemplar websites based on a query.
         """
@@ -42,7 +42,7 @@ class GhostExtractor:
             },
         ]
 
-    async def extract_ghost(self, url: str) -> Dict:
+    async def extract_ghost(self, url: str) -> dict:
         """
         Perform a deep dive into a URL to extract its 'ghost' blueprint.
         """

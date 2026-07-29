@@ -20,9 +20,7 @@ async def audit_app(url, timeout=30000):
     try:
         from playwright.async_api import async_playwright
     except ImportError:
-        report["errors"].append(
-            "playwright not installed. Run: pip install playwright && playwright install"
-        )
+        report["errors"].append("playwright not installed. Run: pip install playwright && playwright install")
         return report
 
     async with async_playwright() as p:
@@ -52,24 +50,18 @@ async def audit_app(url, timeout=30000):
             # Check if page is empty
             content = await page.content()
             if len(content) < 500:
-                report["errors"].append(
-                    "Page content suspiciously small (possible failed render)."
-                )
+                report["errors"].append("Page content suspiciously small (possible failed render).")
 
             # Check for common error strings in text
             body_text = await page.inner_text("body")
             if "Failed to resolve import" in body_text:
-                report["errors"].append(
-                    "Vite 'Failed to resolve import' found in body."
-                )
+                report["errors"].append("Vite 'Failed to resolve import' found in body.")
             if "404" in body_text and len(body_text) < 200:
                 report["errors"].append("Possible 404 page detected.")
 
             # Take screenshot
             os.makedirs("audit_results", exist_ok=True)
-            screenshot_path = os.path.abspath(
-                f"audit_results/screenshot_{int(asyncio.get_running_loop().time())}.png"
-            )
+            screenshot_path = os.path.abspath(f"audit_results/screenshot_{int(asyncio.get_running_loop().time())}.png")
             await page.screenshot(path=screenshot_path)
             report["screenshot_path"] = screenshot_path
 
@@ -77,7 +69,7 @@ async def audit_app(url, timeout=30000):
                 report["success"] = True
 
         except Exception as e:
-            report["errors"].append(f"Automation Error: {str(e)}")
+            report["errors"].append(f"Automation Error: {e!s}")
         finally:
             await browser.close()
 

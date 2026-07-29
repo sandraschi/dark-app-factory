@@ -9,21 +9,20 @@ No LLM calls; pure subprocess execution.
 import logging
 import os
 import subprocess
-from typing import Tuple
 
 logger = logging.getLogger("dark_factory")
 
 
 def _has_python_files(output_dir: str) -> bool:
     """Check if output dir contains any Python files."""
-    for root, _, files in os.walk(output_dir):
+    for _root, _, files in os.walk(output_dir):
         for f in files:
             if f.endswith(".py"):
                 return True
     return False
 
 
-def _run_cmd(cmd: list, cwd: str, timeout: int = 60) -> Tuple[int, str, str]:
+def _run_cmd(cmd: list, cwd: str, timeout: int = 60) -> tuple[int, str, str]:
     """Run a command, return (returncode, stdout, stderr)."""
     try:
         result = subprocess.run(
@@ -47,7 +46,7 @@ def _run_cmd(cmd: list, cwd: str, timeout: int = 60) -> Tuple[int, str, str]:
         return (-1, "", str(e))
 
 
-def run_ruffy(output_dir: str) -> Tuple[str, str]:
+def run_ruffy(output_dir: str) -> tuple[str, str]:
     """Run ruff check, ruff format --check, and mypy on output_dir.
 
     Writes demos/lint-report.txt and returns (report_text, report_path).

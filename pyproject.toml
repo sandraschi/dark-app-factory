@@ -1,6 +1,6 @@
 [project]
 name = "dark-app-factory"
-version = "0.1.0"
+version = "0.2.0-beta"
 description = "Software Factory scaffold for local AI models"
 dependencies = [
     "openai>=1.52.0",

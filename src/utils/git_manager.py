@@ -1,5 +1,6 @@
 import os
 import subprocess
+
 from src.utils.logger import logger
 
 
@@ -13,7 +14,7 @@ class GitManager:
         """Helper to run git commands in the target directory."""
         try:
             subprocess.run(
-                ["git"] + args,
+                ["git", *args],
                 cwd=self.target_dir,
                 capture_output=True,
                 text=True,
@@ -40,9 +41,7 @@ class GitManager:
             if self.run_git(["commit", "-m", "Initial build from Dark App Factory"]):
                 logger.success("Git initialized and initial commit created.")
             else:
-                logger.warning(
-                    "Git init succeeded but failed to create initial commit."
-                )
+                logger.warning("Git init succeeded but failed to create initial commit.")
 
     def commit_changes(self, message: str):
         """Adds all changes and commits them."""

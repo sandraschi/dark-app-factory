@@ -1,3 +1,21 @@
+
+## [0.2.0-beta] — 2026-07-29
+
+### Added
+- SOTA React+Vite+Tailwind webapp (web_sota/) — 8 pages: Dashboard, Chat, Tools, Skills, Settings, Help, Logs, Inbox
+- Chat page with 4 personalities, localStorage persistence, TTS SpeakButton, 6 example prompts
+- LLM provider auto-detection (Ollama/LM Studio) in Settings with model selector
+- Session context injection: CLAUDE.md, .cursorrules, .claude-plugin/, .windsurfrules, copilot-instructions.md
+- Zustand stores for LLM state and backend health
+- `just dev`, `just build-web`, `just gates-green` recipes
+- CORSMiddleware on both web and MCP HTTP endpoints (fleet standard origins + regex)
+
+### Fixed
+- CRITICAL: .env was bundled in NSIS installer instead of .env.example — now fixed
+- MCP server uses uvicorn.Server instead of run_http_async() (preserves CORS middleware)
+- Hatchling build: added packages directive to pyproject.toml
+- 16 pre-existing test failures (ScenarioResult missing scenario_type, parse_http_action keyword priority)
+
 # Changelog
 
 All notable changes to the Dark App Factory will be documented in this file.
@@ -138,3 +156,4 @@ All notable changes to the Dark App Factory will be documented in this file.
 
 ## [1.0.0] - 2026-01-15
 - Initial public release of the Dark App Factory methodology.
+

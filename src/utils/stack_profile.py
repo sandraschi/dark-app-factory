@@ -9,7 +9,6 @@ embedded as a STACK_PROFILE HTML comment in specs.md by the Foreman.
 import json
 import logging
 import re
-from typing import Dict
 
 logger = logging.getLogger("dark_factory")
 
@@ -39,7 +38,7 @@ VALID_DATABASES = {
 }
 
 
-def parse_stack_from_vibe(vibe_content: str) -> Dict[str, str]:
+def parse_stack_from_vibe(vibe_content: str) -> dict[str, str]:
     """
     Extract stack profile from vibe.md Tech Stack section.
     Falls back to DEFAULT_STACK for any missing or invalid values.
@@ -65,9 +64,7 @@ def parse_stack_from_vibe(vibe_content: str) -> Dict[str, str]:
                 DEFAULT_STACK["backend"],
             )
 
-    frontend_match = re.search(
-        r"\*\*Frontend\*\*:\s*(\S+)", vibe_content, re.IGNORECASE
-    )
+    frontend_match = re.search(r"\*\*Frontend\*\*:\s*(\S+)", vibe_content, re.IGNORECASE)
     if frontend_match:
         val = frontend_match.group(1).strip().lower()
         if val in VALID_FRONTENDS:
@@ -102,13 +99,13 @@ def parse_stack_from_vibe(vibe_content: str) -> Dict[str, str]:
     return profile
 
 
-def embed_in_specs(specs_content: str, profile: Dict[str, str]) -> str:
+def embed_in_specs(specs_content: str, profile: dict[str, str]) -> str:
     """Prepend a STACK_PROFILE HTML comment to specs content."""
     tag = f"<!-- STACK_PROFILE: {json.dumps(profile)} -->\n\n"
     return tag + specs_content
 
 
-def extract_from_specs(specs_content: str) -> Dict[str, str]:
+def extract_from_specs(specs_content: str) -> dict[str, str]:
     """
     Extract STACK_PROFILE from specs.md HTML comment.
     Falls back to DEFAULT_STACK if not found.
@@ -131,27 +128,27 @@ def extract_from_specs(specs_content: str) -> Dict[str, str]:
     return dict(DEFAULT_STACK)
 
 
-def is_python_backend(profile: Dict[str, str]) -> bool:
+def is_python_backend(profile: dict[str, str]) -> bool:
     """Check if the stack uses a Python backend."""
     return profile.get("backend", "").startswith("python/")
 
 
-def is_node_backend(profile: Dict[str, str]) -> bool:
+def is_node_backend(profile: dict[str, str]) -> bool:
     """Check if the stack uses a Node.js backend."""
     return profile.get("backend", "").startswith("node/")
 
 
-def has_frontend(profile: Dict[str, str]) -> bool:
+def has_frontend(profile: dict[str, str]) -> bool:
     """Check if the stack includes a frontend."""
     return profile.get("frontend", "none") != "none"
 
 
-def is_react_frontend(profile: Dict[str, str]) -> bool:
+def is_react_frontend(profile: dict[str, str]) -> bool:
     """Check if the stack uses React."""
     return profile.get("frontend", "") == "react"
 
 
-def describe_stack(profile: Dict[str, str]) -> str:
+def describe_stack(profile: dict[str, str]) -> str:
     """Human-readable stack description for LLM prompts."""
     backend = profile.get("backend", "node/express")
     frontend = profile.get("frontend", "react")

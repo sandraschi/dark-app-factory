@@ -29,11 +29,10 @@ import os
 import shutil
 import subprocess
 import time
-from typing import Dict, List, Optional
 
 logger = logging.getLogger("dark_factory")
 
-_RODNEY_CMD: Optional[list] = None
+_RODNEY_CMD: list | None = None
 
 
 def _get_rodney_cmd() -> list:
@@ -62,7 +61,7 @@ def is_available() -> bool:
         return False
     try:
         result = subprocess.run(
-            cmd + ["--help"],
+            [*cmd, "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -114,7 +113,7 @@ def stop() -> bool:
     return True
 
 
-def status() -> Optional[str]:
+def status() -> str | None:
     """Get browser status info."""
     result = _run(["status"], timeout=10)
     if result.returncode != 0:
@@ -159,7 +158,7 @@ def wait_load() -> bool:
 # =====================================================================
 
 
-def title() -> Optional[str]:
+def title() -> str | None:
     """Get the page title."""
     result = _run(["title"], timeout=10)
     if result.returncode != 0:
@@ -167,7 +166,7 @@ def title() -> Optional[str]:
     return result.stdout.strip()
 
 
-def js(expression: str) -> Optional[str]:
+def js(expression: str) -> str | None:
     """Evaluate a JavaScript expression and return the result."""
     result = _run(["js", expression], timeout=15)
     if result.returncode != 0:
@@ -176,7 +175,7 @@ def js(expression: str) -> Optional[str]:
     return result.stdout.strip()
 
 
-def text(selector: str) -> Optional[str]:
+def text(selector: str) -> str | None:
     """Get text content of an element."""
     result = _run(["text", selector], timeout=10)
     if result.returncode != 0:
@@ -250,8 +249,8 @@ def screenshot_element(selector: str, filepath: str) -> bool:
 def verify_webapp(
     url: str,
     screenshot_dir: str,
-    checks: Optional[List[Dict]] = None,
-) -> Dict:
+    checks: list[dict] | None = None,
+) -> dict:
     """Run a full browser-based verification of a generated webapp.
 
     This is the high-level function used by the factory judge pipeline.

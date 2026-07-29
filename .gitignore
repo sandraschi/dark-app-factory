@@ -72,4 +72,5 @@ reports/
 # Build / artifacts
 native/target/
 native/gen/
+web_sota/dist/
 *.mcpb
