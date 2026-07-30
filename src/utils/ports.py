@@ -35,7 +35,7 @@ DEFAULT_PORT_END = int(os.environ.get("APP_PORT_END", "19400"))
 
 # Ports that the factory's own infrastructure and generated apps have
 # historically bound. Used by the zombie hunter.
-KNOWN_FACTORY_PORTS = (3000, 5173, 5174, 8000, 8001, 8002, 8080, 10738, 10739)
+KNOWN_FACTORY_PORTS = (3000, 5173, 5174, 8000, 8001, 8002, 8080)
 
 
 def is_port_free(port: int, host: str = "localhost") -> bool:
