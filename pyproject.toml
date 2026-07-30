@@ -45,8 +45,10 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "passlib[bcrypt]>=1.7.4",
     "pre-commit>=4.6.1",
     "pytest-timeout>=2.4.0",
+    "python-jose[cryptography]>=3.5.0",
     "stripe>=15.4.0",
 ]
 

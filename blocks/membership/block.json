@@ -1,0 +1,21 @@
+{
+  "name": "membership",
+  "version": "0.1.0",
+  "description": "User registration, auth, roles, member/customer/employee management with SQLite database",
+  "triggers": ["member", "register", "login", "auth", "user", "role", "profile", "club", "org", "society", "employee", "customer", "team", "signup", "account"],
+  "dependencies": {
+    "python": ["python-jose[cryptography]>=3.3.0", "aiosqlite>=0.20.0"],
+    "node": []
+  },
+  "env_vars": {
+    "JWT_SECRET": "change-me-to-a-random-secret",
+    "JWT_ALGORITHM": "HS256"
+  },
+  "specialists": {
+    "Plumber": { "append": ["backend/routes.py"], "config": {} },
+    "Morpheus": { "append": ["backend/auth.py", "backend/models.py"], "config": {} },
+    "Sculptor": { "append": ["frontend/pages/LoginPage.tsx", "frontend/pages/MembersPage.tsx"], "imports": ["LoginPage", "MembersPage", "ProfileCard"] }
+  },
+  "backend_routes": ["/api/auth/register", "/api/auth/login", "/api/auth/me", "/api/members", "/api/customers", "/api/employees"],
+  "frontend_pages": ["/login", "/members", "/profile"]
+}
