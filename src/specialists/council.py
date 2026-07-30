@@ -44,11 +44,24 @@ class Plumber(Specialist):
         dep_context = self.get_dependency_context(shared_context)
         stack = shared_context.get("stack_profile", {})
         backend = stack.get("backend", "node/express")
+        block_context = shared_context.get("block_context", "")
+        matched_blocks = shared_context.get("matched_blocks", [])
+
+        # Block routing instruction
+        block_instruction = ""
+        if matched_blocks:
+            block_instruction = (
+                "\nINSTALLED BLOCKS (do NOT regenerate these capabilities):\n"
+                f"Blocks: {', '.join(matched_blocks)}\n"
+                f"{block_context}\n"
+                "Your code must call these block routes via HTTP or import, not redefine them.\n"
+            )
 
         if backend.startswith("python/"):
             framework = backend.split("/")[1]  # fastapi, flask, django
             code_prompt = f"""
             {self.ANTI_GASLIGHTING_PROMPT}
+            {block_instruction}
 
             Generate a HIGH-FIDELITY, INDUSTRIAL-GRADE Python backend implementation for: {file_path}
             Framework: {framework.upper()}
@@ -209,6 +222,13 @@ class Sculptor(Specialist):
 
     async def _generate_react(self, file_path: str, specs: str, shared_context: dict[str, Any], worker: Any) -> str:
         dep_context = self.get_dependency_context(shared_context)
+        block_context = shared_context.get("block_context", "")
+        matched_blocks = shared_context.get("matched_blocks", [])
+
+        block_instruction = ""
+        if matched_blocks:
+            import_lines = "\n".join(f"// Block: {b}" for b in matched_blocks)
+            block_instruction = f"\nBLOCK COMPONENTS AVAILABLE (import from src/components/blocks/<name>/):\n{block_context}\n{import_lines}\n"
 
         if file_path == "index.html":
             prompt = """

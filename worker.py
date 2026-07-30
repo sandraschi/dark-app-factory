@@ -183,14 +183,37 @@ async def run_factory(
     except Exception as e:
         logger.warning("Block matching failed (non-fatal): %s", e)
 
-    # 1. Planning -- stack-aware file list
+    # 1a. G3: Pin stack to FastAPI + React when blocks are matched
+    if matched_blocks:
+        logger.info("Blocks matched (%s) — pinning stack to FastAPI + React", [m["name"] for m in matched_blocks])
+        from src.utils.stack_profile import (
+            embed_in_specs as _embed,
+            extract_from_specs as _extract,
+            is_python_backend as _is_py,
+            is_react_frontend as _is_react,
+        )
+        stack_profile["backend"] = "python/fastapi"
+        stack_profile["frontend"] = "react"
+        stack_desc = "FastAPI (Python) + React (TypeScript), Tailwind CSS"
+    else:
+        stack_profile = extract_from_specs(specs)
+        stack_desc = describe_stack(stack_profile)
+
+    # 1b. Planning -- stack-aware file list
     progress.update(25, "Architect: Planning file structure...")
-    file_list_prompt = (
-        f"Read these specs and list ALL files needed for a STUNNING, SOTA, HIGH-FIDELITY implementation.\n"
-        f"Tech stack: {stack_desc}\n"
-        f"Output a FLAT structure (no nested frontend/backend folders). One file path per line.\n"
-        f"Specs: {specs[:3000]}"
-    )
+    prompt_parts = [
+        f"Read these specs and list ALL files needed for a STUNNING, SOTA, HIGH-FIDELITY implementation.",
+        f"Tech stack: {stack_desc}",
+    ]
+    if block_context:
+        prompt_parts.append(
+            f"The following blocks are already installed and provide their routes, pages, and components.\n"
+            f"Do NOT plan to regenerate these capabilities — import and mount them instead.\n"
+            f"Files from blocks are already in place; do not list them.\n"
+            f"{block_context}"
+        )
+    prompt_parts.append(f"Output a FLAT structure (no nested frontend/backend folders). One file path per line.\nSpecs: {specs[:3000]}")
+    file_list_prompt = "\n".join(prompt_parts)
     logger.info("Planning file structure...")
     files_response = await worker.generate(
         file_list_prompt,
@@ -313,10 +336,12 @@ async def run_factory(
     logger.success(f"Total files to generate: {len(file_paths)}")
 
     shared_context = {
-        "file_paths": file_paths,  # planned file list — used by Sculptor for grounded App.tsx
+        "file_paths": file_paths,
         "outputs": {},
         "worker": worker,
         "stack_profile": stack_profile,
+        "block_context": block_context,
+        "matched_blocks": [m["name"] for m in matched_blocks],
     }
     generated_files = set()
 
