@@ -46,7 +46,7 @@ class TestBootReport:
         rm = RunManifest(tmp_output_dir)
         assert rm.is_live is False
         assert rm.app_url is None
-        assert rm.boot_report["install_ran"] is False
+        assert rm.boot_report["install_ok"] is None
 
     def test_log_dir_inside_output(self, tmp_output_dir):
         rm = RunManifest(tmp_output_dir)
@@ -58,11 +58,12 @@ class TestInstallPhase:
         rm = RunManifest(tmp_output_dir)
         assert rm.install_dependencies() is True
         assert rm.boot_report["install_errors"] == []
+        assert rm.boot_report["install_ok"] == "skipped_nothing_to_install"
 
     def test_disabled_install_skips(self, tmp_output_dir):
         rm = RunManifest(tmp_output_dir, install_deps=False)
         assert rm.install_dependencies() is True
-        assert rm.boot_report["install_ran"] is False
+        assert rm.boot_report["install_ok"] == "skipped_disabled"
 
     def test_existing_node_modules_skips_node_install(self, tmp_output_dir):
         with open(os.path.join(tmp_output_dir, "package.json"), "w") as f:

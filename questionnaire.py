@@ -6,12 +6,31 @@ from utils.logger import logger
 
 
 def main():
+    import glob
+
     logger.info("=== Dark App Factory Feedback ===")
-    logger.info("The factory has delivered your app. How is it?")
+
+    # Check if the most recent run failed
+    last_verdict = ""
+    critique_paths = sorted(glob.glob("critique.md"), key=os.path.getmtime, reverse=True)
+    if critique_paths:
+        with open(critique_paths[0], encoding="utf-8") as f:
+            content = f.read()
+            if "VERDICT: FAIL" in content:
+                last_verdict = "FAIL"
+            elif "VERDICT: PASS" in content:
+                last_verdict = "PASS"
+
+    if last_verdict == "FAIL":
+        logger.info("The most recent build did not pass quality gate.")
+        want_notes = input("Record notes for the next attempt? (y/N): ").strip().lower()
+        if want_notes not in ("y", "yes"):
+            logger.info("Skipping feedback.")
+            return
+    else:
+        logger.info("The factory has delivered your app. How is it?")
 
     try:
-        # Interactive prompts -- these are user-facing CLI, not log output.
-        # Using input() is correct here since this is a questionnaire script.
         rating_str = input("Rate the vibe (1-10): ").strip()
         try:
             rating = int(rating_str)
@@ -30,15 +49,10 @@ def main():
             f"- **Broken**: {broken}\n"
         )
 
-        # Save to feedback.md
         with open("feedback.md", "a", encoding="utf-8") as f:
             f.write(feedback)
 
-        # Append to vibe.md to influence next run
-        with open("vibe.md", "a", encoding="utf-8") as f:
-            f.write(f"\n\n> **User Feedback**: {missing}. Fix: {broken}.")
-
-        logger.success("Feedback recorded. Next run will incorporate it.")
+        logger.success("Feedback recorded.")
         input("Press Enter to close...")
 
     except KeyboardInterrupt:

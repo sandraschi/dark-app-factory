@@ -251,12 +251,15 @@ async def run_judgement(
 
     # 3.5 DTU Log Verification
     dtu_logs = []
-    if dtu_url:
+    is_live = orchestrator.boot_report.get("is_live", False)
+    if dtu_url and is_live:
         dtu_logs = await query_dtu_logs(dtu_url)
         if dtu_logs:
             logger.info(f"DTU Interaction Verified: Observed {len(dtu_logs)} service calls.")
         else:
             logger.warning("DTU integrated but no service logs observed (possible failed interaction).")
+    elif dtu_url and not is_live:
+        logger.info("App never started — DTU interaction check not applicable.")
 
     # 4. Final Verdict
     boot_report = orchestrator.boot_report
@@ -339,11 +342,17 @@ async def run_judgement(
     # the LLM concludes from the file listing. This is the anti-gaslighting
     # backstop for the whole pipeline.
     if boot_failed:
+        install_status = boot_report.get("install_ok", "unknown")
+        dep_line = (
+            f"Dependency install: {install_status}."
+            if install_status not in ("skipped_nothing_to_install", None)
+            else "No dependencies to install (no package.json or requirements.txt)."
+        )
         reason = (
             "VERDICT: FAIL\n"
             "SATISFACTION: 0%\n"
             "CRITIQUE: The generated application never started. "
-            f"Dependency install ok: {boot_report.get('install_ok')}. "
+            f"{dep_line} "
             f"Install errors: {boot_report.get('install_errors')}. "
             f"Process status: {boot_report.get('process_status')}.\n"
             "No runtime behaviour could be verified, so no scenario can be "

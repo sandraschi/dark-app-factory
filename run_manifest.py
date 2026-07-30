@@ -366,14 +366,21 @@ class RunManifest:
         fails with "Cannot find module 'express'" or "No module named
         'fastapi'", and the judge then evaluates a dead server.
         """
+        self.boot_report["install_ran"] = True
+
         if not self.install_deps:
             logger.info("Dependency install disabled; booting as-is.")
+            self.boot_report["install_ok"] = "skipped_disabled"
+            return True
+
+        has_package_json = os.path.exists(os.path.join(self.output_dir, "package.json"))
+        has_requirements = os.path.exists(os.path.join(self.output_dir, "requirements.txt"))
+
+        if not has_package_json and not has_requirements:
+            self.boot_report["install_ok"] = "skipped_nothing_to_install"
             return True
 
         ok = True
-        self.boot_report["install_ran"] = True
-
-        has_package_json = os.path.exists(os.path.join(self.output_dir, "package.json"))
         has_node_modules = os.path.isdir(os.path.join(self.output_dir, "node_modules"))
         if has_package_json:
             if has_node_modules:
@@ -381,8 +388,7 @@ class RunManifest:
             else:
                 ok = self._run_install("node", self._node_installer()) and ok
 
-        req_path = os.path.join(self.output_dir, "requirements.txt")
-        if os.path.exists(req_path):
+        if has_requirements:
             ok = (
                 self._run_install(
                     "python",
@@ -391,7 +397,7 @@ class RunManifest:
                 and ok
             )
 
-        self.boot_report["install_ok"] = ok
+        self.boot_report["install_ok"] = "installed" if ok else "failed"
         return ok
 
     # ------------------------------------------------------------------

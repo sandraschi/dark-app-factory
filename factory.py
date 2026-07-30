@@ -379,8 +379,14 @@ async def main_flow(
                 progress.add_step("Demo", "Generating build artifact")
                 progress.update(75, "Showboat: Generating build demo artifact...")
                 demos_dir = os.path.join(output_dir, "demos")
-                # Count generated files
-                file_count = sum(len(files) for _, _, files in os.walk(output_dir))
+                # Count generated files (exclude git, demos, factory-logs)
+                EXCLUDE_DIRS = {".git", "demos", ".factory-logs"}
+                file_count = 0
+                for root, dirs, files in os.walk(output_dir):
+                    rel = os.path.relpath(root, output_dir)
+                    if any(part in EXCLUDE_DIRS for part in rel.split(os.sep)):
+                        continue
+                    file_count += len(files)
                 demo_path = showboat_runner.create_build_demo(
                     output_dir=output_dir,
                     demo_dir=demos_dir,
