@@ -124,6 +124,7 @@ Ports: dashboard `10738`, MCP `10739`.
 - [docs/CONFIGURATION.md](docs/CONFIGURATION.md) — All env vars
 - [docs/USAGE.md](docs/USAGE.md) — Vibe format, CLI reference, common workflows
 - [CHANGELOG.md](CHANGELOG.md) — Version history
+- [docs/BLOCKS_PLAN.md](docs/BLOCKS_PLAN.md) — Building blocks system plan
 - [PRD.md](PRD.md) — Product requirements and roadmap
 
 ## License
