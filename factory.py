@@ -351,6 +351,30 @@ async def main_flow(
                 progress.update(100, "Aborted: worker produced no output")
                 raise RuntimeError("Worker produced zero files")
 
+            # --- Repair loop: syntax check + targeted fixes ---
+            try:
+                from src.utils.repair import check_syntax, repair_file
+
+                max_repair_passes = 3
+                for pass_num in range(1, max_repair_passes + 1):
+                    progress.update(65, f"Repair pass {pass_num}/{max_repair_passes}...")
+                    errors = check_syntax(output_dir)
+                    if not errors:
+                        if pass_num > 1:
+                            logger.info("Repair: all files clean after pass %d", pass_num)
+                        break
+                    logger.warning("Repair pass %d: %d file(s) with syntax errors", pass_num, len(errors))
+                    fixed_any = False
+                    for err in errors:
+                        logger.warning("  %s line %d: %s", err["file"], err["lineno"], err["error"])
+                        if repair_file(err["path"], err["error"], err["lineno"]):
+                            fixed_any = True
+                    if not fixed_any:
+                        logger.warning("Repair: no automated fix available — giving up after pass %d", pass_num)
+                        break
+            except ImportError:
+                pass  # repair module not available
+
             # --- manifest.json for RunManifest (judge phase) ---
             from run_manifest import write_manifest_from_output
 
