@@ -96,9 +96,7 @@ state = {"active_builds": 0, "last_verdict": "No runs yet"}
 
 def load_settings() -> dict:
     if not SETTINGS_FILE.exists():
-        SETTINGS_FILE.write_text(
-            json.dumps(DEFAULT_SETTINGS, indent=2), encoding="utf-8"
-        )
+        SETTINGS_FILE.write_text(json.dumps(DEFAULT_SETTINGS, indent=2), encoding="utf-8")
         return dict(DEFAULT_SETTINGS)
     try:
         data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
@@ -120,13 +118,18 @@ def save_settings(settings: dict) -> dict:
 def list_help_docs() -> list[dict]:
     help_docs = []
     for path in sorted(DOCS_DIR.glob("*.md")):
-        help_docs.append(
-            {"id": path.stem, "title": path.stem.replace("_", " "), "path": str(path)}
-        )
+        help_docs.append({"id": path.stem, "title": path.stem.replace("_", " "), "path": str(path)})
+    # Add block READMEs
+    blocks_dir = ROOT_DIR / "blocks"
+    if blocks_dir.exists():
+        for block_dir in sorted(blocks_dir.iterdir()):
+            if block_dir.is_dir():
+                readme = block_dir / "README.md"
+                if readme.exists():
+                    name = block_dir.name.replace("_", " ").title()
+                    help_docs.append({"id": f"block/{block_dir.name}", "title": f"Block: {name}", "path": str(readme)})
     if README_FILE.exists():
-        help_docs.insert(
-            0, {"id": "README", "title": "README", "path": str(README_FILE)}
-        )
+        help_docs.insert(0, {"id": "README", "title": "README", "path": str(README_FILE)})
     return help_docs
 
 
@@ -147,7 +150,7 @@ async def launch_factory(vibe: str, ghost_blueprint_path: str | None = None) -> 
         state["active_builds"] += 1
         ghost_dna = None
         if ghost_blueprint_path and os.path.exists(ghost_blueprint_path):
-            with open(ghost_blueprint_path, "r", encoding="utf-8") as file:
+            with open(ghost_blueprint_path, encoding="utf-8") as file:
                 ghost_dna = json.load(file)
         # Write vibe content to a temp file — main_flow expects a file path, not raw content
         vibe_path = ROOT_DIR / "outputs" / f"_vibe_{int(time.time())}.md"
@@ -185,8 +188,9 @@ _runs: dict = {}
 @app.post("/api/run")
 async def start_run(req: RunRequest):
     """Start a factory generation run as a background subprocess."""
-    import uuid, time, sys
-    from pathlib import Path as P
+    import sys
+    import time
+    import uuid
 
     run_id = str(uuid.uuid4())[:8]
     work_dir = ROOT_DIR / "outputs" / f"_run_{run_id}"
@@ -208,42 +212,44 @@ async def start_run(req: RunRequest):
     worker_arg = f", worker_model='{req.worker_model}'" if req.worker_model else ""
 
     cmd = [
-        sys.executable, "-c",
+        sys.executable,
+        "-c",
         (
-            "import asyncio, sys; sys.path.insert(0, r'{repo}'); "
+            f"import asyncio, sys; sys.path.insert(0, r'{ROOT_DIR!s}'); "
             "from factory import main_flow; "
             "asyncio.run(main_flow("
-            "vibe_path=r'{vibe}', output_dir=r'{out}', work_dir=r'{work}'"
-            "{fm}{wm}))"
-        ).format(
-            repo=str(ROOT_DIR),
-            vibe=str(vibe_path),
-            out=output_dir,
-            work=str(work_dir),
-            fm=foreman_arg,
-            wm=worker_arg,
+            f"vibe_path=r'{vibe_path!s}', output_dir=r'{output_dir}', work_dir=r'{work_dir!s}'"
+            f"{foreman_arg}{worker_arg}))"
         ),
     ]
 
     log_path = work_dir / "run.log"
     with open(log_path, "w", encoding="utf-8") as lf:
         proc = subprocess.Popen(
-            cmd, cwd=str(ROOT_DIR),
-            stdout=lf, stderr=subprocess.STDOUT,
+            cmd,
+            cwd=str(ROOT_DIR),
+            stdout=lf,
+            stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,
         )
 
     _runs[run_id] = {
-        "run_id": run_id, "pid": proc.pid, "proc": proc,
-        "output_dir": output_dir, "work_dir": str(work_dir),
+        "run_id": run_id,
+        "pid": proc.pid,
+        "proc": proc,
+        "output_dir": output_dir,
+        "work_dir": str(work_dir),
         "log_path": str(log_path),
         "vibe_snippet": req.vibe[:200],
         "started_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "status": "running",
     }
     return {
-        "success": True, "run_id": run_id, "pid": proc.pid,
-        "output_dir": output_dir, "log_path": str(log_path),
+        "success": True,
+        "run_id": run_id,
+        "pid": proc.pid,
+        "output_dir": output_dir,
+        "log_path": str(log_path),
     }
 
 
@@ -263,11 +269,16 @@ async def poll_run(run_id: str, log_tail: int = 40):
     rec["status"] = status
 
     result: dict = {
-        "run_id": run_id, "status": status, "exit_code": exit_code,
-        "pid": rec["pid"], "started_at": rec["started_at"],
-        "output_dir": rec["output_dir"], "vibe_snippet": rec["vibe_snippet"],
+        "run_id": run_id,
+        "status": status,
+        "exit_code": exit_code,
+        "pid": rec["pid"],
+        "started_at": rec["started_at"],
+        "output_dir": rec["output_dir"],
+        "vibe_snippet": rec["vibe_snippet"],
     }
     from pathlib import Path as P
+
     op = P(rec["output_dir"])
     if status == "completed" and op.exists():
         result["file_count"] = sum(1 for _ in op.rglob("*") if _.is_file())
@@ -283,14 +294,16 @@ async def list_runs():
     summary = []
     for rec in _runs.values():
         code = rec["proc"].poll()
-        summary.append({
-            "run_id": rec["run_id"],
-            "status": "running" if code is None else ("completed" if code == 0 else "failed"),
-            "exit_code": code,
-            "started_at": rec["started_at"],
-            "output_dir": rec["output_dir"],
-            "vibe_snippet": rec["vibe_snippet"],
-        })
+        summary.append(
+            {
+                "run_id": rec["run_id"],
+                "status": "running" if code is None else ("completed" if code == 0 else "failed"),
+                "exit_code": code,
+                "started_at": rec["started_at"],
+                "output_dir": rec["output_dir"],
+                "vibe_snippet": rec["vibe_snippet"],
+            }
+        )
     return {"runs": list(reversed(summary))}
 
 
@@ -310,6 +323,7 @@ async def stop_run(run_id: str):
 @app.get("/api/outputs")
 async def list_outputs(limit: int = 20):
     import time as _time
+
     outputs_dir = ROOT_DIR / "outputs"
     if not outputs_dir.exists():
         return {"outputs": []}
@@ -330,23 +344,25 @@ async def list_outputs(limit: int = 20):
         rp = d / "README.md"
         if rp.exists():
             readme_snippet = rp.read_text(encoding="utf-8", errors="replace")[:300]
-        result.append({
-            "name": d.name,
-            "path": str(d),
-            "mtime": d.stat().st_mtime,
-            "mtime_human": _time.strftime("%Y-%m-%d %H:%M", _time.localtime(d.stat().st_mtime)),
-            "stack": manifest.get("stack", ""),
-            "project_name": manifest.get("project_name", ""),
-            "file_count": len(manifest.get("files", [])) or None,
-            "readme_snippet": readme_snippet,
-        })
+        result.append(
+            {
+                "name": d.name,
+                "path": str(d),
+                "mtime": d.stat().st_mtime,
+                "mtime_human": _time.strftime("%Y-%m-%d %H:%M", _time.localtime(d.stat().st_mtime)),
+                "stack": manifest.get("stack", ""),
+                "project_name": manifest.get("project_name", ""),
+                "file_count": len(manifest.get("files", [])) or None,
+                "readme_snippet": readme_snippet,
+            }
+        )
     return {"outputs": result}
 
 
 @app.post("/api/outputs/launch")
 async def launch_output(req: LaunchOutputRequest):
-    import sys
     from pathlib import Path as P
+
     target = P(req.output_dir)
     if not target.exists():
         raise HTTPException(status_code=404, detail=f"Directory not found: {req.output_dir}")
@@ -370,32 +386,37 @@ async def launch_output(req: LaunchOutputRequest):
         entry = "main.py" if has_mp else "app.py"
         cmd = f"pip install -r requirements.txt & python {entry}"
         subprocess.Popen(
-            ["cmd", "/k", cmd], cwd=str(target), env=env,
+            ["cmd", "/k", cmd],
+            cwd=str(target),
+            env=env,
             creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
         launched.append({"type": "python", "port": port, "url": f"http://localhost:{port}"})
         if has_pj:
-            vp = (req.port or 5173)
-            env2 = env.copy(); env2["VITE_PORT"] = str(vp)
+            vp = req.port or 5173
+            env2 = env.copy()
+            env2["VITE_PORT"] = str(vp)
             subprocess.Popen(
                 ["cmd", "/k", "npm.cmd install --legacy-peer-deps & npm.cmd run dev"],
-                cwd=str(target), env=env2,
+                cwd=str(target),
+                env=env2,
                 creationflags=subprocess.CREATE_NEW_CONSOLE,
             )
             launched.append({"type": "vite", "port": vp, "url": f"http://localhost:{vp}"})
     else:
-        bp = req.port or 3000; vp = bp + 1
-        env["PORT"] = str(bp); env["VITE_PORT"] = str(vp)
+        bp = req.port or 3000
+        vp = bp + 1
+        env["PORT"] = str(bp)
+        env["VITE_PORT"] = str(vp)
         subprocess.Popen(
             ["cmd", "/k", "npm.cmd install --legacy-peer-deps & npm.cmd run dev"],
-            cwd=str(target), env=env,
+            cwd=str(target),
+            env=env,
             creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
-        launched.append({"type": "node", "backend_port": bp, "frontend_port": vp,
-                         "url": f"http://localhost:{vp}"})
+        launched.append({"type": "node", "backend_port": bp, "frontend_port": vp, "url": f"http://localhost:{vp}"})
 
     return {"success": True, "launched": launched}
-
 
 
 class AssessmentResult(BaseModel):
@@ -405,11 +426,11 @@ class AssessmentResult(BaseModel):
     generated_at: str
     file_stats: dict
     language_breakdown: dict
-    structure_score: int       # 0-100
+    structure_score: int  # 0-100
     completeness_issues: list[str]
     syntax_errors: list[str]
     strengths: list[str]
-    grade: str                 # A/B/C/D/F
+    grade: str  # A/B/C/D/F
     summary: str
 
 
@@ -457,7 +478,6 @@ async def get_output_report(output_name: str):
             return FileResponse(str(path))
     raise HTTPException(status_code=404, detail="No reports found for this output")
 
-
     return {
         "active_builds": state["active_builds"],
         "last_verdict": state["last_verdict"],
@@ -489,7 +509,7 @@ async def get_models():
                     for m in data.get("models", []):
                         found.append({"id": m.get("name", ""), "provider": provider_name})
                     return found
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         # Fallback: try Ollama's /api/tags endpoint
         if provider_name == "ollama":
@@ -498,13 +518,11 @@ async def get_models():
                 with urllib.request.urlopen(fallback, timeout=2.0) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                     return [{"id": m["name"], "provider": "ollama"} for m in data.get("models", []) if "name" in m]
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
         return []
 
-    results = await asyncio.gather(
-        *(asyncio.to_thread(probe, p["url"], p["name"]) for p in providers)
-    )
+    results = await asyncio.gather(*(asyncio.to_thread(probe, p["url"], p["name"]) for p in providers))
     for res in results:
         models.extend(res)
 
@@ -577,7 +595,7 @@ async def list_specialists():
                 }
             )
         return {"success": True, "specialists": specialists}
-    except Exception as error:  # noqa: BLE001
+    except Exception as error:
         logger.error(f"Error listing specialists: {error}")
         raise HTTPException(status_code=500, detail=str(error))
 
@@ -587,7 +605,7 @@ async def suggest_exemplars(req: SuggestRequest):
     try:
         suggestions = await ghost_extractor.suggest_exemplars(req.query)
         return {"success": True, "suggestions": suggestions}
-    except Exception as error:  # noqa: BLE001
+    except Exception as error:
         logger.error(f"Discovery error: {error}")
         raise HTTPException(status_code=500, detail=str(error))
 
@@ -597,7 +615,7 @@ async def ghost_site(req: GhostRequest):
     try:
         result = await ghost_extractor.extract_ghost(req.url)
         return {"success": True, **result}
-    except Exception as error:  # noqa: BLE001
+    except Exception as error:
         logger.error(f"Ghost extraction error: {error}")
         raise HTTPException(status_code=500, detail=str(error))
 
@@ -628,6 +646,7 @@ async def refine_prompt(request: RefineRequest):
 async def launch(req: BuildRequest):
     if state["active_builds"] > 0:
         raise HTTPException(status_code=429, detail="A build is already in progress.")
+
     async def _safe_launch():
         try:
             await launch_factory(req.vibe_content, req.ghost_blueprint_path)
@@ -635,6 +654,7 @@ async def launch(req: BuildRequest):
             logger.error("Build task attempted sys.exit — blocked")
         except Exception as exc:
             logger.exception("Build task failed: %s", exc)
+
     asyncio.create_task(_safe_launch())
     return {"success": True, "message": "Build launched."}
 
@@ -649,9 +669,7 @@ async def health_v1():
 async def fleet_launch(request: FleetLaunchRequest):
     path = Path(request.repo_path)
     if not path.exists():
-        raise HTTPException(
-            status_code=404, detail=f"Path {request.repo_path} does not exist"
-        )
+        raise HTTPException(status_code=404, detail=f"Path {request.repo_path} does not exist")
     try:
         repos_root = Path(os.environ.get("FLEET_REPOS_ROOT", "D:\\Dev\\repos")).resolve()
         path.resolve().relative_to(repos_root)
@@ -678,7 +696,7 @@ async def fleet_launch(request: FleetLaunchRequest):
             cwd=str(path),
             creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
-    except Exception as error:  # noqa: BLE001
+    except Exception as error:
         logger.error(f"Launch failed: {error}")
         raise HTTPException(status_code=500, detail=str(error))
     return {"success": True, "message": f"Launched {path.name}"}
@@ -691,7 +709,7 @@ async def progress_sse():
 
     async def event_stream():
         last_id = 0
-        yield f"data: {json.dumps({'type': 'state', ** _p.get_state()})}\n\n"
+        yield f"data: {json.dumps({'type': 'state', **_p.get_state()})}\n\n"
         while True:
             try:
                 events = await asyncio.to_thread(_p.get_events_since, last_id)
