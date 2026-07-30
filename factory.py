@@ -320,6 +320,15 @@ async def main_flow(
         await generate_blueprint(vibe_content, foreman=foreman_client)
         progress.complete_step("Foreman Plan")
 
+        # Abort if specs generation failed
+        specs_path = scenarios_path.replace("scenarios", "specs")
+        if not os.path.exists("specs/specs.md"):
+            logger.error("Specs generation produced no output — aborting.")
+            progress.update(100, "Aborted: specs generation failed")
+            if work_dir:
+                os.chdir(original_cwd)
+            return False
+
         # 4. DTU (Mock Environment)
         progress.add_step("DTU Startup", "Spinning up mock services")
         progress.update(15, "Digital Twin: Spinning up environment...")
@@ -334,6 +343,13 @@ async def main_flow(
             await run_factory("specs/specs.md", output_dir, worker=worker_client)
 
             progress.complete_step("Worker Build")
+
+            # Abort if worker produced nothing
+            worker_files = sum(len(files) for _, _, files in os.walk(output_dir)) if os.path.exists(output_dir) else 0
+            if worker_files == 0:
+                logger.error("Worker produced no files — aborting.")
+                progress.update(100, "Aborted: worker produced no output")
+                raise RuntimeError("Worker produced zero files")
 
             # --- manifest.json for RunManifest (judge phase) ---
             from run_manifest import write_manifest_from_output

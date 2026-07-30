@@ -60,16 +60,14 @@ def write_manifest_from_output(output_dir: str) -> str | None:
     if is_python and has_package_json:
         entry_points["react_entry"] = "index.html"
 
-    if not entry_points:
-        logger.warning("No bootable components detected; writing minimal manifest.")
-        entry_points = {"backend": "main.py"}
-
     manifest_data = {
         "entry_points": entry_points,
+        "bootable": bool(entry_points),
         "generated_by": "Dark App Factory",
     }
 
     try:
+        os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
         with open(manifest_path, "w", encoding="utf-8") as f:
             json.dump(manifest_data, f, indent=2)
         logger.info("Wrote manifest.json -> %s", manifest_path)
@@ -249,6 +247,10 @@ class RunManifest:
 
             # Worker-generated manifest has "entry_points" key; convert it
             if "entry_points" in manifest_data:
+                # Non-bootable manifests carry bootable: false
+                if not manifest_data.get("bootable", True):
+                    logger.warning("manifest.json says bootable: false — nothing to boot.")
+                    return {"components": []}
                 converted = self._manifest_to_components(manifest_data)
                 if converted and converted["components"]:
                     logger.info(
@@ -257,7 +259,8 @@ class RunManifest:
                         len(converted["components"]),
                     )
                     return converted
-                logger.warning("manifest.json found but no bootable entry_points. Falling back to detection.")
+                logger.warning("manifest.json found but no bootable entry_points — nothing to boot.")
+                return {"components": []}
 
             # Legacy format with "components" key -- use directly
             if "components" in manifest_data:
@@ -288,8 +291,7 @@ class RunManifest:
             components = [{"name": "app", "command": "npm run dev", "cwd": "."}]
 
         if not components:
-            logger.error("Could not detect any bootable components.")
-            components = [{"name": "backend", "command": "npm start", "cwd": "."}]
+            logger.error("Could not detect any bootable components — nothing to boot.")
 
         return {"components": components}
 
