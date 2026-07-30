@@ -18,22 +18,19 @@ def preflight_models(base_url: str, *model_names: str) -> None:
         return  # remote provider — skip preflight
     tags_url = base_url.rstrip("/v1").rstrip("/") + "/api/tags"
     try:
-        req = urllib.request.Request(tags_url)
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        req = urllib.request.Request(tags_url)  # noqa: S310
+        with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310
             data = json.loads(resp.read().decode())
         available = {m["name"] for m in data.get("models", []) if "name" in m}
     except Exception as e:
-        raise ValueError(
-            f"Cannot reach Ollama at {tags_url} — is it running?\n{e}"
-        ) from e
+        raise ValueError(f"Cannot reach Ollama at {tags_url} — is it running?\n{e}") from e
 
     missing = [m for m in model_names if m and m not in available]
     if missing:
         ordered = sorted(available)
         raise ValueError(
             f"Model(s) not found: {', '.join(missing)}\n"
-            f"Available models on this machine:\n"
-            + "\n".join(f"  - {m}" for m in ordered)
+            f"Available models on this machine:\n" + "\n".join(f"  - {m}" for m in ordered)
         )
 
 
