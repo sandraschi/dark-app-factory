@@ -16,7 +16,7 @@ export default function Skills() {
   useEffect(() => {
     apiGet<{ success: boolean; specialists: Specialist[] }>("/api/specialists").then((d) => {
       if (d.success) setSpecialists(d.specialists);
-    }).catch(() => {});
+    }).catch((e) => console.error("Failed to load specialists:", e));
   }, []);
 
   return (

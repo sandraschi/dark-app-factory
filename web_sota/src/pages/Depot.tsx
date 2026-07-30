@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiGet, apiPost, OutputEntry } from "../lib/api";
+import { apiGet, apiPost, API_BASE, OutputEntry } from "../lib/api";
 import { HardDrive, Play, FileText, ExternalLink, Search } from "lucide-react";
 
 export default function Depot() {
@@ -10,7 +10,7 @@ export default function Depot() {
   useEffect(() => {
     apiGet<{ outputs: OutputEntry[] }>("/api/outputs?limit=50")
       .then((d) => setOutputs(d.outputs))
-      .catch(() => {});
+      .catch((e) => console.error("Failed to load outputs:", e));
   }, []);
 
   const filtered = search
@@ -26,15 +26,10 @@ export default function Depot() {
     setLaunching(name);
     try {
       await apiPost("/api/outputs/launch", { output_dir: name });
-    } catch {
-      // ignore
+    } catch (e) {
+      console.error("Launch failed:", e);
     }
     setLaunching(null);
-  }
-
-  function openDir(path: string) {
-    fetch(`http://127.0.0.1:10738/api/outputs?limit=1`).catch(() => {});
-    // The backend doesn't have a open-dir endpoint — just launch
   }
 
   return (

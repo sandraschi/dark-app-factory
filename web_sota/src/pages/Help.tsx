@@ -14,7 +14,7 @@ export default function Help() {
   useEffect(() => {
     apiGet<{ success: boolean; docs: HelpDoc[] }>("/api/help").then((d) => {
       if (d.success) setDocs(d.docs);
-    }).catch(() => {});
+    }).catch((e) => console.error("Failed to load help docs:", e));
   }, []);
 
   useEffect(() => {

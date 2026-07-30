@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { apiGet, apiPost, RunSummary } from "../lib/api";
+import { apiGet, apiPost, API_BASE, RunSummary } from "../lib/api";
 import { useLLMStore } from "../store/llm";
 import { Send, Square, Loader2, CheckCircle, XCircle, File, Sparkles, RefreshCw, Settings2 } from "lucide-react";
 
@@ -82,9 +82,9 @@ export default function Build() {
         } else if (ev.type === "state" && ev.steps) {
           setSteps(ev.steps); if (ev.specialists) setSpecialists(ev.specialists); if (ev.files) setFiles(ev.files);
         }
-      } catch { /* ignore */ }
+      } catch (e) { console.error("SSE parse error:", e); }
     };
-    es.onerror = () => { es.close(); sseRef.current = null; };
+    es.onerror = () => { console.error("SSE connection lost"); es.close(); sseRef.current = null; };
   }
 
   useEffect(() => {
@@ -117,7 +117,7 @@ export default function Build() {
     try {
       const data = await apiPost<{ improved: string }>("/api/refine", { prompt: vibe.trim(), history: [] });
       if (data.improved) setVibe(data.improved);
-    } catch { /* ignore */ }
+    } catch (e) { console.error("Refine failed:", e); }
     setRefining(false);
   }
 
@@ -138,7 +138,7 @@ export default function Build() {
             const refreshed = await apiGet<{ runs: RunSummary[] }>("/api/runs");
             setRuns(refreshed.runs);
           }
-        } catch { /* ignore */ }
+        } catch (e) { console.error("Poll run failed:", e); }
       }, 3000);
     } else { fetchLog(run.run_id); }
   }
@@ -147,11 +147,11 @@ export default function Build() {
     try {
       const data = await apiGet<RunSummary & { log_tail?: string[] }>(`/api/run/${runId}?log_tail=50`);
       if (data.log_tail) setLogTail(data.log_tail);
-    } catch { /* ignore */ }
+    } catch (e) { console.error("Fetch log failed:", e); }
   }
 
   async function stopRun(runId: string) {
-    try { await apiPost(`/api/run/${runId}/stop`); } catch { /* ignore */ }
+    try { await apiPost(`/api/run/${runId}/stop`); } catch (e) { console.error("Stop failed:", e); }
   }
 
   function statusIcon(st: string) {

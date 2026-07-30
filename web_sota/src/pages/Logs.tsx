@@ -9,7 +9,7 @@ export default function Logs() {
   useEffect(() => {
     apiGet<{ success: boolean; lines: string[] }>(`/api/logs?lines=200`).then((d) => {
       if (d.success) setLines(d.lines);
-    }).catch(() => {});
+    }).catch((e) => console.error("Failed to load logs:", e));
   }, []);
 
   const filtered = search ? lines.filter((l) => l.toLowerCase().includes(search.toLowerCase())) : lines;

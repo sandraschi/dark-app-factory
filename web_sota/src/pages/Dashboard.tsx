@@ -13,8 +13,8 @@ export default function Dashboard() {
   const [outputs, setOutputs] = useState<OutputEntry[]>([]);
 
   useEffect(() => {
-    apiGet<{ runs: RunSummary[] }>("/api/runs").then((d) => setRuns(d.runs)).catch(() => {});
-    apiGet<{ outputs: OutputEntry[] }>("/api/outputs?limit=5").then((d) => setOutputs(d.outputs)).catch(() => {});
+    apiGet<{ runs: RunSummary[] }>("/api/runs").then((d) => setRuns(d.runs)).catch((e) => console.error("Failed to load runs:", e));
+    apiGet<{ outputs: OutputEntry[] }>("/api/outputs?limit=5").then((d) => setOutputs(d.outputs)).catch((e) => console.error("Failed to load outputs:", e));
   }, []);
 
   return (

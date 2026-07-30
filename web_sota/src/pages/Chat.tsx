@@ -87,12 +87,12 @@ export default function Chat() {
         const names = d.specialists.map((s) => s.name).join(", ");
         setSkillContent(`Dark App Factory has ${d.specialists.length} specialists: ${names}. Use them to generate full-stack apps.`);
       }
-    }).catch(() => {});
+    }).catch((e) => console.error("Failed to load specialists:", e));
   }, []);
 
   const provider = providers.find((p) => p.name === selectedProvider);
-  const baseUrl = provider?.base || "http://localhost:11434";
-  const model = selectedModel || "qwen2.5-coder:latest";
+  const baseUrl = provider?.base || (providers.find((p) => p.detected)?.base || "http://localhost:11434");
+  const model = selectedModel || (providers.flatMap((p) => p.detected ? p.models : [])[0] || "");
 
   async function sendMessage() {
     if (!input.trim() || loading) return;
