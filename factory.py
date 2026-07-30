@@ -375,6 +375,18 @@ async def main_flow(
             except ImportError:
                 pass  # repair module not available
 
+            # --- Frontend scaffold: ensure a working React+Vite webapp ---
+            try:
+                from src.utils.frontend_scaffold import ensure_frontend_scaffold
+
+                project_name = "BeeKeeper App"  # could be extracted from specs
+                progress.update(68, "Frontend: Scaffolding React app...")
+                ensure_frontend_scaffold(output_dir, title=project_name)
+            except ImportError:
+                pass
+            except Exception as e:
+                logger.warning("Frontend scaffold failed (non-fatal): %s", e)
+
             # --- manifest.json for RunManifest (judge phase) ---
             from run_manifest import write_manifest_from_output
 
