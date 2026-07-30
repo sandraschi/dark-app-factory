@@ -126,10 +126,34 @@ blocks/
 
 ## Implementation Phases
 
-| Phase | Tasks |
-|-------|-------|
-| **P1: Infrastructure** | `blocks/` dir, `block.json` schema + loader, Registrar.match_blocks(), Registrar.install_block(), tests |
-| **P2: MCP Client** | `blocks/mcp-client/` — backend client, routes, frontend panel, glue, tests |
-| **P3: Stripe** | `blocks/stripe/` — backend, frontend, glue, tests |
-| **P4: Auth** | `blocks/auth/` — backend, frontend, glue, tests |
-| **P5: Generalize** | Block registry, Settings UI, versioning |
+## Shipped Blocks
+
+| Block | Status | Description |
+|-------|--------|-------------|
+| MCP Client | **Shipped** | Connect to any fleet MCP server — proxy tools via REST |
+| Stripe | **Shipped** | Checkout, subscriptions, webhooks, pricing UI |
+| Webshop | **Shipped** | Products, cart, orders, inventory, Stripe checkout |
+| Membership | **Shipped** | JWT auth, member/customer/employee DB, roles, registration UI |
+
+## Next Blocks (planned)
+
+| Block | Priority | Description |
+|-------|----------|-------------|
+| Email | High | SendGrid/SMTP, templates, verification flows |
+| Storage | High | File upload, S3, image resizing |
+| Admin Panel | High | Auto-generated CRUD, charts, user management |
+| Calendar/Booking | Medium | Availability, appointments, sync |
+| Blog/CMS | Medium | Markdown editor, articles, RSS |
+| AI Chat | Medium | Chat UI with Ollama integration |
+| Notifications | Low | Push/email/SMS routing, templates |
+
+## Implementation Phases
+
+| Phase | Tasks | Status |
+|-------|-------|--------|
+| **P1: Infrastructure** | `blocks/` dir, `block.json` schema + loader, `Registrar.match_blocks()`, `Registrar.install_block()`, tests | **Done** |
+| **P2: MCP Client** | `blocks/mcp_client/` — backend client, routes, frontend panel, glue, tests | **Done** |
+| **P3: Stripe** | `blocks/stripe/` — backend, frontend, glue, tests | **Done** |
+| **P4: Webshop** | `blocks/webshop/` — products, cart, orders, inventory | **Done** |
+| **P5: Membership** | `blocks/membership/` — auth, member/customer/employee DB, roles | **Done** |
+| **P6: Generalize** | Block registry, Settings UI, versioning | Pending |

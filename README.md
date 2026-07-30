@@ -62,32 +62,43 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 | **Single-user, in-memory state** | Build runs tracked in process memory. No persistence, no multi-user. | Restarting the server loses run history. |
 | **Windows-tested only** | The zombie hunter, port scanner, and process-tree kill use Windows APIs. | Linux/macOS support exists in the port module but hasn't been tested. |
 
+## Building Blocks (shipped)
+
+The LLM doesn't write these from scratch — it installs, configures, and glues them. Each is triggered by keywords in the vibe description.
+
+| Block | Triggers | What it provides |
+|-------|----------|-----------------|
+| **MCP Client** | `discord`, `email`, `mcp`, `integration`, `chat`, `notification` | Connect generated apps to any fleet MCP server. `GET /api/mcp/tools` lists all tools from all servers, `POST /api/mcp/{server}/{tool}` proxies calls. Frontend panel for interactive tool browsing. |
+| **Stripe** | `payment`, `stripe`, `checkout`, `subscription`, `billing`, `pricing` | Checkout sessions, subscriptions, webhooks, customer portal. React pricing table with Stripe Checkout redirect. Env: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`. |
+| **Webshop** | `shop`, `store`, `ecommerce`, `cart`, `inventory`, `catalog`, `product` | Product catalog with category filtering, shopping cart, stock management, order processing with Stripe integration fallback. Full React shop UI. |
+| **Membership** | `member`, `register`, `login`, `auth`, `user`, `club`, `org`, `employee`, `customer`, `team` | JWT auth, member/employee/customer database with roles (admin, member, employee, customer), registration, login, directory search. React login page and member directory. Env: `JWT_SECRET`. |
+
+A vibe like _"Build a webshop for a climbing club with member registration, product catalog, and Stripe checkout"_ triggers all 4 blocks. The LLM writes ~50 lines of glue; the blocks provide ~1500 lines of tested implementation.
+
 ## Roadmap: towards production
 
-### Near term (v0.3)
+### Next blocks (suggested)
 
-- **Closure repair loop**: when the import checker finds a missing package, auto-add it to `package.json`/`requirements.txt` and regenerate, instead of just reporting the error.
-- **JS/TS repair pass**: when `tsc --noEmit` fails, feed the errors back into the sculptor specialist for a targeted fix, then re-run the gate. Bounded iteration (max 3 passes).
-- **Ready-made building blocks**: ship pre-written, tested modules for common patterns so the LLM doesn't have to generate them from scratch:
-  - `blocks/stripe/` — payment processor with checkout, webhooks, subscription management
-  - `blocks/auth/` — JWT auth with registration, login, password reset, OAuth stubs
-  - `blocks/email/` — transactional email (SendGrid/SMTP) with templates
-  - `blocks/storage/` — file upload with S3/local filesystem abstraction
-  - `blocks/admin/` — admin dashboard with CRUD tables, charts, user management
-
-  The LLM's job shifts from "write Stripe integration from scratch" to "wire in the Stripe block and configure the product IDs." This is where the speed and quality leap comes from — the LLM handles orchestration and configuration, not re-inventing payments every time.
+| Block | Purpose | Why |
+|-------|---------|-----|
+| **Email** | Transactional email via SendGrid/SMTP with templates, verification flows | Every app needs email. Currently each specialist generates a fragile `smtplib` call. |
+| **Storage** | File upload with S3/local FS abstraction, image resizing, progress | Plumber currently generates `open()` calls that break in production. |
+| **Admin Panel** | Auto-generated CRUD tables, charts, user management UI | Sculptor spends 40% of tokens on admin pages that all look the same. |
+| **Calendar/Booking** | Availability slots, appointment booking, calendar sync | Half the generated apps are booking systems (dentist, salon, consult). |
+| **Blog/CMS** | Markdown editor, article management, RSS, SEO meta | Second most common request after booking. |
+| **AI Chat** | Pre-built chat UI with Ollama/LM Studio integration | Every generated app wants an AI assistant nowadays. |
+| **Notifications** | Push, email, SMS notification routing with template system | Currently each specialist invents its own notification system. |
 
 ### Medium term (v0.4)
 
+- **Convergence loop**: judge FAIL → extract compiler errors → feed back to worker → re-generate affected files → re-judge.
 - **Output persistence** — SQLite-based run history and assessment storage.
-- **Webhook events** — notify external tools (CI, Discord) when a build completes.
-- **Multi-model routing** — use a fast model (3B) for simple specialists, expensive model (27B+) for complex ones.
+- **Multi-model routing** — fast model (3B) for simple specialists, expensive model (27B+) for complex ones.
 - **Cross-platform** — Linux/macOS CI testing and port scanner fixes.
 
 ### Longer term
 
-- **Convergence loop**: judge FAIL → extract compiler errors → feed back to worker → re-generate affected files → re-judge. The PRD's core claim, not yet implemented.
-- **Template marketplace**: share and version ready-made blocks as `npm`/`pip` packages that the factory's Registrar installs.
+- **Block marketplace**: share and version blocks as `npm`/`pip` packages.
 - **Plugin architecture**: third-party specialists and blocks via a registry.
 
 ## Configuration
