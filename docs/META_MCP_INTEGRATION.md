@@ -31,5 +31,5 @@ Client waits (non-blocking) via `get_agent_status`, then fetches `get_agent_repo
 
 ## Reference
 
-- meta-mcp Agent Plan: `D:\Dev\repos\meta_mcp\docs\AGENT_LIFECYCLE_IMPLEMENTATION_PLAN.md`
-- ANTIPATTERN (tool returns): `D:\Dev\repos\mcp-central-docs\docs\patterns\ANTIPATTERN_DIALOGIC_TOOL_FLUFF.md`
+- meta-mcp Agent Plan: `path/to/meta_mcp/docs/AGENT_LIFECYCLE_IMPLEMENTATION_PLAN.md`
+- ANTIPATTERN (tool returns): `path/to/mcp-central-docs/docs/patterns/ANTIPATTERN_DIALOGIC_TOOL_FLUFF.md`

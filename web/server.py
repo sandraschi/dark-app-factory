@@ -653,8 +653,8 @@ async def fleet_launch(request: FleetLaunchRequest):
             status_code=404, detail=f"Path {request.repo_path} does not exist"
         )
     try:
-        allowed_base = Path("D:/Dev/repos").resolve()
-        path.resolve().relative_to(allowed_base)
+        repos_root = Path(os.environ.get("FLEET_REPOS_ROOT", "D:\\Dev\\repos")).resolve()
+        path.resolve().relative_to(repos_root)
     except ValueError as error:
         raise HTTPException(status_code=403, detail="Access denied") from error
 
