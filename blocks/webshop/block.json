@@ -1,0 +1,19 @@
+{
+  "name": "webshop",
+  "version": "0.1.0",
+  "description": "E-commerce webshop — product catalog, cart, inventory, checkout with Stripe",
+  "triggers": ["shop", "store", "ecommerce", "product", "webshop", "cart", "checkout", "inventory", "catalog"],
+  "dependencies": {
+    "python": [],
+    "node": []
+  },
+  "requires_blocks": ["stripe"],
+  "env_vars": {},
+  "specialists": {
+    "Plumber": { "append": ["backend/routes.py"], "config": {} },
+    "Sculptor": { "append": ["frontend/pages/ShopPage.tsx"], "imports": ["ShopPage", "CartWidget"] },
+    "Registrar": { "append": ["backend/models.py"], "config": {} }
+  },
+  "backend_routes": ["/api/products", "/api/products/{id}", "/api/cart", "/api/orders"],
+  "frontend_pages": ["/shop", "/cart", "/orders"]
+}

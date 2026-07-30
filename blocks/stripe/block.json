@@ -1,0 +1,21 @@
+{
+  "name": "stripe",
+  "version": "0.1.0",
+  "description": "Stripe payment processing — checkout sessions, subscriptions, webhooks, payment methods",
+  "triggers": ["payment", "stripe", "checkout", "subscription", "billing", "pay", "pricing", "plan"],
+  "dependencies": {
+    "python": ["stripe>=9.0.0"],
+    "node": ["@stripe/stripe-js", "@stripe/react-stripe-js"]
+  },
+  "env_vars": {
+    "STRIPE_SECRET_KEY": "sk_test_...",
+    "STRIPE_PUBLISHABLE_KEY": "pk_test_...",
+    "STRIPE_WEBHOOK_SECRET": "whsec_..."
+  },
+  "specialists": {
+    "Plumber": { "append": ["backend/routes.py"], "config": {"webhook_path": "/api/stripe/webhook"} },
+    "Sculptor": { "append": ["frontend/pages/PricingPage.tsx"], "imports": ["PricingPage", "CheckoutButton"] }
+  },
+  "backend_routes": ["/api/stripe/create-checkout", "/api/stripe/webhook", "/api/stripe/customer-portal"],
+  "frontend_pages": ["/pricing", "/subscription"]
+}
