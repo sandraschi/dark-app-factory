@@ -49,7 +49,7 @@ function SpeakButton({ text }: { text: string }) {
         window.speechSynthesis.speak(u);
         setSpeaking(true);
       }}
-      className="p-1 rounded text-zinc-500 hover:text-zinc-300 transition-colors"
+      className="p-1 rounded text-zinc-400 hover:text-zinc-300 transition-colors"
       title="Speak"
     >
       <Volume2 size={12} />
@@ -153,7 +153,7 @@ export default function Chat() {
         <select
           value={personalityId}
           onChange={(e) => setPersonalityId(e.target.value)}
-          className="bg-zinc-800 text-zinc-200 text-xs rounded px-2 py-1 border border-zinc-700"
+          className="bg-zinc-800 text-zinc-200 text-sm rounded px-2 py-1 border border-zinc-700"
           data-testid="personality-select"
         >
           <option value="research-assistant">Research Assistant</option>
@@ -162,14 +162,14 @@ export default function Chat() {
           <option value="custom">Custom</option>
         </select>
 
-        <div className="text-xs text-zinc-500 ml-auto">
+        <div className="text-xs text-zinc-400 ml-auto">
           {provider?.detected ? `${model}` : "No LLM"}
         </div>
 
-        <button onClick={exportChat} disabled={messages.length === 0} className="p-1.5 rounded text-zinc-400 hover:text-zinc-200 disabled:opacity-30" data-testid="chat-export" title="Export">
+        <button onClick={exportChat} disabled={messages.length === 0} className="p-1.5 rounded text-zinc-300 hover:text-zinc-200 disabled:opacity-30" data-testid="chat-export" title="Export">
           <Download size={14} />
         </button>
-        <button onClick={clearChat} disabled={messages.length === 0} className="p-1.5 rounded text-zinc-400 hover:text-zinc-200 disabled:opacity-30" data-testid="chat-clear" title="Clear">
+        <button onClick={clearChat} disabled={messages.length === 0} className="p-1.5 rounded text-zinc-300 hover:text-zinc-200 disabled:opacity-30" data-testid="chat-clear" title="Clear">
           <Trash2 size={14} />
         </button>
       </div>
@@ -177,8 +177,8 @@ export default function Chat() {
       <div className="flex-1 overflow-y-auto p-4 space-y-3" data-testid="chat-messages">
         {messages.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-zinc-500 text-sm mb-2">Start a conversation</div>
-            <div className="text-zinc-600 text-xs">Describe the app you want to build</div>
+            <div className="text-zinc-400 text-sm mb-2">Start a conversation</div>
+            <div className="text-zinc-500 text-xs">Describe the app you want to build</div>
           </div>
         )}
         {messages.map((m, i) => (
@@ -186,7 +186,7 @@ export default function Chat() {
             <div className={`max-w-[80%] rounded-lg px-3 py-2 ${m.role === "user" ? "bg-amber-500/10 text-zinc-200" : "bg-zinc-800 text-zinc-300"}`}>
               <div className="text-xs whitespace-pre-wrap">{m.content}</div>
               <div className="flex items-center gap-1 mt-1">
-                <span className="text-[10px] text-zinc-600">{new Date(m.ts).toLocaleTimeString()}</span>
+                <span className="text-[10px] text-zinc-500">{new Date(m.ts).toLocaleTimeString()}</span>
                 {m.role === "assistant" && <SpeakButton text={m.content} />}
               </div>
             </div>
@@ -194,7 +194,7 @@ export default function Chat() {
         ))}
         {loading && (
           <div className="flex gap-2">
-            <div className="bg-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-500">Thinking...</div>
+            <div className="bg-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-400">Thinking...</div>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -207,7 +207,7 @@ export default function Chat() {
               <button
                 key={p}
                 onClick={() => setInput(p)}
-                className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-400 px-2 py-1 rounded transition-colors"
+                className="text-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2 py-1 rounded transition-colors"
               >
                 {p}
               </button>

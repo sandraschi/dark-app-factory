@@ -169,14 +169,14 @@ export default function Build() {
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between mb-2">
-          <label className="text-xs text-zinc-500">Vibe description</label>
+          <label className="text-sm text-zinc-400">Vibe description</label>
           <div className="flex items-center gap-2">
             <button onClick={refinePrompt} disabled={!vibe.trim() || refining}
-              className="flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-zinc-800 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 transition-colors">
+              className="flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-zinc-800 text-zinc-300 hover:text-zinc-200 disabled:opacity-30 transition-colors">
               <Sparkles size={12} /> {refining ? "..." : "Refine"}
             </button>
             <button onClick={() => setShowOptions(!showOptions)}
-              className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded transition-colors ${showOptions ? "bg-amber-500/10 text-amber-400" : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"}`}>
+              className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded transition-colors ${showOptions ? "bg-amber-500/10 text-amber-400" : "bg-zinc-800 text-zinc-300 hover:text-zinc-200"}`}>
               <Settings2 size={12} /> Options
             </button>
           </div>
@@ -191,7 +191,7 @@ export default function Build() {
         <div className="flex flex-wrap gap-1.5 mt-2" data-testid="example-prompts">
           {EXAMPLE_PROMPTS.map((p) => (
             <button key={p} onClick={() => setVibe(p)}
-              className="text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded transition-colors">
+              className="text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-300 px-2 py-1 rounded transition-colors">
               {p.length > 50 ? p.slice(0, 50) + "..." : p}
             </button>
           ))}
@@ -200,32 +200,32 @@ export default function Build() {
         {showOptions && (
           <div className="mt-3 pt-3 border-t border-zinc-800 grid grid-cols-3 gap-3">
             <div>
-              <label className="text-[10px] text-zinc-600 block mb-1">Foreman model</label>
+              <label className="text-[10px] text-zinc-500 block mb-1">Foreman model</label>
               <select value={foremanModel} onChange={(e) => setForemanModel(e.target.value)}
-                className="w-full bg-zinc-800 text-zinc-300 text-xs rounded px-2 py-1.5 border border-zinc-700">
+                className="w-full bg-zinc-800 text-zinc-300 text-sm rounded px-2 py-1.5 border border-zinc-700">
                 <option value="">Default</option>
                 {detectedModels.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-zinc-600 block mb-1">Worker model</label>
+              <label className="text-[10px] text-zinc-500 block mb-1">Worker model</label>
               <select value={workerModel} onChange={(e) => setWorkerModel(e.target.value)}
-                className="w-full bg-zinc-800 text-zinc-300 text-xs rounded px-2 py-1.5 border border-zinc-700">
+                className="w-full bg-zinc-800 text-zinc-300 text-sm rounded px-2 py-1.5 border border-zinc-700">
                 <option value="">Default</option>
                 {detectedModels.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-zinc-600 block mb-1">Output name</label>
+              <label className="text-[10px] text-zinc-500 block mb-1">Output name</label>
               <input value={outputName} onChange={(e) => setOutputName(e.target.value)}
                 placeholder="auto"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded text-xs px-2 py-1.5 text-zinc-300 placeholder-zinc-600" />
+                className="w-full bg-zinc-800 border border-zinc-700 rounded text-sm px-2 py-1.5 text-zinc-300 placeholder-zinc-600" />
             </div>
           </div>
         )}
 
         <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center gap-3 text-xs text-zinc-600">
+          <div className="flex items-center gap-3 text-xs text-zinc-500">
             {providerOk ? (
               <span className="text-green-500 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
@@ -260,21 +260,21 @@ export default function Build() {
 
       <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0">
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 overflow-y-auto">
-          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-3">
             Runs ({runs.length})
           </h2>
           {runs.length === 0 ? (
-            <p className="text-xs text-zinc-600">No builds yet.</p>
+            <p className="text-sm text-zinc-500">No builds yet.</p>
           ) : (
             <div className="space-y-2">
               {runs.map((r) => (
                 <button key={r.run_id} onClick={() => selectRun(r)}
-                  className={`w-full text-left p-2 rounded text-xs transition-colors ${selectedRun?.run_id === r.run_id ? "bg-zinc-700 border border-zinc-600" : "bg-zinc-800/50 border border-transparent hover:border-zinc-700"}`}>
+                  className={`w-full text-left p-2 rounded text-sm transition-colors ${selectedRun?.run_id === r.run_id ? "bg-zinc-700 border border-zinc-600" : "bg-zinc-800/50 border border-transparent hover:border-zinc-700"}`}>
                   <div className="flex items-center justify-between mb-1">
                     <span className={`px-1 py-0.5 rounded text-[10px] font-medium ${r.status === "running" ? "bg-amber-500/10 text-amber-400" : r.status === "completed" ? "bg-green-500/10 text-green-400" : r.status === "stopped" ? "bg-zinc-700 text-zinc-400" : "bg-red-500/10 text-red-400"}`}>{r.status}</span>
-                    <span className="text-zinc-600">{new Date(r.started_at).toLocaleTimeString()}</span>
+                    <span className="text-zinc-500">{new Date(r.started_at).toLocaleTimeString()}</span>
                   </div>
-                  <div className="text-zinc-400 truncate">{r.vibe_snippet || r.run_id}</div>
+                  <div className="text-zinc-300 truncate">{r.vibe_snippet || r.run_id}</div>
                 </button>
               ))}
             </div>
@@ -285,17 +285,17 @@ export default function Build() {
           {selectedRun ? (
             <>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{selectedRun.run_id}</h2>
+                <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">{selectedRun.run_id}</h2>
                 {selectedRun.status === "running" && (
                   <button onClick={() => stopRun(selectedRun.run_id)}
-                    className="text-xs px-2 py-1 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center gap-1">
+                    className="text-sm px-2 py-1 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center gap-1">
                     <Square size={10} /> Stop
                   </button>
                 )}
               </div>
               {progress && progress.percentage != null && (
                 <div className="mb-3">
-                  <div className="flex justify-between text-[10px] text-zinc-500 mb-1">
+                  <div className="flex justify-between text-[10px] text-zinc-400 mb-1">
                     <span>{progress.status}</span>
                     <span>{progress.percentage}%</span>
                   </div>
@@ -304,43 +304,43 @@ export default function Build() {
                   </div>
                 </div>
               )}
-              <h3 className="text-[10px] text-zinc-600 uppercase tracking-wider mb-1.5">Steps</h3>
+              <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5">Steps</h3>
               <div className="space-y-1 mb-3">
-                {steps.length === 0 ? <div className="text-[11px] text-zinc-700">Waiting...</div> : steps.map((s, i) => (
+                {steps.length === 0 ? <div className="text-[11px] text-zinc-600">Waiting...</div> : steps.map((s, i) => (
                   <div key={i} className="flex items-center gap-2 text-[11px]">
                     {statusIcon(s.status)}
                     <span className={s.status === "running" ? "text-zinc-300" : s.status === "done" ? "text-zinc-400" : "text-zinc-600"}>{s.name}</span>
                   </div>
                 ))}
               </div>
-              <h3 className="text-[10px] text-zinc-600 uppercase tracking-wider mb-1.5">Specialists</h3>
+              <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5">Specialists</h3>
               <div className="grid grid-cols-2 gap-1 mb-3">
-                {Object.keys(specialists).length === 0 && steps.length === 0 ? <div className="text-[11px] text-zinc-700 col-span-2">Waiting...</div> : Object.entries(specialists).map(([name, st]) => (
+                {Object.keys(specialists).length === 0 && steps.length === 0 ? <div className="text-[11px] text-zinc-600 col-span-2">Waiting...</div> : Object.entries(specialists).map(([name, st]) => (
                   <div key={name} className="flex items-center gap-1.5 text-[11px]">
                     {statusIcon(st)}
-                    <span className={`truncate ${st === "running" ? "text-amber-300" : "text-zinc-500"}`}>{name}</span>
+                    <span className={`truncate ${st === "running" ? "text-amber-300" : "text-zinc-400"}`}>{name}</span>
                   </div>
                 ))}
               </div>
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between text-zinc-500"><span>Exit</span><span className="text-zinc-400">{selectedRun.exit_code ?? "running"}</span></div>
-                {selectedRun.output_dir && <div className="flex justify-between text-zinc-500"><span>Output</span><span className="text-zinc-400 text-[10px] truncate max-w-[140px]">{selectedRun.output_dir}</span></div>}
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between text-zinc-400"><span>Exit</span><span className="text-zinc-300">{selectedRun.exit_code ?? "running"}</span></div>
+                {selectedRun.output_dir && <div className="flex justify-between text-zinc-400"><span>Output</span><span className="text-zinc-300 text-[10px] truncate max-w-[140px]">{selectedRun.output_dir}</span></div>}
               </div>
             </>
-          ) : <div className="flex items-center justify-center h-full text-xs text-zinc-600">Select a run</div>}
+          ) : <div className="flex items-center justify-center h-full text-sm text-zinc-500">Select a run</div>}
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 overflow-y-auto" ref={fileListRef}>
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Log</h2>
-            {files.length > 0 && <span className="text-[10px] text-zinc-600">{files.length} files</span>}
+            <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">Log</h2>
+            {files.length > 0 && <span className="text-[10px] text-zinc-500">{files.length} files</span>}
           </div>
           {files.length > 0 && (
             <div className="mb-3">
-              <h3 className="text-[10px] text-zinc-600 uppercase tracking-wider mb-1">Generated files</h3>
+              <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Generated files</h3>
               <div className="space-y-0.5 max-h-40 overflow-y-auto">
                 {files.map((f, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-[10px] text-zinc-500">
+                  <div key={i} className="flex items-center gap-1.5 text-[10px] text-zinc-400">
                     <File size={10} />
                     <span className="truncate">{f}</span>
                   </div>
@@ -348,13 +348,13 @@ export default function Build() {
               </div>
             </div>
           )}
-          <h3 className="text-[10px] text-zinc-600 uppercase tracking-wider mb-1">Console</h3>
+          <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Console</h3>
           <div className="bg-black rounded p-2 max-h-[40vh] overflow-y-auto">
             {logTail.length === 0 && files.length === 0 ? (
-              <span className="text-zinc-700 text-[11px] font-mono">Waiting...</span>
+              <span className="text-zinc-600 text-[11px] font-mono">Waiting...</span>
             ) : logTail.length > 0 ? (
-              logTail.map((line, i) => <div key={i} className="text-[11px] font-mono text-zinc-500 leading-5">{line}</div>)
-            ) : <span className="text-zinc-700 text-[11px] font-mono">No log output yet</span>}
+              logTail.map((line, i) => <div key={i} className="text-[11px] font-mono text-zinc-400 leading-5">{line}</div>)
+            ) : <span className="text-zinc-600 text-[11px] font-mono">No log output yet</span>}
           </div>
         </div>
       </div>

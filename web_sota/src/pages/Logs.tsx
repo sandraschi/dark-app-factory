@@ -25,14 +25,14 @@ export default function Logs() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Filter..."
-              className="bg-zinc-800 border border-zinc-700 rounded text-xs pl-7 pr-2 py-1.5 text-zinc-200 w-48"
+              className="bg-zinc-800 border border-zinc-700 rounded text-sm pl-7 pr-2 py-1.5 text-zinc-200 w-48"
             />
           </div>
           <a
             href="http://127.0.0.1:10738/api/logs/download"
             target="_blank"
             rel="noreferrer"
-            className="p-1.5 rounded text-zinc-400 hover:text-zinc-200 bg-zinc-800"
+            className="p-1.5 rounded text-zinc-300 hover:text-zinc-200 bg-zinc-800"
             title="Download"
           >
             <Download size={14} />
@@ -41,7 +41,7 @@ export default function Logs() {
       </div>
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 max-h-[70vh] overflow-y-auto">
         {filtered.length === 0 ? (
-          <p className="text-xs text-zinc-600">No log entries.</p>
+          <p className="text-sm text-zinc-500">No log entries.</p>
         ) : (
           filtered.map((line, i) => (
             <div key={i} className="text-[11px] font-mono text-zinc-400 leading-5 hover:bg-zinc-800 px-1 rounded">

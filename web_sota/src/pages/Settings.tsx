@@ -24,18 +24,18 @@ export default function Settings() {
         <h2 className="text-sm font-semibold text-zinc-300 mb-3">LLM Provider</h2>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-zinc-500">Status</span>
+            <span className="text-sm text-zinc-400">Status</span>
             <span className={`text-xs ${status === "ready" ? "text-green-400" : status === "probing" ? "text-amber-400" : "text-red-400"}`}>
               {status === "ready" ? "Detected" : status === "probing" ? "Probing..." : "Not detected"}
             </span>
           </div>
           <div className="space-y-2">
             {providers.map((p) => (
-              <div key={p.name} className="flex items-center justify-between text-xs">
-                <span className="text-zinc-400 capitalize">{p.name}</span>
+              <div key={p.name} className="flex items-center justify-between text-sm">
+                <span className="text-zinc-300 capitalize">{p.name}</span>
                 <div className="flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${p.detected ? "bg-green-500" : "bg-zinc-700"}`} />
-                  <span className="text-zinc-500">{p.detected ? `:${p.port}` : "Not found"}</span>
+                  <span className="text-zinc-400">{p.detected ? `:${p.port}` : "Not found"}</span>
                 </div>
               </div>
             ))}
@@ -44,11 +44,11 @@ export default function Settings() {
           {detectedProviders.length > 0 ? (
             <>
               <div>
-                <label className="text-xs text-zinc-500 block mb-1">Provider</label>
+                <label className="text-sm text-zinc-400 block mb-1">Provider</label>
                 <select
                   value={selectedProvider}
                   onChange={(e) => setSelectedProvider(e.target.value)}
-                  className="w-full bg-zinc-800 text-zinc-200 text-xs rounded px-2 py-1.5 border border-zinc-700"
+                  className="w-full bg-zinc-800 text-zinc-200 text-sm rounded px-2 py-1.5 border border-zinc-700"
                   data-testid="llm-provider-select"
                 >
                   {detectedProviders.map((p) => (
@@ -57,11 +57,11 @@ export default function Settings() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-zinc-500 block mb-1">Model</label>
+                <label className="text-sm text-zinc-400 block mb-1">Model</label>
                 <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
-                  className="w-full bg-zinc-800 text-zinc-200 text-xs rounded px-2 py-1.5 border border-zinc-700"
+                  className="w-full bg-zinc-800 text-zinc-200 text-sm rounded px-2 py-1.5 border border-zinc-700"
                   data-testid="llm-model-select"
                 >
                   {models.map((m) => (
@@ -71,7 +71,7 @@ export default function Settings() {
               </div>
             </>
           ) : (
-            <div className="text-xs text-amber-500">Install Ollama or LM Studio to enable AI features.</div>
+            <div className="text-sm text-amber-400">Install Ollama or LM Studio to enable AI features.</div>
           )}
         </div>
       </section>
@@ -79,8 +79,8 @@ export default function Settings() {
       <section>
         <h2 className="text-sm font-semibold text-zinc-300 mb-3">Backend</h2>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-2">
-          <div className="flex justify-between text-xs"><span className="text-zinc-500">Server</span><span className="text-zinc-300">{health?.server || "..."}</span></div>
-          <div className="flex justify-between text-xs"><span className="text-zinc-500">Version</span><span className="text-zinc-300">{health?.version || "..."}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-zinc-400">Server</span><span className="text-zinc-300">{health?.server || "..."}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-zinc-400">Version</span><span className="text-zinc-300">{health?.version || "..."}</span></div>
         </div>
       </section>
     </div>

@@ -48,7 +48,7 @@ export function Sidebar() {
         {open && <span className="text-sm font-semibold text-zinc-100">Factory</span>}
         <button
           onClick={toggle}
-          className="ml-auto p-1 rounded hover:bg-zinc-800 text-zinc-400"
+          className="ml-auto p-1 rounded hover:bg-zinc-800 text-zinc-300"
         >
           {open ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
@@ -64,7 +64,7 @@ export function Sidebar() {
               `flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm transition-colors ${
                 isActive
                   ? "bg-amber-500/10 text-amber-400"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                  : "text-zinc-300 hover:text-zinc-200 hover:bg-zinc-800"
               }`
             }
           >
@@ -77,7 +77,7 @@ export function Sidebar() {
       <div className="p-3 border-t border-zinc-800 flex items-center gap-2">
         <HealthDot connected={connected} />
         {open && (
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-zinc-400">
             {connected === null ? "..." : connected ? "Connected" : "Offline"}
           </span>
         )}

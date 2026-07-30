@@ -44,15 +44,15 @@ export default function Depot() {
           <h1 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
             <HardDrive size={18} /> App Depot
           </h1>
-          <p className="text-xs text-zinc-500 mt-0.5">{outputs.length} built app(s)</p>
+          <p className="text-sm text-zinc-400 mt-0.5">{outputs.length} built app(s)</p>
         </div>
         <div className="relative">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-600" />
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search outputs..."
-            className="bg-zinc-800 border border-zinc-700 rounded text-xs pl-7 pr-2.5 py-1.5 text-zinc-200 w-52 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50"
+            className="bg-zinc-800 border border-zinc-700 rounded text-sm pl-7 pr-2.5 py-1.5 text-zinc-200 w-52 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50"
             data-testid="search-outputs"
           />
         </div>
@@ -61,10 +61,10 @@ export default function Depot() {
       {filtered.length === 0 ? (
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-8 text-center">
           <HardDrive size={24} className="mx-auto mb-2 text-zinc-700" />
-          <div className="text-sm text-zinc-500 mb-1">
+          <div className="text-sm text-zinc-400 mb-1">
             {outputs.length === 0 ? "No built apps yet" : "No outputs match your search"}
           </div>
-          <div className="text-xs text-zinc-600">
+          <div className="text-sm text-zinc-500">
             {outputs.length === 0
               ? "Use Chat or the factory pipeline to generate an app."
               : "Try a different search term."}
@@ -84,18 +84,18 @@ export default function Depot() {
                       {o.project_name || o.name}
                     </h3>
                     {o.stack && (
-                      <span className="text-[10px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">
                         {o.stack}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-zinc-600">
+                  <div className="flex items-center gap-3 text-[11px] text-zinc-500">
                     <span>{o.name}</span>
                     {o.file_count != null && <span>{o.file_count} files</span>}
                     <span>{o.mtime_human}</span>
                   </div>
                   {o.readme_snippet && (
-                    <p className="text-xs text-zinc-500 mt-2 line-clamp-2">
+                    <p className="text-sm text-zinc-400 mt-2 line-clamp-2">
                       {o.readme_snippet}
                     </p>
                   )}
@@ -104,7 +104,7 @@ export default function Depot() {
                   <button
                     onClick={() => launchOutput(o.name)}
                     disabled={launching === o.name}
-                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 disabled:opacity-40 transition-colors"
+                    className="flex items-center gap-1 text-sm px-2.5 py-1.5 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 disabled:opacity-40 transition-colors"
                     title="Launch app"
                   >
                     {launching === o.name ? (
@@ -118,7 +118,7 @@ export default function Depot() {
                     href={`http://127.0.0.1:10738/api/assess/${encodeURIComponent(o.name)}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
+                    className="flex items-center gap-1 text-sm px-2.5 py-1.5 rounded bg-zinc-800 text-zinc-300 hover:text-zinc-200 transition-colors"
                     title="View assessment"
                   >
                     <FileText size={12} />

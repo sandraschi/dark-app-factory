@@ -15,12 +15,12 @@ export default function Tools() {
   return (
     <div className="p-6 max-w-4xl">
       <h1 className="text-lg font-bold text-zinc-100 mb-2 flex items-center gap-2"><Wrench size={18} /> Tools</h1>
-      <p className="text-xs text-zinc-500 mb-4">MCP tools exposed by the Dark App Factory server (port 10739).</p>
+      <p className="text-sm text-zinc-400 mb-4">MCP tools exposed by the Dark App Factory server (port 10739).</p>
       <div className="space-y-2">
         {STATIC_TOOLS.map((t) => (
           <div key={t.name} className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
             <div className="text-sm font-medium text-amber-400 font-mono">{t.name}</div>
-            <div className="text-xs text-zinc-500 mt-0.5">{t.description}</div>
+            <div className="text-sm text-zinc-400 mt-0.5">{t.description}</div>
           </div>
         ))}
       </div>

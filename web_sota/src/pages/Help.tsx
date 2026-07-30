@@ -34,8 +34,8 @@ export default function Help() {
             <button
               key={d.id}
               onClick={() => setSelected(d.id)}
-              className={`block w-full text-left text-xs px-2.5 py-1.5 rounded transition-colors ${
-                selected === d.id ? "bg-amber-500/10 text-amber-400" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+              className={`block w-full text-left text-sm px-2.5 py-1.5 rounded transition-colors ${
+                selected === d.id ? "bg-amber-500/10 text-amber-400" : "text-zinc-300 hover:text-zinc-200 hover:bg-zinc-800"
               }`}
             >
               {d.title}
@@ -46,7 +46,7 @@ export default function Help() {
           {content ? (
             <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans">{content}</pre>
           ) : (
-            <p className="text-xs text-zinc-600">Select a document from the left.</p>
+            <p className="text-sm text-zinc-500">Select a document from the left.</p>
           )}
         </div>
       </div>
