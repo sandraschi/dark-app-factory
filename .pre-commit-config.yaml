@@ -1,0 +1,14 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.0
+    hooks:
+      - id: ruff
+        args: [--fix, --quiet]
+      - id: ruff-format
+
+  - repo: https://github.com/biomejs/pre-commit
+    rev: v1.9.0
+    hooks:
+      - id: biome-check
+        args: [--write, --no-errors-on-unmatched]
+        files: ^web_sota/src/

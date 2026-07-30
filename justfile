@@ -69,7 +69,8 @@ build-web:
 # Run all gates: lint + test + fmt
 gates-green: lint test fmt
 
-# Bootstrap: install dev deps
+# Bootstrap: install dev deps + pre-commit hook
 bootstrap:
     uv sync --group dev
-    Write-Host "Dependencies synced." -ForegroundColor Green
+    uv run pre-commit install
+    Write-Host "Dependencies synced, pre-commit hooks installed." -ForegroundColor Green
