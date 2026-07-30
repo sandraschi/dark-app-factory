@@ -1,0 +1,11 @@
+{
+  "name": "storage",
+  "version": "0.1.0",
+  "description": "File upload and storage — S3, local filesystem, image resizing, signed URLs",
+  "triggers": ["upload", "file", "storage", "s3", "image", "attachment", "media", "document"],
+  "dependencies": {"python": ["boto3>=1.34.0", "Pillow>=10.0.0", "python-multipart>=0.0.9"], "node": []},
+  "env_vars": {"AWS_ACCESS_KEY_ID": "", "AWS_SECRET_ACCESS_KEY": "", "AWS_REGION": "us-east-1", "S3_BUCKET": "", "STORAGE_BACKEND": "local"},
+  "specialists": {"Plumber": {"append": ["backend/routes.py"], "config": {}}},
+  "backend_routes": ["/api/storage/upload", "/api/storage/files", "/api/storage/files/{id}", "/api/storage/upload/image"],
+  "frontend_pages": []
+}

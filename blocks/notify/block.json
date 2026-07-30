@@ -1,0 +1,11 @@
+{
+  "name": "notify",
+  "version": "0.1.0",
+  "description": "Notification system — push, email, SMS routing, templates, in-app notification history",
+  "triggers": ["notify", "notification", "alert", "push", "reminder", "announcement"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {},
+  "specialists": {"Nervos": {"append": ["backend/service.py"], "config": {}}, "Sculptor": {"append": ["frontend/pages/NotificationsPage.tsx"], "imports": ["NotificationsPage"]}},
+  "backend_routes": ["/api/notifications", "/api/notifications/{id}/read", "/api/notifications/send"],
+  "frontend_pages": ["/notifications"]
+}

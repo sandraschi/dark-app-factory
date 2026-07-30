@@ -1,0 +1,11 @@
+{
+  "name": "aichat",
+  "version": "0.1.0",
+  "description": "AI Chat UI with Ollama/LM Studio integration — streaming chat, personality selector, conversation history",
+  "triggers": ["chat", "ai", "assistant", "llm", "ollama", "bot", "conversation", "support"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {"CHAT_MODEL": "llama3.1:8b", "CHAT_BASE_URL": "http://localhost:11434/v1"},
+  "specialists": {"Sculptor": {"append": ["frontend/pages/ChatPage.tsx"], "imports": ["ChatPage"]}},
+  "backend_routes": ["/api/chat/send"],
+  "frontend_pages": ["/chat"]
+}

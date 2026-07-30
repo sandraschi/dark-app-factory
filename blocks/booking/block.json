@@ -1,0 +1,11 @@
+{
+  "name": "booking",
+  "version": "0.1.0",
+  "description": "Calendar booking — availability slots, appointment scheduling, reminders, calendar sync",
+  "triggers": ["booking", "appointment", "calendar", "schedule", "reservation", "slot", "availability", "book"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {},
+  "specialists": {"Plumber": {"append": ["backend/routes.py"], "config": {}}, "Sculptor": {"append": ["frontend/pages/BookingPage.tsx"], "imports": ["BookingPage", "CalendarPicker"]}},
+  "backend_routes": ["/api/booking/slots", "/api/booking/appointments", "/api/booking/appointments/{id}"],
+  "frontend_pages": ["/book", "/appointments"]
+}

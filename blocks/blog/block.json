@@ -1,0 +1,11 @@
+{
+  "name": "blog",
+  "version": "0.1.0",
+  "description": "Blog/CMS — markdown articles, categories, RSS feed, SEO metadata, comments",
+  "triggers": ["blog", "cms", "article", "post", "news", "rss", "content", "writing", "editorial"],
+  "dependencies": {"python": ["markdown>=3.5.0", "feedgen>=1.0.0"], "node": []},
+  "env_vars": {"BLOG_TITLE": "My Blog", "BLOG_DESCRIPTION": "", "SITE_URL": "http://localhost:3000"},
+  "specialists": {"Plumber": {"append": ["backend/routes.py"], "config": {}}, "Sculptor": {"append": ["frontend/pages/BlogPage.tsx"], "imports": ["BlogPage", "ArticleCard"]}},
+  "backend_routes": ["/api/blog/articles", "/api/blog/articles/{id}", "/api/blog/rss", "/api/blog/categories"],
+  "frontend_pages": ["/blog", "/blog/{id}"]
+}

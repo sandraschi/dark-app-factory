@@ -1,0 +1,14 @@
+{
+  "name": "email",
+  "version": "0.1.0",
+  "description": "Transactional email via SendGrid/SMTP with templates, verification flows, and email tracking",
+  "triggers": ["email", "mail", "sendgrid", "smtp", "newsletter", "notification", "verify", "welcome"],
+  "dependencies": {"python": ["sendgrid>=6.0.0", "python-multipart>=0.0.9"], "node": []},
+  "env_vars": {"SENDGRID_API_KEY": "", "SMTP_HOST": "", "SMTP_PORT": "587", "SMTP_USER": "", "SMTP_PASS": "", "FROM_EMAIL": "noreply@example.com"},
+  "specialists": {
+    "Plumber": {"append": ["backend/routes.py"], "config": {}},
+    "Nervos": {"append": ["backend/service.py"], "config": {}}
+  },
+  "backend_routes": ["/api/email/send", "/api/email/templates", "/api/email/verify"],
+  "frontend_pages": []
+}
