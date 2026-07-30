@@ -91,8 +91,8 @@ export default function Chat() {
   }, []);
 
   const provider = providers.find((p) => p.name === selectedProvider);
-  const baseUrl = provider?.base || (providers.find((p) => p.detected)?.base || "http://localhost:11434");
-  const model = selectedModel || (providers.flatMap((p) => p.detected ? p.models : [])[0] || "");
+  const baseUrl = provider?.base;
+  const model = selectedModel;
 
   async function sendMessage() {
     if (!input.trim() || loading) return;
