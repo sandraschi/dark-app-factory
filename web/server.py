@@ -152,9 +152,9 @@ async def launch_factory(vibe: str, ghost_blueprint_path: str | None = None) -> 
         vibe_path.write_text(vibe, encoding="utf-8")
         await factory.main_flow(vibe_path=str(vibe_path), ghost_dna=ghost_dna)
         state["last_verdict"] = "PASS"
-    except Exception as error:  # noqa: BLE001
-        logger.error(f"Factory execution failed: {error}")
-        state["last_verdict"] = f"FAIL: {error}"
+    except Exception:
+        logger.exception("Factory execution failed")
+        state["last_verdict"] = "FAIL: see server log"
     finally:
         state["active_builds"] = max(0, state["active_builds"] - 1)
 
@@ -601,7 +601,14 @@ async def refine_prompt(request: RefineRequest):
 async def launch(req: BuildRequest):
     if state["active_builds"] > 0:
         raise HTTPException(status_code=429, detail="A build is already in progress.")
-    asyncio.create_task(launch_factory(req.vibe_content, req.ghost_blueprint_path))
+    async def _safe_launch():
+        try:
+            await launch_factory(req.vibe_content, req.ghost_blueprint_path)
+        except SystemExit:
+            logger.error("Build task attempted sys.exit — blocked")
+        except Exception as exc:
+            logger.exception("Build task failed: %s", exc)
+    asyncio.create_task(_safe_launch())
     return {"success": True, "message": "Build launched."}
 
 
@@ -652,19 +659,24 @@ async def fleet_launch(request: FleetLaunchRequest):
 
 @app.get("/api/progress/stream")
 async def progress_sse():
-    """Server-Sent Events endpoint for real-time build progress."""
+    """Server-Sent Events endpoint for real-time build progress (polling-based)."""
     from src.utils.progress import progress as _p
 
     async def event_stream():
-        queue = _p.subscribe()
-        # Send initial state
+        last_id = 0
         yield f"data: {json.dumps({'type': 'state', ** _p.get_state()})}\n\n"
-        try:
-            while True:
-                event = await asyncio.wait_for(queue.get(), timeout=30.0)
-                yield f"data: {json.dumps(event)}\n\n"
-        except asyncio.TimeoutError:
-            yield f"data: {json.dumps({'type': 'keepalive'})}\n\n"
+        while True:
+            try:
+                events = await asyncio.to_thread(_p.get_events_since, last_id)
+                for ev in events:
+                    last_id = ev["id"]
+                    yield f"data: {json.dumps(ev)}\n\n"
+                if not events:
+                    await asyncio.sleep(0.5)
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                break
 
     from fastapi.responses import StreamingResponse
 

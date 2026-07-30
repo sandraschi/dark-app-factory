@@ -1,6 +1,7 @@
-import asyncio
+import json
 import threading
 import time
+from collections import deque
 
 
 class ProgressTracker:
@@ -18,7 +19,8 @@ class ProgressTracker:
                 cls._instance._specialists: dict[str, str] = {}
                 cls._instance._files: list[str] = []
                 cls._instance._run_id: str = ""
-                cls._instance._events: asyncio.Queue = asyncio.Queue()
+                cls._instance._events: deque = deque(maxlen=500)
+                cls._instance._event_id = 0
             return cls._instance
 
     def start_run(self, run_id: str):
@@ -30,6 +32,7 @@ class ProgressTracker:
             self._steps = []
             self._specialists = {}
             self._files = []
+            self._events.clear()
         self._emit({"type": "run_start", "run_id": run_id})
 
     def update(self, percentage: int, status: str):
@@ -72,11 +75,8 @@ class ProgressTracker:
             self._specialists = {}
             self._files = []
             self._run_id = ""
-        while not self._events.empty():
-            try:
-                self._events.get_nowait()
-            except asyncio.QueueEmpty:
-                break
+            self._events.clear()
+            self._event_id = 0
 
     def get_state(self):
         with self._lock:
@@ -90,16 +90,15 @@ class ProgressTracker:
                 "files": list(self._files),
             }
 
-    def subscribe(self) -> asyncio.Queue:
-        return self._events
+    def get_events_since(self, last_id: int = 0) -> list[dict]:
+        with self._lock:
+            return [e for e in self._events if e["id"] > last_id]
 
     def _emit(self, event: dict):
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                loop.call_soon_threadsafe(lambda: self._events.put_nowait(event))
-        except RuntimeError:
-            pass
+        with self._lock:
+            self._event_id += 1
+            event["id"] = self._event_id
+            self._events.append(event)
 
 
 progress = ProgressTracker()
