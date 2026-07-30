@@ -1,0 +1,15 @@
+{
+  "name": "business",
+  "version": "0.1.0",
+  "description": "Business website block — company info, services, team, contact form, FAQ, testimonials. Adapts to any trade (locksmith, dentist, plumber, etc.) via vibe content.",
+  "triggers": ["business", "website", "landing", "services", "locksmith", "dentist", "plumber", "electrician", "mechanic", "roofer", "cleaning", "contractor", "hvac", "painter", "photographer", "studio", "salon", "spa", "fitness", "gym", "lawyer", "notary", "consultant", "agency"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {"BUSINESS_NAME": "", "BUSINESS_ADDRESS": "", "BUSINESS_PHONE": "", "BUSINESS_EMAIL": "", "BUSINESS_HOURS": "", "SERVICE_AREA": ""},
+  "specialists": {
+    "Plumber": {"append": ["backend/routes.py"], "config": {}},
+    "Sculptor": {"append": ["frontend/pages/BusinessPage.tsx"], "imports": ["BusinessPage", "ServiceCard", "ContactForm", "FaqAccordion"]},
+    "Propagandist": {"append": ["frontend/pages/BusinessPage.tsx"], "config": {}}
+  },
+  "backend_routes": ["/api/business/info", "/api/business/services", "/api/business/team", "/api/business/contact", "/api/business/faq"],
+  "frontend_pages": ["/", "/services", "/team", "/contact", "/faq"]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "hosting",
+  "version": "0.1.0",
+  "description": "Website hosting and deployment — Dockerfile, nginx config, SSL setup, health monitoring, domain DNS guide",
+  "triggers": ["hosting", "deploy", "docker", "nginx", "ssl", "domain", "dns", "cloud", "server", "production", "hosting", "cpanel", "vps"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {"DOMAIN": "example.com", "ADMIN_EMAIL": "admin@example.com", "HOSTING_PLATFORM": "docker"},
+  "specialists": {"Registrar": {"append": ["docker/docker-compose.prod.yml", "docker/nginx.conf", "docker/Dockerfile"], "config": {}}},
+  "backend_routes": ["/api/hosting/status", "/api/hosting/config", "/api/health"],
+  "frontend_pages": []
+}
