@@ -454,11 +454,24 @@ async def get_models():
                 if resp.status == 200:
                     data = json.loads(resp.read().decode("utf-8"))
                     found = []
+                    # OpenAI format: {"data": [{"id": "..."}]}
                     for m in data.get("data", []):
-                        found.append({"id": m["id"], "provider": provider_name})
+                        found.append({"id": m.get("id", ""), "provider": provider_name})
+                    # Ollama format: {"models": [{"name": "..."}]}
+                    for m in data.get("models", []):
+                        found.append({"id": m.get("name", ""), "provider": provider_name})
                     return found
         except Exception:  # noqa: BLE001
-            return []
+            pass
+        # Fallback: try Ollama's /api/tags endpoint
+        if provider_name == "ollama":
+            try:
+                fallback = url.replace("/v1/models", "/api/tags")
+                with urllib.request.urlopen(fallback, timeout=2.0) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    return [{"id": m["name"], "provider": "ollama"} for m in data.get("models", []) if "name" in m]
+            except Exception:  # noqa: BLE001
+                pass
         return []
 
     results = await asyncio.gather(
