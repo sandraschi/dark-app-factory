@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import subprocess
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -145,7 +146,11 @@ async def launch_factory(vibe: str, ghost_blueprint_path: str | None = None) -> 
         if ghost_blueprint_path and os.path.exists(ghost_blueprint_path):
             with open(ghost_blueprint_path, "r", encoding="utf-8") as file:
                 ghost_dna = json.load(file)
-        await factory.main_flow(vibe, ghost_dna=ghost_dna)
+        # Write vibe content to a temp file — main_flow expects a file path, not raw content
+        vibe_path = ROOT_DIR / "outputs" / f"_vibe_{int(time.time())}.md"
+        vibe_path.parent.mkdir(parents=True, exist_ok=True)
+        vibe_path.write_text(vibe, encoding="utf-8")
+        await factory.main_flow(vibe_path=str(vibe_path), ghost_dna=ghost_dna)
         state["last_verdict"] = "PASS"
     except Exception as error:  # noqa: BLE001
         logger.error(f"Factory execution failed: {error}")

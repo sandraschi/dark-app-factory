@@ -25,7 +25,7 @@ from src.utils.stack_profile import (
 def read_vibe(path: str = "vibe.md") -> str:
     if not os.path.exists(path):
         logger.error(f"Vibe file not found at {path}")
-        sys.exit(1)
+        return ""
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
