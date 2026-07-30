@@ -75,8 +75,9 @@ async def generate_specialist_files(
         current_state = progress.get_state()
         progress.update(
             current_state["percentage"],
-            f"{specialist.name} generating {file_path} ({idx + 1}/{total_files})...",
+            f"{specialist.name}: {file_path} ({idx + 1}/{total_files})...",
         )
+        progress.add_file(file_path)
 
         attempts, max_attempts, code = 0, 3, ""
         current_specs = specs
@@ -339,9 +340,15 @@ async def run_factory(
 
     for i, level_names in enumerate(levels):
         current_pct = 30 + int(i * level_inc)
+        step_name = f"Level {i + 1}: {', '.join(level_names)}"
+        progress.add_step(step_name, f"Level {i + 1} specialists ({len(level_names)} workers)")
         progress.update(
             current_pct, f"Specialists: Executing Level {i + 1}/{num_levels}..."
         )
+
+        # Mark each specialist as running
+        for name in level_names:
+            progress.specialist_status(name, "running")
 
         tasks = []
         for name in level_names:
@@ -361,6 +368,10 @@ async def run_factory(
         for name, result in zip(level_names, results):
             shared_context[name] = result
             shared_context["outputs"].update(result)
+            has_files = bool(result)
+            progress.specialist_status(name, "done" if has_files else "skipped")
+
+        progress.complete_step(step_name)
 
     # 5a. App.tsx Reconciliation Pass (React only)
     # After all specialists have run, read the ACTUAL generated file tree and

@@ -278,6 +278,8 @@ async def main_flow(
     progress.reset()
     progress.update(2, "Initializing Factory...")
     kill_zombies()
+    progress.add_step("Zombie Cleanup", "Cleared stale processes")
+    progress.complete_step("Zombie Cleanup")
 
     # 1. Determine Output Directory
     # When work_dir is set, output_dir must be absolute so it doesn't get
@@ -296,15 +298,20 @@ async def main_flow(
 
     try:
         # 2. Foreman Research (Oracle)
+        progress.add_step("Foreman Research", "Gathering domain intelligence")
         progress.update(5, "Foreman: Conducting research...")
         vibe_content = read_vibe(vibe_path)
         await conduct_research(vibe_content, foreman=foreman_client)
+        progress.complete_step("Foreman Research")
 
         # 3. Foreman (Plan)
+        progress.add_step("Foreman Plan", "Generating specs and scenarios")
         progress.update(10, "Foreman: Generating blueprint...")
         await generate_blueprint(vibe_content, foreman=foreman_client)
+        progress.complete_step("Foreman Plan")
 
         # 4. DTU (Mock Environment)
+        progress.add_step("DTU Startup", "Spinning up mock services")
         progress.update(15, "Digital Twin: Spinning up environment...")
         dtu = spin_up_dtu()
         if not dtu:
@@ -312,8 +319,11 @@ async def main_flow(
 
         try:
             # 5. Worker (Build)
+            progress.add_step("Worker Build", "Running specialist council")
             progress.update(20, "Worker: Initializing build floor...")
             await run_factory("specs/specs.md", output_dir, worker=worker_client)
+
+            progress.complete_step("Worker Build")
 
             # --- manifest.json for RunManifest (judge phase) ---
             from run_manifest import write_manifest_from_output
@@ -325,8 +335,10 @@ async def main_flow(
             try:
                 from src.verification.ruffy_runner import run_ruffy
 
-                progress.update(70, "Ruffy: Running ruff + mypy...")
+                progress.add_step("Lint", "Running ruff + mypy + JS/TS gates")
+                progress.update(70, "Ruffy: Running linters...")
                 lint_report, _ = run_ruffy(output_dir)
+                progress.complete_step("Lint")
             except Exception as e:
                 logger.warning("Ruffy lint step failed (non-fatal): %s", e)
 
@@ -338,6 +350,7 @@ async def main_flow(
 
             # 5b. Showboat Build Demo Artifact
             try:
+                progress.add_step("Demo", "Generating build artifact")
                 progress.update(75, "Showboat: Generating build demo artifact...")
                 demos_dir = os.path.join(output_dir, "demos")
                 # Count generated files
@@ -356,6 +369,7 @@ async def main_flow(
 
             # 6. Propagandist (Landing Page)
             try:
+                progress.add_step("Landing Page", "Generating marketing page")
                 progress.update(85, "Propagandist: Generating landing page...")
                 await generate_landing_page(output_dir, foreman_model=foreman_model, foreman_base_url=base_url)
             except Exception as e:

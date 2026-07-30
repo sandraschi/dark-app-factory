@@ -632,6 +632,27 @@ async def fleet_launch(request: FleetLaunchRequest):
     return {"success": True, "message": f"Launched {path.name}"}
 
 
+@app.get("/api/progress/stream")
+async def progress_sse():
+    """Server-Sent Events endpoint for real-time build progress."""
+    from src.utils.progress import progress as _p
+
+    async def event_stream():
+        queue = _p.subscribe()
+        # Send initial state
+        yield f"data: {json.dumps({'type': 'state', ** _p.get_state()})}\n\n"
+        try:
+            while True:
+                event = await asyncio.wait_for(queue.get(), timeout=30.0)
+                yield f"data: {json.dumps(event)}\n\n"
+        except asyncio.TimeoutError:
+            yield f"data: {json.dumps({'type': 'keepalive'})}\n\n"
+
+    from fastapi.responses import StreamingResponse
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
 SOTA_DIR = ROOT_DIR / "web_sota" / "dist"
 if SOTA_DIR.exists() and (SOTA_DIR / "index.html").exists():
     app.mount("/", StaticFiles(directory=str(SOTA_DIR), html=True), name="sota")
