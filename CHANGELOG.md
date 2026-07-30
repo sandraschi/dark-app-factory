@@ -1,4 +1,61 @@
 
+## [0.2.2-beta] — 2026-07-30
+
+### Fixed
+- **Model tags were wrong** — `llama3.1:latest` and `qwen2.5-coder:latest` don't exist on this
+  machine. Replaced with `qwen3.6:27b` (foreman) and `qwen2.5-coder:32b-instruct-q4_K_M` (worker)
+  in settings.json, DEFAULT_SETTINGS, llm_client.py, .env.example, and all docs.
+- **No phantom bootable components** — `write_manifest_from_output` no longer inserts
+  `{"backend": "main.py"}` when empty. `load_manifest` returns `{"components": []}`.
+  No more npm ENOENT errors from non-existent servers.
+- **Preflight model check** — `preflight_models()` verifies all requested models exist in Ollama
+  before the pipeline starts. Fails fast in under 2s with the available-model list.
+- **Pipeline aborts on empty output** — if specs generation fails or the worker produces zero
+  files, the pipeline stops immediately. No more empty git init / showboat / judge on nothing.
+- **Install reporting is honest** — tri-state: `installed` / `skipped_nothing_to_install` /
+  `failed` instead of `True`/`False`. Judge verdict text adapts to the actual state.
+- **Showboat file counts exclude metadata dirs** — `.git/`, `demos/`, `.factory-logs/` no
+  longer counted. The count now matches the embedded file listing.
+- **DTU verification gated on app liveness** — skip DTU log query when the app never started.
+  No more "2 service calls" on a dead app.
+- **Server suicide fixed** — `KNOWN_FACTORY_PORTS` included port 10738, so `kill_zombies()`
+  taskkilled the server itself. Removed 10738/10739 from the zombie list.
+- **Backend crash on build fixed** — `launch_factory` now writes vibe to temp file instead of
+  passing content as file path. `read_vibe` no longer calls `sys.exit()` on missing file.
+- **16 pre-existing test failures fixed** — `ScenarioResult` missing `scenario_type`,
+  `parse_http_action` keyword priority, `classify_scenario` order.
+
+### Added
+- **Real-time build progress** via SSE (`GET /api/progress/stream`): step timeline, specialist
+  status grid (19 specialists), generated file tree. Build page shows all three.
+- **Depot page** at `/depot`: browse, search, and launch generated apps.
+- **Build page** with vibe input, 6 example prompts, refine button, options panel (foreman/
+  worker model, output name), live run polling with log tail.
+- **JS/TS static gates** in ruffy_runner: `tsc --noEmit` (when tsconfig.json exists),
+  `vite build` (when vite.config.ts exists), `node --check` on all JS files.
+- **Import-to-dependency closure check** in ruffy_runner: parses imports from generated
+  files, cross-checks against `package.json`/`requirements.txt`, reports missing packages.
+- **Deep-crawl icon bug fix**: bare package import identifiers no longer materialised as
+  local components.
+- **Session context injection**: CLAUDE.md, .cursorrules, .claude-plugin/, .windsurfrules,
+  copilot-instructions.md.
+- **SOTA webapp** with 9 pages (Dashboard, Build, Inbox, Depot, Tools, Skills, Chat,
+  Settings, Help, Logs). Zustand stores, LLM provider auto-detection, Chat with 4
+  personalities.
+- `just test-e2e` recipe (Ollama-dependent, 10+ min per test, marked @pytest.mark.slow).
+- `/api/outputs/{name}/report` endpoint serving audit-report.md → build-report.md →
+  lint-report.txt → www/index.html.
+
+### Backend hardening
+- Hatchling build fixed (packages directive in pyproject.toml).
+- CORS middleware on both web and MCP endpoints (fleet standard origins + regex).
+- Replaced `mcp.run_http_async()` with `uvicorn.Server` on `mcp.http_app()`.
+- `_safe_launch()` wrapper catches `SystemExit` in background build tasks.
+- `logger.exception()` used in except blocks (captures tracebacks).
+- No silent `.catch(() => {})` in frontend — all API errors logged to console.
+- `API_BASE` configurable via `VITE_API_BASE` env var (no hardcoded `127.0.0.1:10738` in pages).
+- Model selection from Settings used everywhere (Chat, Refine, Build) — no fallback hardcodes.
+
 ## [0.2.1-beta] - 2026-07-29
 
 ### Fixed (Critical: boot and verify path)

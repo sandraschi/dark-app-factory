@@ -3,7 +3,7 @@
 Generate a working web application from a plain-text description. Runs locally on Ollama. No cloud required.
 
 - **Ports**: dashboard 10738, MCP 10739, Vite dev 10740
-- **Version**: 0.2.1-beta
+- **Version**: 0.2.2-beta
 - **Test status**: 135 pass, 3 e2e scaffold hang (need timeout) 
 - **License**: MIT
 
