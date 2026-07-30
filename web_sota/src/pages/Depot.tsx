@@ -115,14 +115,14 @@ export default function Depot() {
                     Launch
                   </button>
                   <a
-                    href={`http://127.0.0.1:10738/api/assess/${encodeURIComponent(o.name)}`}
+                    href={`http://127.0.0.1:10738/api/outputs/${encodeURIComponent(o.name)}/report`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-1 text-sm px-2.5 py-1.5 rounded bg-zinc-800 text-zinc-300 hover:text-zinc-200 transition-colors"
+                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
                     title="View assessment"
                   >
                     <FileText size={12} />
-                    Assess
+                    Report
                   </a>
                 </div>
               </div>

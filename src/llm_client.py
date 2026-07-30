@@ -26,7 +26,7 @@ class LLMClient:
                     os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1"),
                 )
             if not self.model:
-                self.model = os.getenv("FOREMAN_MODEL", "llama3.1:latest")
+                self.model = os.getenv("FOREMAN_MODEL", "llama3.1:8b")
         else:
             api_key = os.getenv("WORKER_API_KEY", "ollama")
             if not self.base_url:

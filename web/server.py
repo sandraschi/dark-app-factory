@@ -434,6 +434,26 @@ async def get_assessment(output_name: str):
     raise HTTPException(status_code=404, detail=f"No assessment for '{output_name}'")
 
 
+@app.get("/api/outputs/{output_name}/report")
+async def get_output_report(output_name: str):
+    """Serve the best available report for an output directory.
+    Tries: audit-report.md → build-report.md → lint-report.txt → index.html."""
+    candidates = [
+        f"demos{os.sep}audit-report.md",
+        f"demos{os.sep}build-report.md",
+        f"demos{os.sep}lint-report.txt",
+        "www/index.html",
+        "critique.md",
+    ]
+    out_dir = ROOT_DIR / "outputs" / output_name
+    if not out_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Output not found: {output_name}")
+    for rel in candidates:
+        path = out_dir / rel
+        if path.exists():
+            return FileResponse(str(path))
+    raise HTTPException(status_code=404, detail="No reports found for this output")
+
 
     return {
         "active_builds": state["active_builds"],
