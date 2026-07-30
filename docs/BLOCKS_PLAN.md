@@ -1,130 +1,135 @@
-# Blocks System — Plan
+# Blocks System — Plan (updated)
 
-**Goal**: Turn DAF from "LLM writes every line from scratch" to "LLM assembles and configures pre-built modules." Each block is a tested, reusable package that the factory installs and wires instead of generating.
+**Goal**: Turn DAF from "LLM writes every line from scratch" to "LLM assembles and configures pre-built modules."
 
-## Why
+## Priority Order
 
-The current approach requires the LLM to generate payment flows, auth middleware, and email templates from scratch every run. This is slow (thousands of tokens per specialist), fragile (each generation can introduce new bugs), and produces shallow implementations (the LLM can't hold a full Stripe webhook flow in context).
+1. **MCP Client block** — generated app connects to any fleet MCP server (Discord, email, Plex, etc.). Highest leverage: 187 pre-built integrations for free.
+2. **Stripe block** — payment processing, subscriptions, webhooks.
+3. **Auth block** — JWT auth, registration, login, OAuth stubs.
 
-The fix: ship the 80% that's the same every time as installable blocks. The LLM's job becomes selecting, configuring, and gluing blocks — work it's actually good at.
+---
 
-## Block Structure
+## Block: MCP Client
 
-Each block lives in `blocks/{name}/` and is a self-contained, installable package:
+### Why
+
+The fleet has 187 MCP servers. Each one is a proven, working integration. If a generated app can connect to these via MCP client, it instantly inherits all that capability without the LLM generating a single line of integration code.
+
+The generated app becomes a thin UI shell over MCP tools.
+
+### Architecture
 
 ```
-blocks/stripe/
-  block.json              # Metadata: name, version, deps, env vars, specialists
-  README.md               # What this block provides, how to configure
-  backend/
-    __init__.py
-    routes.py             # FastAPI router: /checkout, /webhook, /subscriptions
-    models.py             # SQLAlchemy/Pydantic models
-    schemas.py            # Request/response schemas
-    service.py            # Stripe API client wrapper
-  frontend/
-    pages/
-      PricingPage.tsx
-      SubscriptionPage.tsx
-    components/
-      CheckoutButton.tsx
-      PricingCard.tsx
-      SubscriptionStatus.tsx
-  tests/
-    test_routes.py
-    test_service.py
-  glue/
-    main.py.append        # Lines to append to main.py (route registration)
-    App.tsx.append        # Lines to append to App.tsx (route imports)
+Generated App
+  ├── FastAPI backend
+  │     └── /api/mcp/{server}/{tool}  ──HTTP/SSE──►  discord-mcp
+  │                                                   email-mcp
+  │                                                   calibre-mcp
+  │                                                   ...
+  └── React frontend
+        └── McpPanel (browse tools, invoke, see results)
 ```
 
-### block.json schema
+### How it works
+
+1. User sets `MCP_SERVERS={"discord": "http://localhost:10757/mcp", "email": "http://localhost:10813/mcp"}` in `.env`
+2. Backend MCP client connects to each server at startup
+3. Block exposes `GET /api/mcp/tools` — aggregated tool list from all servers
+4. Block exposes `POST /api/mcp/{server}/{tool}` — invoke a tool on a server
+5. Frontend gets a generic `McpPanel` component — dropdown of servers → tools → input args → results
+6. The LLM specialist writes the specific pages that call specific tools (e.g. a Discord channel browser)
+
+### block.json
 
 ```json
 {
-  "name": "stripe",
+  "name": "mcp-client",
   "version": "0.1.0",
-  "description": "Stripe payment processing — checkout, subscriptions, webhooks",
-  "triggers": ["payment", "stripe", "checkout", "subscription", "billing"],
+  "description": "Connect to any fleet MCP server — Discord, email, Plex, Calibre, etc.",
+  "triggers": ["discord", "email", "mcp", "integration", "chat", "notifications"],
   "dependencies": {
-    "python": ["stripe>=9.0.0"],
-    "node": ["@stripe/stripe-js", "@stripe/react-stripe-js"]
+    "python": ["mcp>=1.0.0", "httpx>=0.27.0"]
   },
   "env_vars": {
-    "STRIPE_SECRET_KEY": "",
-    "STRIPE_PUBLISHABLE_KEY": "",
-    "STRIPE_WEBHOOK_SECRET": ""
+    "MCP_SERVERS": "{\"discord\": \"http://localhost:10757/mcp\", \"email\": \"http://localhost:10813/mcp\"}"
   },
   "specialists": {
-    "Plumber": { "append": ["backend/routes.py", "backend/models.py"], "config": {"webhook_path": "/api/stripe/webhook"} },
-    "Sculptor": { "append": ["frontend/pages/PricingPage.tsx"], "imports": ["PricingPage", "CheckoutButton"] }
+    "Plumber": { "append": ["backend/routes.py"] },
+    "Sculptor": { "append": ["frontend/components/McpPanel.tsx"] }
   },
-  "backend_routes": ["/api/stripe/checkout", "/api/stripe/webhook", "/api/stripe/subscriptions"],
-  "frontend_pages": ["/pricing", "/subscription"]
+  "backend_routes": ["/api/mcp/tools", "/api/mcp/{server}/{tool}"],
+  "frontend_pages": []
 }
 ```
 
-## How the Pipeline Uses Blocks
+### Files
 
-### Detect (during Foreman planning)
+| File | Purpose |
+|------|---------|
+| `blocks/mcp-client/backend/client.py` | MCP client — connect, list tools, call tool |
+| `blocks/mcp-client/backend/routes.py` | FastAPI router: `GET /api/mcp/tools`, `POST /api/mcp/{server}/{tool}` |
+| `blocks/mcp-client/frontend/McpPanel.tsx` | Generic tool browser — select server → tool → fill args → see result |
+| `blocks/mcp-client/frontend/McpStatus.tsx` | Connection status indicator per server |
+| `blocks/mcp-client/glue/main.py.append` | `app.include_router(mcp_router)` |
+| `blocks/mcp-client/tests/test_client.py` | Tests with mocked MCP server |
 
-The Foreman scans specs for trigger keywords (e.g. "stripe", "payment"). Matched block names are added to the build manifest.
+---
 
-### Install (before specialist execution)
+## Block: Stripe
 
-The Registrar reads the manifest, copies block files into the output directory, adds deps to `requirements.txt`/`package.json`, and appends glue code to entry points.
+### block.json triggers
+`["payment", "stripe", "checkout", "subscription", "billing"]`
 
-### Configure (during specialist execution)
+### Files
+| File | Purpose |
+|------|---------|
+| `blocks/stripe/backend/routes.py` | Checkout, webhook, subscriptions |
+| `blocks/stripe/backend/models.py` | Product, Price, Subscription |
+| `blocks/stripe/backend/service.py` | Stripe API wrapper |
+| `blocks/stripe/frontend/pages/PricingPage.tsx` | Pricing table |
+| `blocks/stripe/frontend/components/CheckoutButton.tsx` | Stripe checkout button |
+| `blocks/stripe/glue/main.py.append` | Route registration |
+| `blocks/stripe/glue/App.tsx.append` | Page route |
 
-Each specialist reads its block's `config` and writes configuration. Plumber writes the Stripe route registration into entry points. Sculptor adds the pricing page route to `App.tsx`. The block provides the real implementation; the specialist writes 3-5 lines of registration code.
+---
 
-### Verify (during Judge)
+## Block: Auth
 
-Judge checks each block's env vars are configured and its endpoints respond. Block tests run as part of the lint/verify pipeline.
+### block.json triggers
+`["auth", "login", "register", "user", "oauth", "jwt", "password"]`
 
-## Implementation Plan
+---
 
-### Phase 1 — Block infrastructure
+## Block Directory Structure
 
-| Task | Description |
-|------|-------------|
-| P1.1 | `blocks/` directory + `block.json` schema + loader |
-| P1.2 | `Registrar.match_blocks(specs)` — keyword matching |
-| P1.3 | `Registrar.install_block(name, output_dir)` — copy, append glue, add deps |
-| P1.4 | Update manifest to include `"blocks": [...]` |
-| P1.5 | Tests: block match, install, glue append |
+```
+blocks/
+  mcp-client/
+    block.json
+    README.md
+    backend/
+      client.py       # MCP connection manager
+      routes.py       # REST proxy endpoints
+    frontend/
+      McpPanel.tsx
+      McpStatus.tsx
+    glue/
+      main.py.append
+    tests/
+      test_client.py
+  stripe/
+    ...
+  auth/
+    ...
+```
 
-### Phase 2 — Stripe block (prototype)
+## Implementation Phases
 
-| Task | Description |
-|------|-------------|
-| P2.1 | `blocks/stripe/block.json` — triggers, deps, env vars |
-| P2.2 | `blocks/stripe/backend/` — FastAPI routes, models, schemas, service |
-| P2.3 | `blocks/stripe/frontend/` — PricingPage, CheckoutButton |
-| P2.4 | `blocks/stripe/glue/` — main.py.append, App.tsx.append |
-| P2.5 | `blocks/stripe/tests/` — route + service tests |
-| P2.6 | e2e: vibe with "stripe" triggers block install, app boots |
-
-### Phase 3 — Auth block
-
-| Task | Description |
-|------|-------------|
-| P3.1 | `blocks/auth/` — JWT auth, register, login, password reset, OAuth stubs |
-| P3.2 | Frontend: LoginPage, RegisterPage, ProtectedRoute |
-| P3.3 | Tests + e2e |
-
-### Phase 4 — Generalize
-
-| Task | Description |
-|------|-------------|
-| P4.1 | Block registry in `blocks/index.json` for auto-discovery |
-| P4.2 | UI in Settings: list available blocks, toggle inclusion |
-| P4.3 | Block versioning and update mechanism |
-
-## Block Design Principles
-
-1. **No business logic in glue code.** Glue just registers routes/pages. All logic lives in the block's own files.
-2. **Blocks are independently testable.** Each ships with pytest tests using mocked external services.
-3. **Env vars are the only configuration surface.** Never hardcode API keys or URLs.
-4. **Specialists configure, blocks implement.** Specialist writes 2 lines of registration; block provides 200 lines of implementation.
-5. **One model, one block.** Blocks don't depend on each other. Glue composes them independently.
+| Phase | Tasks |
+|-------|-------|
+| **P1: Infrastructure** | `blocks/` dir, `block.json` schema + loader, Registrar.match_blocks(), Registrar.install_block(), tests |
+| **P2: MCP Client** | `blocks/mcp-client/` — backend client, routes, frontend panel, glue, tests |
+| **P3: Stripe** | `blocks/stripe/` — backend, frontend, glue, tests |
+| **P4: Auth** | `blocks/auth/` — backend, frontend, glue, tests |
+| **P5: Generalize** | Block registry, Settings UI, versioning |

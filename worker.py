@@ -167,6 +167,28 @@ async def run_factory(
     if not worker:
         worker = LLMClient(role="worker")
 
+    # 0b. Block installation — match and install blocks from specs keywords
+    try:
+        from blocks.loader import match_blocks, install_block, merge_deps
+
+        matched = match_blocks(specs)
+        if matched:
+            logger.info("Matched %d block(s): %s", len(matched), [m["name"] for m in matched])
+            progress.update(23, f"Installing blocks: {', '.join(m['name'] for m in matched)}")
+            os.makedirs(output_dir, exist_ok=True)
+            results = []
+            for m in matched:
+                result = install_block(m["name"], output_dir)
+                if result:
+                    results.append(result)
+                    logger.info("Installed block: %s", m["name"])
+            if results:
+                merge_deps(output_dir, results)
+    except ImportError:
+        pass  # blocks/ not available
+    except Exception as e:
+        logger.warning("Block installation failed (non-fatal): %s", e)
+
     # 1. Planning -- stack-aware file list
     progress.update(25, "Architect: Planning file structure...")
     file_list_prompt = (

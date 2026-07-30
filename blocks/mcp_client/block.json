@@ -1,0 +1,19 @@
+{
+  "name": "mcp-client",
+  "version": "0.1.0",
+  "description": "Connect to any MCP server — Discord, email, Plex, Calibre, etc.",
+  "triggers": ["discord", "email", "mcp", "integration", "chat", "notification", "slack", "sms"],
+  "dependencies": {
+    "python": ["httpx>=0.27.0"],
+    "node": []
+  },
+  "env_vars": {
+    "MCP_SERVERS": "{\"example\": \"http://localhost:10800/mcp\"}"
+  },
+  "specialists": {
+    "Plumber": { "append": ["backend/routes.py"], "config": {} },
+    "Nervos": { "append": ["backend/client.py"], "config": {} }
+  },
+  "backend_routes": ["/api/mcp/tools", "/api/mcp/{server}/{tool}"],
+  "frontend_pages": []
+}
