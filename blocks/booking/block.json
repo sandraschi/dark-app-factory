@@ -1,6 +1,7 @@
 {
   "name": "booking",
   "version": "0.1.0",
+  "status": "beta",
   "description": "Calendar booking — availability slots, appointment scheduling, reminders, calendar sync",
   "triggers": ["booking", "appointment", "calendar", "schedule", "reservation", "slot", "availability", "book"],
   "dependencies": {"python": [], "node": []},

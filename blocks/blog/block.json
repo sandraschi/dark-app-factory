@@ -1,6 +1,7 @@
 {
   "name": "blog",
   "version": "0.1.0",
+  "status": "beta",
   "description": "Blog/CMS — markdown articles, categories, RSS feed, SEO metadata, comments",
   "triggers": ["blog", "cms", "article", "post", "news", "rss", "content", "writing", "editorial"],
   "dependencies": {"python": ["markdown>=3.5.0", "feedgen>=1.0.0"], "node": []},

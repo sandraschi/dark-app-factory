@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Location and maps — Leaflet/MapLibre integration, store locator, geocoding, service area map, directions link",
   "triggers": ["map", "location", "directions", "address", "store.locator", "find.us", "driving", "branches"],
-  "dependencies": {"python": [], "node": ["leaflet", "leaflet.markercluster"]},
+  "dependencies": {"python": [], "node": {"leaflet": "^1.9.0", "leaflet.markercluster": "^1.5.0"}},
   "env_vars": {"MAPS_CENTER_LAT": "48.2082", "MAPS_CENTER_LNG": "16.3738", "MAPS_ZOOM": "13"},
   "specialists": {"Plumber": {"append": ["backend/routes.py"], "config": {}}, "Sculptor": {"append": ["frontend/pages/MapPage.tsx"], "imports": ["MapPage", "LocationPicker"]}},
   "backend_routes": ["/api/maps/locations", "/api/maps/nearby"],

@@ -1,6 +1,7 @@
 {
   "name": "aichat",
   "version": "0.1.0",
+  "status": "stub",
   "description": "AI Chat UI with Ollama/LM Studio integration — streaming chat, personality selector, conversation history",
   "triggers": ["chat", "ai", "assistant", "llm", "ollama", "bot", "conversation", "support"],
   "dependencies": {"python": [], "node": []},

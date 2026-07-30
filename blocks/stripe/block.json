@@ -5,7 +5,7 @@
   "triggers": ["payment", "stripe", "checkout", "subscription", "billing", "pay", "pricing", "plan"],
   "dependencies": {
     "python": ["stripe>=9.0.0"],
-    "node": ["@stripe/stripe-js", "@stripe/react-stripe-js"]
+    "node": {"@stripe/stripe-js": "^4.0.0", "@stripe/react-stripe-js": "^3.0.0"}
   },
   "env_vars": {
     "STRIPE_SECRET_KEY": "sk_test_...",

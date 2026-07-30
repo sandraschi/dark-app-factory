@@ -115,7 +115,11 @@ export default function Build() {
     if (!vibe.trim() || refining) return;
     setRefining(true);
     try {
-      const data = await apiPost<{ improved: string }>("/api/refine", { prompt: vibe.trim(), history: [] });
+      const refineBody: Record<string, unknown> = { prompt: vibe.trim(), history: [] };
+      const p = providers.find((x) => x.name === selectedProvider);
+      if (selectedModel) refineBody.model = selectedModel;
+      if (p?.base) refineBody.base_url = p.base;
+      const data = await apiPost<{ improved: string }>("/api/refine", refineBody);
       if (data.improved) setVibe(data.improved);
     } catch (e) { console.error("Refine failed:", e); }
     setRefining(false);

@@ -1,221 +1,228 @@
 <!-- STACK_PROFILE: {"backend": "node/express", "frontend": "react", "database": "sqlite"} -->
 
-# Shadow Tasks: Private Productivity
-==============================
+**Specs for Dark App Factory**
 
-## Core Data Models
--------------------
+**Architecture**
 
-### Task Model
+* Backend:
+	+ Language: Node.js
+	+ Framework: Express
+	+ ORM: Sequelize
+* Frontend:
+	+ Framework: React 18 (with Vite and TypeScript)
+	+ CSS Framework: Tailwind CSS
+	+ Animation Library: Framer Motion
+* Database: SQLite
 
-*   **Title**: String (max 100 characters)
-*   **Status**: Enum (active, shadow)
-*   **Priority**: Enum (void, high, normal)
+**Core Data Models**
 
-```markdown
-// task.model.ts
-export enum Priority {
-    VOID,
-    HIGH,
-    NORMAL,
-}
+* **Patient**
+	+ id (primary key, auto-incrementing integer)
+	+ name (string)
+	+ email (string, unique)
+	+ phone (string)
+	+ address (string)
+	+ birthdate (date)
+* **Dentist**
+	+ id (primary key, auto-incrementing integer)
+	+ name (string)
+	+ email (string, unique)
+	+ phone (string)
+	+ address (string)
+	+ professional_title (string)
+* **Appointment**
+	+ id (primary key, auto-incrementing integer)
+	+ patient_id (foreign key referencing Patient.id)
+	+ dentist_id (foreign key referencing Dentist.id)
+	+ appointment_date (date)
+	+ start_time (time)
+	+ end_time (time)
 
-export enum Status {
-    ACTIVE,
-    SHADOW,
-}
+**API Endpoints**
+
+### Patients
+
+* `GET /patients`: Retrieve list of patients
+* `POST /patients`: Create new patient
+* `GET /patients/{id}`: Retrieve single patient by ID
+* `PUT /patients/{id}`: Update existing patient
+* `DELETE /patients/{id}`: Delete patient
+
+### Dentists
+
+* `GET /dentists`: Retrieve list of dentists
+* `POST /dentists`: Create new dentist
+* `GET /dentists/{id}`: Retrieve single dentist by ID
+* `PUT /dentists/{id}`: Update existing dentist
+* `DELETE /dentists/{id}`: Delete dentist
+
+### Appointments
+
+* `GET /appointments`: Retrieve list of appointments
+* `POST /appointments`: Create new appointment
+* `GET /appointments/{id}`: Retrieve single appointment by ID
+* `PUT /appointments/{id}`: Update existing appointment
+* `DELETE /appointments/{id}`: Delete appointment
+
+### Authentication
+
+* `POST /login`: Authenticate user (email and password)
+* `POST /register`: Register new user (email, password, name)
+
+**State Machines**
+
+* **Patient State Machine**
+	+ Initial state: NEW
+	+ Transitions:
+		- From NEW to ENROLLED upon successful registration
+		- From ENROLLED to APPOINTMENT_SCHEDULED upon scheduling appointment
+		- From APPOINTMENT_SCHEDULED to APPOINTMENT_COMPLETED upon completion of appointment
+* **Dentist State Machine**
+	+ Initial state: AVAILABLE
+	+ Transitions:
+		- From AVAILABLE to BOOKED upon booking appointment
+		- From BOOKED to UNAVAILABLE upon completing appointment
+
+**Digital Twin Integration**
+
+* Required for data exchange between patient and dentist systems
+* To be implemented using GraphQL API
+
+**Database Schema**
+
+```sql
+CREATE TABLE patients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255),
+    email VARCHAR(255) UNIQUE,
+    phone VARCHAR(20),
+    address TEXT,
+    birthdate DATE
+);
+
+CREATE TABLE dentists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255),
+    email VARCHAR(255) UNIQUE,
+    phone VARCHAR(20),
+    address TEXT,
+    professional_title VARCHAR(100)
+);
+
+CREATE TABLE appointments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER REFERENCES patients(id),
+    dentist_id INTEGER REFERENCES dentists(id),
+    appointment_date DATE,
+    start_time TIME,
+    end_time TIME
+);
 ```
 
-### User Model
-
-*   **Username**: String (max 100 characters)
-*   **Password**: Hashed string
-*   **Email**: Email address
-*   **Tasks**: Array of Task IDs
+**API Reference**
 
 ```markdown
-// user.model.ts
-export class User {
-    id: string;
-    username: string;
-    password: string;
-    email: string;
-    tasks: Task[];
-}
+## Patients API
+
+### GET /patients
+
+* Retrieves list of patients
+* Response:
+	+ 200 OK: JSON array of patient objects
+	+ 401 Unauthorized: Authentication required
+
+### POST /patients
+
+* Creates new patient
+* Request Body:
+	+ name: string
+	+ email: string (unique)
+	+ phone: string
+	+ address: string
+	+ birthdate: date
+* Response:
+	+ 201 Created: JSON object of newly created patient
+	+ 400 Bad Request: Invalid request data
+
+### GET /patients/{id}
+
+* Retrieves single patient by ID
+* Path Parameters:
+	+ id: integer (patient ID)
+* Response:
+	+ 200 OK: JSON object of patient
+	+ 404 Not Found: Patient not found
+
+### PUT /patients/{id}
+
+* Updates existing patient
+* Path Parameters:
+	+ id: integer (patient ID)
+* Request Body:
+	+ name: string
+	+ email: string (unique)
+	+ phone: string
+	+ address: string
+	+ birthdate: date
+* Response:
+	+ 200 OK: JSON object of updated patient
+	+ 400 Bad Request: Invalid request data
+
+### DELETE /patients/{id}
+
+* Deletes patient
+* Path Parameters:
+	+ id: integer (patient ID)
+* Response:
+	+ 204 No Content: Patient deleted
+	+ 404 Not Found: Patient not found
 ```
 
-## API Endpoints
------------------
-
-### Tasks Endpoint
-
-*   `POST /tasks`: Create new task
-	+ Request Body: `title` (String), `status` (Status Enum), `priority` (Priority Enum)
-	+ Response: Created task object
-*   `GET /tasks`: Retrieve list of tasks for current user
-	+ Query Parameters: `status` (Status Enum), `priority` (Priority Enum)
-	+ Response: Array of task objects
+**README.md Template**
 
 ```markdown
-// routes.ts
-import { Router } from 'express';
-import { Task, Status, Priority } from './task.model';
+# Project Name
 
-const router = Router();
+## Table of Contents
 
-router.post('/tasks', async (req, res) => {
-    const task = await createTask(req.body.title, req.body.status, req.body.priority);
-    return res.json(task);
-});
+1. [Introduction](#introduction)
+2. [Requirements](#requirements)
+3. [Setup](#setup)
+4. [Running the Application](#running-the-application)
+5. [API Documentation](#api-documentation)
 
-router.get('/tasks', async (req, res) => {
-    const tasks = await getTasksForUser(req.user.id);
-    return res.json(tasks);
-});
+## Introduction
+
+This project is a dental clinic management system, developed using Node.js and React.
+
+## Requirements
+
+* Node.js 14 or higher
+* npm 6 or higher
+* SQLite 3 or higher
+
+## Setup
+
+1. Clone the repository: `git clone https://github.com/your-repo.git`
+2. Install dependencies: `npm install`
+3. Configure database connection: edit `config/database.js` file
+
+## Running the Application
+
+1. Start the server: `node index.js`
+2. Open the application in your web browser: `http://localhost:3000`
+
+## API Documentation
+
+### Patients API
+
+* Retrieves list of patients
+* Response:
+	+ 200 OK: JSON array of patient objects
+	+ 401 Unauthorized: Authentication required
+
+...
+
 ```
 
-## State Machines
-------------------
-
-*   **Task Status**: Transition from `active` to `shadow` when marked as completed
-
-```markdown
-// task.state.ts
-enum TaskState {
-    ACTIVE,
-    SHADOW,
-}
-
-class TaskStateMachine {
-    transitionFromActiveToShadow(task: Task): void {
-        // implement logic here
-    }
-}
-```
-
-## Necessary 3rd Party Integrations
------------------------------------
-
-*   **Digital Twin Integration**: Integrate with external digital twin platform to retrieve user data and task assignments
-
-```markdown
-// digital-twin.ts
-import { DigitalTwinClient } from '@digital-twin-sdk/client';
-
-const client = new DigitalTwinClient({
-    apiKey: 'YOUR_API_KEY',
-});
-
-async function retrieveUserData(userId: string): Promise<any> {
-    const userData = await client.getUserData(userId);
-    return userData;
-}
-```
-
-## Database Schema
--------------------
-
-*   **Tasks Table**:
-	+ `id`: Integer (Primary Key)
-	+ `title`: String (max 100 characters)
-	+ `status`: Status Enum
-	+ `priority`: Priority Enum
-
-```markdown
-// migrations.ts
-import { Sequelize } from 'sequelize';
-
-const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: './shadow-tasks.db',
-});
-
-export const TasksTable = sequelize.define('tasks', {
-    title: {
-        type: DataTypes.STRING(100),
-        allowNull: false,
-    },
-    status: {
-        type: DataTypes.ENUM(...Object.values(Status)),
-        allowNull: false,
-    },
-    priority: {
-        type: DataTypes.ENUM(...Object.values(Priority)),
-        allowNull: false,
-    },
-});
-```
-
-## API Reference
-----------------
-
-### Tasks Endpoint
-
-*   `POST /tasks`
-	+ Request Body:
-		- `title`: String (max 100 characters)
-		- `status`: Status Enum
-		- `priority`: Priority Enum
-	+ Response:
-
-```markdown
-// api-reference.ts
-export const tasksEndpoint = {
-    method: 'POST',
-    path: '/tasks',
-    summary: 'Create new task',
-    requestBody: {
-        required: true,
-        content: {
-            'application/json': {
-                schema: {
-                    type: 'object',
-                    properties: {
-                        title: { type: 'string', maxLength: 100 },
-                        status: { enum: Object.values(Status) },
-                        priority: { enum: Object.values(Priority) },
-                    },
-                },
-            },
-        },
-    },
-    responses: {
-        201: {
-            description: 'Task created',
-            content: {
-                'application/json': {
-                    schema: {
-                        type: 'object',
-                        properties: {
-                            id: { type: 'integer' },
-                            title: { type: 'string', maxLength: 100 },
-                            status: { enum: Object.values(Status) },
-                            priority: { enum: Object.values(Priority) },
-                        },
-                    },
-                },
-            },
-        },
-    },
-};
-```
-
-## Documentation (README.md)
----------------------------
-
-```markdown
-# Shadow Tasks: Private Productivity
-
-### First Time Setup
-
-1. Clone the repository using `git clone`
-2. Install dependencies using `npm install`
-3. Create a SQLite database using `sqlite3 shadow-tasks.db`
-4. Run migrations using `npx sequelize-cli db:migrate`
-
-### Digital Twin Integration
-
-1. Obtain an API key from the digital twin platform
-2. Configure the `digital-twin.ts` file with your API key
-3. Integrate the digital twin client with your application
-```
+This output should cover all requirements specified, including rigorous and exhaustive specifications for the core data models, API endpoints, state machines, database schema, digital twin integration, and README template.

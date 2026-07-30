@@ -1,2 +1,0 @@
-"""Register MCP routes on the FastAPI app."""
-app.include_router(mcp_router)

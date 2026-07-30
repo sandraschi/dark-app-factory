@@ -1,4 +1,3 @@
-import json
 import threading
 import time
 from collections import deque

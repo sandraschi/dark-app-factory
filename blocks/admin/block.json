@@ -1,6 +1,7 @@
 {
   "name": "admin",
   "version": "0.1.0",
+  "status": "stub",
   "description": "Admin panel — auto-generated CRUD tables, charts, user management, audit log",
   "triggers": ["admin", "dashboard", "crud", "manage", "backoffice", "administration", "moderate"],
   "dependencies": {"python": [], "node": []},

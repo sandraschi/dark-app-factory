@@ -167,27 +167,21 @@ async def run_factory(
     if not worker:
         worker = LLMClient(role="worker")
 
-    # 0b. Block installation — match and install blocks from specs keywords
+    # 0b. Block matching — detect blocks from specs, build context for LLM prompts
+    matched_blocks: list[dict] = []
+    block_context: str = ""
     try:
-        from blocks.loader import match_blocks, install_block, merge_deps
+        from blocks.loader import match_blocks, build_block_context
 
-        matched = match_blocks(specs)
-        if matched:
-            logger.info("Matched %d block(s): %s", len(matched), [m["name"] for m in matched])
-            progress.update(23, f"Installing blocks: {', '.join(m['name'] for m in matched)}")
-            os.makedirs(output_dir, exist_ok=True)
-            results = []
-            for m in matched:
-                result = install_block(m["name"], output_dir)
-                if result:
-                    results.append(result)
-                    logger.info("Installed block: %s", m["name"])
-            if results:
-                merge_deps(output_dir, results)
+        matched_blocks = match_blocks(specs)
+        if matched_blocks:
+            block_names = [m["name"] for m in matched_blocks]
+            logger.info("Matched %d block(s): %s", len(matched_blocks), block_names)
+            block_context = build_block_context(matched_blocks)
     except ImportError:
         pass  # blocks/ not available
     except Exception as e:
-        logger.warning("Block installation failed (non-fatal): %s", e)
+        logger.warning("Block matching failed (non-fatal): %s", e)
 
     # 1. Planning -- stack-aware file list
     progress.update(25, "Architect: Planning file structure...")
@@ -706,6 +700,17 @@ Output ONLY the complete src/App.tsx file. No markdown fences.
         if not pages_to_scan:
             break
 
+    # 5c. Block integration — copy files, mount routers, merge deps (post-generation)
+    if matched_blocks:
+        try:
+            from blocks.loader import integrate_blocks
+
+            logger.info("Integrating %d block(s)...", len(matched_blocks))
+            integrate_blocks(output_dir, matched_blocks)
+            logger.info("Block integration complete")
+        except Exception as e:
+            logger.warning("Block integration failed (non-fatal): %s", e)
+
     # 6. Generate manifest.json
     import json
 
@@ -720,6 +725,7 @@ Output ONLY the complete src/App.tsx file. No markdown fences.
             "react_entry": "src/App.tsx" if is_react_frontend(stack_profile) else None,
         },
         "files": list(generated_files),
+        "blocks": [m["name"] for m in matched_blocks],
     }
     manifest_path = os.path.join(output_dir, "manifest.json")
     with open(manifest_path, "w", encoding="utf-8") as f:

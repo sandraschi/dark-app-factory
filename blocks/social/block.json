@@ -1,6 +1,7 @@
 {
   "name": "social",
   "version": "0.1.0",
+  "status": "stub",
   "description": "Social media integration — feed embeds (Instagram/Twitter/LinkedIn), share buttons, social login, follow links",
   "triggers": ["social", "instagram", "twitter", "facebook", "linkedin", "share", "follow", "social.media"],
   "dependencies": {"python": [], "node": []},
