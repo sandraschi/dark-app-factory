@@ -1,0 +1,11 @@
+{
+  "name": "pdfgen",
+  "version": "0.1.0",
+  "description": "PDF generation — invoices, reports, certificates from HTML templates, QR codes, barcodes",
+  "triggers": ["pdf", "invoice", "report", "print", "receipt", "document", "certificate", "bill"],
+  "dependencies": {"python": ["weasyprint>=60.0.0", "qrcode>=7.4.0"], "node": []},
+  "env_vars": {"PDF_STORAGE": "data/pdfs"},
+  "specialists": {"Plumber": {"append": ["backend/routes.py"], "config": {}}},
+  "backend_routes": ["/api/pdf/generate", "/api/pdf/templates", "/api/pdf/invoice"],
+  "frontend_pages": []
+}

@@ -1,0 +1,11 @@
+{
+  "name": "social",
+  "version": "0.1.0",
+  "description": "Social media integration — feed embeds (Instagram/Twitter/LinkedIn), share buttons, social login, follow links",
+  "triggers": ["social", "instagram", "twitter", "facebook", "linkedin", "share", "follow", "social.media"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {"SOCIAL_INSTAGRAM": "", "SOCIAL_TWITTER": "", "SOCIAL_FACEBOOK": "", "SOCIAL_LINKEDIN": "", "SOCIAL_YOUTUBE": ""},
+  "specialists": {"Sculptor": {"append": ["frontend/pages/SocialPage.tsx"], "imports": ["SocialPage", "ShareButtons"]}},
+  "backend_routes": ["/api/social/links"],
+  "frontend_pages": []
+}

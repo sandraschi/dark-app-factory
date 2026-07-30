@@ -1,0 +1,11 @@
+{
+  "name": "csvtools",
+  "version": "0.1.0",
+  "description": "CSV import/export — bulk data operations, data validation, schema detection, transformation pipelines",
+  "triggers": ["csv", "import", "export", "bulk", "spreadsheet", "data", "migrate", "backup.data"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {},
+  "specialists": {"Auditor": {"append": ["backend/service.py"], "config": {}}},
+  "backend_routes": ["/api/csv/export", "/api/csv/import", "/api/csv/template"],
+  "frontend_pages": []
+}

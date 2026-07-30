@@ -1,0 +1,11 @@
+{
+  "name": "i18n",
+  "version": "0.1.0",
+  "description": "Internationalization — translation management, locale detection, language switcher, pluralization, RTL support",
+  "triggers": ["translate", "language", "i18n", "locale", "multilingual", "german", "french", "spanish", "deutsch", "english"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {"DEFAULT_LOCALE": "en", "SUPPORTED_LOCALES": "en,de,fr,es,it"},
+  "specialists": {"Plumber": {"append": ["backend/routes.py"], "config": {}}, "Sculptor": {"append": ["frontend/pages/I18nPage.tsx"], "imports": ["I18nPage", "LanguageSwitcher"]}},
+  "backend_routes": ["/api/i18n/translations", "/api/i18n/locales", "/api/i18n/translate"],
+  "frontend_pages": []
+}

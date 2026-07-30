@@ -1,0 +1,11 @@
+{
+  "name": "subscriptions",
+  "version": "0.1.0",
+  "description": "Subscription plans and feature flags — tier management, usage tracking, upgrade/downgrade flows, plan comparison",
+  "triggers": ["subscription", "plan", "tier", "pricing", "member", "upgrade", "downgrade", "feature.flag", "billing"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {},
+  "specialists": {"Plumber": {"append": ["backend/routes.py"], "config": {}}, "Sculptor": {"append": ["frontend/pages/PlansPage.tsx"], "imports": ["PlansPage"]}},
+  "backend_routes": ["/api/subscriptions/plans", "/api/subscriptions/plans/{id}", "/api/subscriptions/user/{id}"],
+  "frontend_pages": ["/plans"]
+}

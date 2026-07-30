@@ -1,0 +1,11 @@
+{
+  "name": "seo",
+  "version": "0.1.0",
+  "description": "SEO manager — sitemap.xml, robots.txt, JSON-LD structured data, Open Graph / Twitter cards, meta tags, redirects",
+  "triggers": ["seo", "meta", "sitemap", "robots", "structured.data", "opengraph", "jsonld", "redirect", "canonical"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {"SITE_URL": "http://localhost:3000", "SEO_TITLE": "", "SEO_DESCRIPTION": "", "SEO_IMAGE": ""},
+  "specialists": {"Plumber": {"append": ["backend/routes.py"], "config": {}}},
+  "backend_routes": ["/api/seo/sitemap.xml", "/api/seo/robots.txt", "/api/seo/settings", "/api/seo/redirects"],
+  "frontend_pages": []
+}

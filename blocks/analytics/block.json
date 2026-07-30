@@ -1,0 +1,11 @@
+{
+  "name": "analytics",
+  "version": "0.1.0",
+  "description": "Page view tracking, user analytics, dashboard charts, referrer tracking, event logging",
+  "triggers": ["analytics", "tracking", "dashboard", "stats", "metrics", "usage", "insights"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {},
+  "specialists": {"Nervos": {"append": ["backend/service.py"], "config": {}}, "Sculptor": {"append": ["frontend/pages/AnalyticsPage.tsx"], "imports": ["AnalyticsPage"]}},
+  "backend_routes": ["/api/analytics/pageview", "/api/analytics/events", "/api/analytics/dashboard", "/api/analytics/visitors"],
+  "frontend_pages": ["/analytics"]
+}

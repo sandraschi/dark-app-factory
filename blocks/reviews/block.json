@@ -1,0 +1,11 @@
+{
+  "name": "reviews",
+  "version": "0.1.0",
+  "description": "Customer reviews and testimonials — star ratings, review submission, moderation, testimonial carousel, Google-style review snippets",
+  "triggers": ["review", "testimonial", "rating", "feedback", "customer.say", "reviewed"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {},
+  "specialists": {"Plumber": {"append": ["backend/routes.py"], "config": {}}, "Sculptor": {"append": ["frontend/pages/ReviewsPage.tsx"], "imports": ["ReviewsPage", "ReviewCard"]}},
+  "backend_routes": ["/api/reviews", "/api/reviews/{id}", "/api/reviews/stats"],
+  "frontend_pages": ["/reviews"]
+}

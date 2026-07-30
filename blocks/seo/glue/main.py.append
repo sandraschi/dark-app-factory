@@ -1,0 +1,2 @@
+app.include_router(seo_router)
+SeoService.set_routes(["","/services","/team","/contact","/faq","/blog","/shop","/cart"])

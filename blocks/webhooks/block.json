@@ -1,0 +1,11 @@
+{
+  "name": "webhooks",
+  "version": "0.1.0",
+  "description": "Webhook receiver — generic event ingestion, signature verification, replay, delivery logging, retry logic",
+  "triggers": ["webhook", "callback", "hook", "incoming", "event.receive", "payload"],
+  "dependencies": {"python": [], "node": []},
+  "env_vars": {"WEBHOOK_SECRET": ""},
+  "specialists": {"Nervos": {"append": ["backend/service.py"], "config": {}}},
+  "backend_routes": ["/api/webhooks/receive/{source}", "/api/webhooks/log", "/api/webhooks/replay/{id}"],
+  "frontend_pages": []
+}
