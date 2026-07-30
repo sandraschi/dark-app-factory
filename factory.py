@@ -20,7 +20,7 @@ if os.path.join(BASE_DIR, "src") not in sys.path:
     sys.path.append(os.path.join(BASE_DIR, "src"))
 
 from src.utils.logger import logger
-from src.llm_client import LLMClient
+from src.llm_client import LLMClient, preflight_models
 from src.utils.progress import progress
 from src.utils.ports import (
     KNOWN_FACTORY_PORTS,
@@ -295,6 +295,16 @@ async def main_flow(
     # Initialize shared LLM clients for token tracking
     foreman_client = LLMClient(role="foreman", model=foreman_model, base_url=base_url)
     worker_client = LLMClient(role="worker", model=worker_model, base_url=base_url)
+
+    # Preflight: verify models exist before spending time
+    progress.update(3, "Preflight: verifying models...")
+    try:
+        preflight_models(foreman_client.base_url, foreman_client.model, worker_client.model)
+    except ValueError as e:
+        logger.error("Model preflight failed: %s", e)
+        if work_dir:
+            os.chdir(original_cwd)
+        return False
 
     try:
         # 2. Foreman Research (Oracle)

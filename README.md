@@ -28,8 +28,8 @@ If you don't have `just` installed:
 Minimal `.env`:
 
 ```env
-FOREMAN_MODEL=llama3.1:latest
-WORKER_MODEL=qwen2.5-coder:latest
+FOREMAN_MODEL=qwen3.6:27b
+WORKER_MODEL=qwen2.5-coder:32b-instruct-q4_K_M
 WORKER_BASE_URL=http://localhost:11434/v1
 OLLAMA_CONTEXT_LENGTH=65536
 ```

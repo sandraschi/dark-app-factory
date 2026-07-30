@@ -6,10 +6,10 @@ All configuration is via environment variables. Copy `.env.example` to `.env` �
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `FOREMAN_MODEL` | `llama3.1:latest` | Model used for planning (Foreman). Needs strong instruction-following and long context. Used once per run. |
+| `FOREMAN_MODEL` | `qwen3.6:27b` | Model used for planning (Foreman). Needs strong instruction-following and long context. Used once per run. |
 | `FOREMAN_BASE_URL` | `http://localhost:11434/v1` | OpenAI-compatible base URL for the Foreman model. |
 | `FOREMAN_API_KEY` | `ollama` | API key. Set to your real key when using a remote provider. |
-| `WORKER_MODEL` | `qwen2.5-coder:latest` | Model used for all file generation. Used heavily — pick for speed and code quality. |
+| `WORKER_MODEL` | `qwen2.5-coder:32b-instruct-q4_K_M` | Model used for all file generation. Used heavily — pick for speed and code quality. |
 | `WORKER_BASE_URL` | `http://localhost:11434/v1` | Base URL for the Worker model. Can differ from Foreman. |
 | `WORKER_API_KEY` | `ollama` | API key for the Worker model. |
 | `OLLAMA_CONTEXT_LENGTH` | `32768` | Context window size. **Set to `65536` minimum.** The factory generates large prompts. |

@@ -47,8 +47,8 @@ README_FILE = ROOT_DIR / "README.md"
 DEFAULT_SETTINGS = {
     "provider": "ollama",
     "base_url": "http://localhost:11434/v1",
-    "foreman_model": "llama3.1:latest",
-    "worker_model": "qwen2.5-coder:latest",
+    "foreman_model": "qwen3.6:27b",
+    "worker_model": "qwen2.5-coder:32b-instruct-q4_K_M",
     "api_key": "ollama",
     "context_length": 65536,
     "timeout_seconds": 180,
@@ -64,6 +64,9 @@ class BuildRequest(BaseModel):
 class RefineRequest(BaseModel):
     prompt: str
     history: list[str] = Field(default_factory=list)
+    model: str | None = None
+    base_url: str | None = None
+    api_key: str | None = None
 
 
 class SuggestRequest(BaseModel):
@@ -601,7 +604,11 @@ async def ghost_site(req: GhostRequest):
 
 @app.post("/api/refine")
 async def refine_prompt(request: RefineRequest):
-    client = LLMClient(role="foreman")
+    settings = load_settings()
+    model = request.model or settings.get("worker_model", os.getenv("WORKER_MODEL", ""))
+    base_url = request.base_url or settings.get("base_url", os.getenv("WORKER_BASE_URL", ""))
+    api_key = request.api_key or settings.get("api_key", "ollama")
+    client = LLMClient(role="foreman", model=model or None, base_url=base_url or None)
     context = ""
     if request.history:
         context = "Previous versions:\n" + "\n---\n".join(request.history) + "\n\n"
