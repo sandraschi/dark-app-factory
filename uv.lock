@@ -407,9 +407,17 @@ verify = [
 dev = [
     { name = "passlib", extra = ["bcrypt"] },
     { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
     { name = "pytest-timeout" },
     { name = "python-jose", extra = ["cryptography"] },
+    { name = "ruff" },
     { name = "stripe" },
+]
+test = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
 ]
 
 [package.metadata]
@@ -437,9 +445,17 @@ provides-extras = ["dev", "test", "judge", "verify"]
 dev = [
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
     { name = "pre-commit", specifier = ">=4.6.1" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.5.0" },
+    { name = "ruff", specifier = ">=0.16.0,<0.17" },
     { name = "stripe", specifier = ">=15.4.0" },
+]
+test = [
+    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
 ]
 
 [[package]]
