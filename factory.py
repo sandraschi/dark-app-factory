@@ -379,13 +379,28 @@ async def main_flow(
             try:
                 from src.utils.frontend_scaffold import ensure_frontend_scaffold
 
-                project_name = "BeeKeeper App"  # could be extracted from specs
+                project_name = "BeeKeeper App"
                 progress.update(68, "Frontend: Scaffolding React app...")
                 ensure_frontend_scaffold(output_dir, title=project_name)
             except ImportError:
                 pass
             except Exception as e:
                 logger.warning("Frontend scaffold failed (non-fatal): %s", e)
+
+            # --- TSX repair loop: fix generated pages until tsc passes ---
+            try:
+                from src.utils.tsx_repair import repair_tsx
+
+                progress.update(69, "Frontend: Compiling + repairing TSX...")
+                repair_result = await repair_tsx(output_dir, worker=worker_client, max_passes=3)
+                if repair_result["clean"]:
+                    logger.info("TSX repair: all pages compile")
+                else:
+                    logger.warning("TSX repair: %d file(s) still broken", len(repair_result["remaining"]))
+            except ImportError:
+                pass
+            except Exception as e:
+                logger.warning("TSX repair failed (non-fatal): %s", e)
 
             # --- manifest.json for RunManifest (judge phase) ---
             from run_manifest import write_manifest_from_output

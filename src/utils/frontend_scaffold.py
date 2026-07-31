@@ -44,35 +44,16 @@ def _find_pages(output_dir: str) -> list[dict]:
     return pages
 
 
-def _validate_pages(output_dir: str, pages: list[dict]) -> list[dict]:
-    """Replace page files with likely compilation errors with stubs."""
-    valid = []
-
-    def _stub(name: str) -> str:
-        return f"export default function {name}() {{\n  return <div className='p-8 text-center text-zinc-400'>{name} page</div>;\n}}\n"
-
+def _ensure_default_export(output_dir: str, pages: list[dict]) -> list[dict]:
+    """Ensure every page file has an export default (add minimal wrapper if missing)."""
     for p in pages:
         fpath = os.path.join(output_dir, p["file"])
         if not os.path.exists(fpath):
-            valid.append(p)
             continue
         content = open(fpath, encoding="utf-8", errors="replace").read()
-        # Check for common LLM generation errors
-        broken = False
         if "export default" not in content:
-            broken = True
-        # Unclosed tags (more <div than </div)
-        opens = content.count("<div") - content.count("// <div") - content.count("'<div")
-        closes = content.count("</div")
-        if opens > closes + 2:
-            broken = True
-        # Garbled imports
-        if 'from "' in content and '";' not in content[:500]:
-            broken = True
-        if broken:
-            _write_text(fpath, _stub(p["name"]))
-        valid.append(p)
-    return valid
+            _write_text(fpath, content.rstrip() + f"\n\nexport default {p['name']};\n")
+    return pages
 
 
 def ensure_frontend_scaffold(output_dir: str, title: str = "App"):
@@ -80,7 +61,7 @@ def ensure_frontend_scaffold(output_dir: str, title: str = "App"):
     os.makedirs(os.path.join(src_dir, "pages"), exist_ok=True)
     os.makedirs(os.path.join(src_dir, "components"), exist_ok=True)
 
-    pages = _validate_pages(output_dir, _find_pages(output_dir))
+    pages = _ensure_default_export(output_dir, _find_pages(output_dir))
 
     # package.json
     pkg_path = os.path.join(output_dir, "package.json")
