@@ -301,6 +301,7 @@ class Sculptor(Specialist):
             UPSTREAM CONTEXT (code from dependencies):
             {dep_context}
 
+            {block_instruction}
             {self.ANTI_GASLIGHTING_PROMPT}
 
             AESTHETIC PROTOCOLS:

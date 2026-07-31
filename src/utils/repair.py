@@ -5,27 +5,92 @@ from __future__ import annotations
 import ast
 import logging
 import os
-import subprocess
-import sys
 from typing import Any
 
 logger = logging.getLogger("dark_factory")
 
 STDLIB_MODULES = {
-    "os", "sys", "json", "re", "math", "time", "datetime", "uuid", "hashlib",
-    "typing", "pathlib", "abc", "enum", "dataclasses", "collections", "itertools",
-    "functools", "random", "decimal", "io", "base64", "html", "urllib", "xml",
-    "csv", "string", "struct", "textwrap", "pprint", "copy", "inspect", "types",
-    "logging", "warnings", "traceback", "threading", "asyncio", "concurrent",
-    "multiprocessing", "socket", "ssl", "email", "smtplib", "http", "ftplib",
+    "os",
+    "sys",
+    "json",
+    "re",
+    "math",
+    "time",
+    "datetime",
+    "uuid",
+    "hashlib",
+    "typing",
+    "pathlib",
+    "abc",
+    "enum",
+    "dataclasses",
+    "collections",
+    "itertools",
+    "functools",
+    "random",
+    "decimal",
+    "io",
+    "base64",
+    "html",
+    "urllib",
+    "xml",
+    "csv",
+    "string",
+    "struct",
+    "textwrap",
+    "pprint",
+    "copy",
+    "inspect",
+    "types",
+    "logging",
+    "warnings",
+    "traceback",
+    "threading",
+    "asyncio",
+    "concurrent",
+    "multiprocessing",
+    "socket",
+    "ssl",
+    "email",
+    "smtplib",
+    "http",
+    "ftplib",
 }
 
 THIRD_PARTY_PREFIXES = {
-    "fastapi", "pydantic", "sqlalchemy", "uvicorn", "alembic", "httpx", "requests",
-    "stripe", "boto3", "PIL", "numpy", "pandas", "jose", "passlib", "dotenv",
-    "cryptography", "markdown", "feedgen", "sendgrid", "qrcode", "weasyprint",
-    "pytest", "ruff", "mypy", "pre_commit", "langchain", "chromadb", "sentence_transformers",
-    "slowapi", "python_multipart", "python_dateutil", "pyjwt", "bcrypt",
+    "fastapi",
+    "pydantic",
+    "sqlalchemy",
+    "uvicorn",
+    "alembic",
+    "httpx",
+    "requests",
+    "stripe",
+    "boto3",
+    "PIL",
+    "numpy",
+    "pandas",
+    "jose",
+    "passlib",
+    "dotenv",
+    "cryptography",
+    "markdown",
+    "feedgen",
+    "sendgrid",
+    "qrcode",
+    "weasyprint",
+    "pytest",
+    "ruff",
+    "mypy",
+    "pre_commit",
+    "langchain",
+    "chromadb",
+    "sentence_transformers",
+    "slowapi",
+    "python_multipart",
+    "python_dateutil",
+    "pyjwt",
+    "bcrypt",
 }
 
 
@@ -78,15 +143,25 @@ def check_syntax(output_dir: str) -> list[dict[str, Any]]:
                     source = fh.read()
                 ast.parse(source)
             except SyntaxError as e:
-                errors.append({
-                    "file": rel,
-                    "path": path,
-                    "error": str(e),
-                    "lineno": e.lineno or 1,
-                    "msg": e.msg,
-                })
+                errors.append(
+                    {
+                        "file": rel,
+                        "path": path,
+                        "error": str(e),
+                        "lineno": e.lineno or 1,
+                        "msg": e.msg,
+                    }
+                )
             except UnicodeDecodeError:
-                errors.append({"file": rel, "path": path, "error": "Binary or non-UTF8 file", "lineno": 0, "msg": "encoding error"})
+                errors.append(
+                    {
+                        "file": rel,
+                        "path": path,
+                        "error": "Binary or non-UTF8 file",
+                        "lineno": 0,
+                        "msg": "encoding error",
+                    }
+                )
 
     return errors
 
@@ -135,17 +210,17 @@ def repair_file(path: str, error_msg: str, lineno: int, worker: Any | None = Non
         return False
 
     rel = os.path.relpath(path, os.path.join(os.path.dirname(__file__), "..", ".."))
-    
+
     # Strategy 1: Fix common import typos directly
     fixes = {
         "load_contents": "load_dotenv",
         "CryptContext(10,": "CryptContext(schemes=['bcrypt'])",
         "OAuth2PasswordBearer(auto_error=False)": "OAuth2PasswordBearer",
     }
-    
+
     with open(path, encoding="utf-8") as f:
         content = content_original = f.read()
-    
+
     changed = False
     for wrong, right in fixes.items():
         if wrong in content:
@@ -155,7 +230,8 @@ def repair_file(path: str, error_msg: str, lineno: int, worker: Any | None = Non
 
     # Strategy 2: Fix Column(Type(default=...)) pattern
     import re
-    col_fix = re.sub(r'Column\((\w+)\(default=func\.now\(\)\)\)', r'Column(\1, default=func.now())', content)
+
+    col_fix = re.sub(r"Column\((\w+)\(default=func\.now\(\)\)\)", r"Column(\1, default=func.now())", content)
     if col_fix != content:
         content = col_fix
         changed = True
@@ -177,7 +253,10 @@ def repair_file(path: str, error_msg: str, lineno: int, worker: Any | None = Non
         )
         try:
             import asyncio
-            fixed = asyncio.run(worker.generate(prompt, system_prompt="Fix syntax errors. Output only fixed code.", temperature=0.1))
+
+            fixed = asyncio.run(
+                worker.generate(prompt, system_prompt="Fix syntax errors. Output only fixed code.", temperature=0.1)
+            )
             if fixed and len(fixed) > 10:
                 # Extract code from markdown fences if present
                 if "```" in fixed:

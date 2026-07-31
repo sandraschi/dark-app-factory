@@ -12,29 +12,32 @@ logger = logging.getLogger("dark_factory")
 
 COMMON_FIXES = [
     # Missing framer-motion import
-    (r"import\s*\{\s*AnimatePresence[^}]*\}\s*from\s*['\"]framer-motion['\"]", "import { AnimatePresence } from 'framer-motion'"),
+    (
+        r"import\s*\{\s*AnimatePresence[^}]*\}\s*from\s*['\"]framer-motion['\"]",
+        "import { AnimatePresence } from 'framer-motion'",
+    ),
 ]
 
 
 def _run_tsc(output_dir: str) -> list[dict[str, Any]]:
     """Run tsc --noEmit and return per-file error lists."""
-    # Prefer local node_modules/.bin/tsc (bun installs .exe, npm .cmd), fall back to npx
-    bin_dir = os.path.join(output_dir, "node_modules", ".bin")
-    local_tsc = None
-    for cand in ("tsc.cmd", "tsc.exe", "tsc"):
-        p = os.path.join(bin_dir, cand)
-        if os.path.exists(p):
-            local_tsc = p
-            break
-    cmd = [local_tsc, "--noEmit", "--noErrorTruncation"] if local_tsc else ["npx.cmd" if os.name == "nt" else "npx", "tsc", "--noEmit", "--noErrorTruncation"]
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=output_dir,
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
+        if os.name == "nt":
+            result = subprocess.run(
+                ["C:\\Windows\\System32\\cmd.exe", "/c", "npx.cmd", "tsc", "--noEmit", "--noErrorTruncation"],
+                cwd=output_dir,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+        else:
+            result = subprocess.run(
+                ["/usr/bin/env", "npx", "tsc", "--noEmit", "--noErrorTruncation"],
+                cwd=output_dir,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
         logger.warning("tsc failed to run: %s", e)
         return []
@@ -67,7 +70,11 @@ def _apply_common_fixes(filepath: str) -> bool:
         if "import" in content and "framer-motion" in content:
             content = re.sub(
                 r"import\s*\{([^}]*)\}\s*from\s*['\"]framer-motion['\"]",
-                lambda m: f"import {{ {m.group(1).strip()}, motion }} from 'framer-motion'" if "motion" not in m.group(1) else m.group(0),
+                lambda m: (
+                    f"import {{ {m.group(1).strip()}, motion }} from 'framer-motion'"
+                    if "motion" not in m.group(1)
+                    else m.group(0)
+                ),
                 content,
             )
 
@@ -161,7 +168,9 @@ async def repair_tsx(output_dir: str, worker: Any | None = None, max_passes: int
             # If still broken, try LLM
             if worker is not None:
                 still_broken = any(
-                    True for fe2 in _run_tsc(output_dir) if fe2["file"].replace("\\", "/") == fe["file"].replace("\\", "/")
+                    True
+                    for fe2 in _run_tsc(output_dir)
+                    if fe2["file"].replace("\\", "/") == fe["file"].replace("\\", "/")
                 )
                 if still_broken:
                     ok = await llm_repair_file(filepath, fe["errors"], worker)

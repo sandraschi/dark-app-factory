@@ -4,11 +4,24 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 
-_REACT = {"react": "^19.0.0", "react-dom": "^19.0.0", "react-router-dom": "^7.0.0", "lucide-react": "^0.400.0", "framer-motion": "^11.0.0"}
-_DEV = {"@types/react": "^19.0.0", "@types/react-dom": "^19.0.0", "@vitejs/plugin-react": "^4.3.0",
-        "autoprefixer": "^10.4.0", "postcss": "^8.4.0", "tailwindcss": "^3.4.0", "typescript": "^5.6.0", "vite": "^6.0.0"}
+_REACT = {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0",
+    "lucide-react": "^0.400.0",
+    "framer-motion": "^11.0.0",
+}
+_DEV = {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+}
 
 
 def _write_text(path: str, content: str):
@@ -27,7 +40,11 @@ def _find_pages(output_dir: str) -> list[dict]:
                 pages.append({"name": name, "file": f"src/pages/{f}", "route": "/" + name.lower().replace("page", "")})
 
     for f in os.listdir(output_dir):
-        if f.startswith("pages_") and f.endswith(".tsx") and f not in os.listdir(os.path.join(output_dir, "src", "pages")):
+        if (
+            f.startswith("pages_")
+            and f.endswith(".tsx")
+            and f not in os.listdir(os.path.join(output_dir, "src", "pages"))
+        ):
             src = os.path.join(output_dir, f)
             name = f.replace(".tsx", "").replace("pages_", "")
             pascal = name.replace("_", " ").title().replace(" ", "")
@@ -36,11 +53,16 @@ def _find_pages(output_dir: str) -> list[dict]:
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             content = open(src, encoding="utf-8", errors="replace").read()
             if "export default" not in content:
-                content = content.rstrip() + f"\n\nexport default function {pascal}() {{\n  return <div className='p-4 text-zinc-400'>{pascal} page</div>;\n}}\n"
+                content = (
+                    content.rstrip() + f"\n\nexport default function {pascal}() {{\n"
+                    f"  return <div className='p-4 text-zinc-400'>{pascal} page</div>;\n}}\n"
+                )
             with open(dest, "w", encoding="utf-8") as fh:
                 fh.write(content)
             os.remove(src)
-            pages.append({"name": pascal, "file": f"src/pages/{dest_name}", "route": "/" + name.lower().replace("_", "")})
+            pages.append(
+                {"name": pascal, "file": f"src/pages/{dest_name}", "route": "/" + name.lower().replace("_", "")}
+            )
     return pages
 
 
@@ -66,23 +88,38 @@ def ensure_frontend_scaffold(output_dir: str, title: str = "App"):
     # package.json
     pkg_path = os.path.join(output_dir, "package.json")
     if not os.path.exists(pkg_path):
-        pkg = {"name": title.lower().replace(" ", "-"), "private": True, "version": "0.1.0", "type": "module",
-               "scripts": {"dev": "vite --port 5173 --host", "build": "tsc -b && vite build", "preview": "vite preview"},
-               "dependencies": dict(_REACT), "devDependencies": dict(_DEV)}
+        pkg = {
+            "name": title.lower().replace(" ", "-"),
+            "private": True,
+            "version": "0.1.0",
+            "type": "module",
+            "scripts": {"dev": "vite --port 5173 --host", "build": "tsc -b && vite build", "preview": "vite preview"},
+            "dependencies": dict(_REACT),
+            "devDependencies": dict(_DEV),
+        }
         _write_text(pkg_path, json.dumps(pkg, indent=2) + "\n")
 
     # index.html
     html = '<!DOCTYPE html><html lang="en" class="dark"><head><meta charset="UTF-8"/>'
     html += '<meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
     html += f"<title>{title}</title>"
-    html += '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>'
+    html += (
+        '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700'
+        '&display=swap" rel="stylesheet"/>'
+    )
     html += '</head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>'
     _write_text(os.path.join(output_dir, "index.html"), html)
 
     # src/main.tsx
-    _write_text(os.path.join(src_dir, "main.tsx"),
-                'import React from "react";\nimport ReactDOM from "react-dom/client";\nimport App from "./App";\nimport "./index.css";\n'
-                'ReactDOM.createRoot(document.getElementById("root")!).render(\n  <React.StrictMode>\n    <App />\n  </React.StrictMode>\n);\n')
+    _write_text(
+        os.path.join(src_dir, "main.tsx"),
+        'import React from "react";\n'
+        'import ReactDOM from "react-dom/client";\n'
+        'import App from "./App";\n'
+        'import "./index.css";\n'
+        'ReactDOM.createRoot(document.getElementById("root")!).render(\n'
+        "  <React.StrictMode>\n    <App />\n  </React.StrictMode>\n);\n",
+    )
 
     # src/App.tsx with routes
     if pages:
@@ -92,29 +129,75 @@ def ensure_frontend_scaffold(output_dir: str, title: str = "App"):
         imports = 'import { BrowserRouter, Routes, Route } from "react-router-dom";'
         routes = '          <Route path="/" element={<div className="p-8 text-center text-zinc-500">App ready</div>} />'
 
-    app = f'import {{ BrowserRouter, Routes, Route }} from "react-router-dom";\n{imports}\n\nexport default function App() {{\n  return (\n    <BrowserRouter>\n      <div className="min-h-screen bg-zinc-950 text-zinc-100">\n        <Routes>\n{routes}\n        </Routes>\n      </div>\n    </BrowserRouter>\n  );\n}}\n'
+    app = (
+        'import { BrowserRouter, Routes, Route } from "react-router-dom";\n'
+        f"{imports}\n"
+        "\nexport default function App() {\n"
+        "  return (\n"
+        "    <BrowserRouter>\n"
+        '      <div className="min-h-screen bg-zinc-950 text-zinc-100">\n'
+        "        <Routes>\n"
+        f"{routes}\n"
+        "        </Routes>\n"
+        "      </div>\n"
+        "    </BrowserRouter>\n"
+        "  );\n"
+        "}\n"
+    )
     _write_text(os.path.join(src_dir, "App.tsx"), app)
 
     # src/index.css
-    _write_text(os.path.join(src_dir, "index.css"),
-                "@tailwind base;\n@tailwind components;\n@tailwind utilities;\nbody { color-scheme: dark; margin: 0; font-family: Inter, system-ui, sans-serif; background: #09090b; color: #e2e8f0; }\ninput, select, textarea { color-scheme: dark; }\n")
+    _write_text(
+        os.path.join(src_dir, "index.css"),
+        "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n"
+        "body { color-scheme: dark; margin: 0; font-family: Inter, system-ui, sans-serif; "
+        "background: #09090b; color: #e2e8f0; }\n"
+        "input, select, textarea { color-scheme: dark; }\n",
+    )
 
     # Config files
-    _write_text(os.path.join(output_dir, "vite.config.ts"),
-                'import { defineConfig } from "vite";\nimport react from "@vitejs/plugin-react";\n\nexport default defineConfig({\n  plugins: [react()],\n  server: { port: 5173, proxy: { "/api": { target: "http://127.0.0.1:8000", changeOrigin: true } } },\n});\n')
+    _write_text(
+        os.path.join(output_dir, "vite.config.ts"),
+        'import { defineConfig } from "vite";\n'
+        'import react from "@vitejs/plugin-react";\n'
+        "\nexport default defineConfig({\n"
+        "  plugins: [react()],\n"
+        '  server: { port: 5173, proxy: { "/api": { target: "http://127.0.0.1:8000", '
+        "changeOrigin: true } } },\n"
+        "});\n",
+    )
 
-    _write_text(os.path.join(output_dir, "tailwind.config.js"),
-                '/** @type {import("tailwindcss").Config} */\nexport default { content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"], theme: { extend: {} }, plugins: [] };\n')
+    _write_text(
+        os.path.join(output_dir, "tailwind.config.js"),
+        '/** @type {import("tailwindcss").Config} */\n'
+        'export default { content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"], '
+        "theme: { extend: {} }, plugins: [] };\n",
+    )
 
-    _write_text(os.path.join(output_dir, "postcss.config.js"), 'export default { plugins: { tailwindcss: {}, autoprefixer: {} } };\n')
+    _write_text(
+        os.path.join(output_dir, "postcss.config.js"),
+        "export default { plugins: { tailwindcss: {}, autoprefixer: {} } };\n",
+    )
 
-    tsconfig = json.dumps({
-        "compilerOptions": {
-            "target": "ES2020", "useDefineForClassFields": True, "lib": ["ES2020", "DOM", "DOM.Iterable"],
-            "module": "ESNext", "skipLibCheck": True, "moduleResolution": "bundler",
-            "allowImportingTsExtensions": True, "isolatedModules": True, "moduleDetection": "force",
-            "noEmit": True, "jsx": "react-jsx", "strict": True, "forceConsistentCasingInFileNames": True,
+    tsconfig = json.dumps(
+        {
+            "compilerOptions": {
+                "target": "ES2020",
+                "useDefineForClassFields": True,
+                "lib": ["ES2020", "DOM", "DOM.Iterable"],
+                "module": "ESNext",
+                "skipLibCheck": True,
+                "moduleResolution": "bundler",
+                "allowImportingTsExtensions": True,
+                "isolatedModules": True,
+                "moduleDetection": "force",
+                "noEmit": True,
+                "jsx": "react-jsx",
+                "strict": True,
+                "forceConsistentCasingInFileNames": True,
+            },
+            "include": ["src"],
         },
-        "include": ["src"],
-    }, indent=2)
+        indent=2,
+    )
     _write_text(os.path.join(output_dir, "tsconfig.json"), tsconfig + "\n")
