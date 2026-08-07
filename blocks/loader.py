@@ -130,10 +130,13 @@ def _install_block_files(block_name: str, output_dir: str) -> dict | None:
     env_vars = manifest.get("env_vars", {})
     requires = manifest.get("requires_blocks", [])
 
+    raw_node = deps.get("node", {})
+    if not isinstance(raw_node, dict):
+        raw_node = {}
     return {
         "name": block_name,
         "python_deps": deps.get("python", []),
-        "node_deps": deps.get("node", {}),
+        "node_deps": raw_node,
         "env_vars": list(env_vars.keys()),
         "requires": requires,
     }

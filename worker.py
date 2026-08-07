@@ -220,21 +220,26 @@ async def run_factory(
         system_prompt="You are a senior architect. Output only file paths, one per line.",
     )
 
+    KNOWN_EXT = {".py", ".tsx", ".ts", ".js", ".jsx", ".css", ".html", ".md", ".json", ".yml", ".yaml", ".cfg", ".conf", ".txt", ".env", ".gitignore", ".dockerignore", ".nginx.conf", ".example"}
+
     file_paths = []
     for line in files_response.strip().split("\n"):
         line = line.strip().strip("-").strip("*").strip("`").strip()
-        # Strip ASCII tree-drawing prefixes (│ ├── └── ─) that LLMs emit
-        # instead of plain file lists. Extract the last token — the actual path.
         if any(c in line for c in ("│", "├", "└", "─")):
             tokens = line.split()
             line = tokens[-1] if tokens else ""
         line = line.strip()
         if not line:
             continue
-        # Safety: reject path traversal, absolute paths, Windows drive letters
         if ".." in line:
             continue
         if line.startswith(("/", "\\")) or (len(line) > 1 and line[1] == ":"):
+            continue
+        # Must have a known file extension or contain a path separator
+        ext = os.path.splitext(line)[1].lower()
+        has_valid_ext = ext in KNOWN_EXT or (ext and ext[1:].isalpha() and len(ext) <= 5)
+        if not has_valid_ext and "/" not in line:
+            logger.debug("Rejecting non-file path: %s", line)
             continue
         if ("." in line or "/" in line) and not line.endswith(("/", "\\")):
             file_paths.append(line)

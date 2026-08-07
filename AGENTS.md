@@ -2,9 +2,11 @@
 
 Fleet MCP server. See `justfile` for available recipes.
 
-## CURRENT WORK ORDER (2026-07-30)
+## Status (2026-07-30 late)
 
-Work through `TODO.md` in the repo root, tasks G1 to G9 in order (T1-T9 are done, see git log). Evidence and reasoning in `reports/reassess-blocks-2026-07-30.md`. Respect the invariants in `CLAUDE.md`. Never modify `outputs/` or `logs/`. Do not add new blocks before G1-G5 and the beekeeper regression run are done.
+**T1-T9**: Done (morning fix pass)
+**G1-G7**: Done (evening integration pass — all committed, 219 tests pass)
+**Next**: `just test-e2e` (beekeeper regression run per TODO.md §After G1-G5 land)
 
 ## Quick Ref
 
