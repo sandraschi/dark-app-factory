@@ -66,9 +66,6 @@ build-web:
     Set-Location '{{justfile_directory()}}'
     bun run --cwd web_sota build
 
-# Run all gates: lint + test + fmt
-gates-green: lint test fmt
-
 # Bootstrap: install dev deps + pre-commit hook
 bootstrap:
     uv sync --group dev
