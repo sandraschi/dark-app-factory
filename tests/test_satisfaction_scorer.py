@@ -3,14 +3,14 @@
 import pytest
 from unittest.mock import AsyncMock
 
-from src.verification.scenario_parser import (
+from dark_app_factory.verification.scenario_parser import (
     Assertion,
     HttpAction,
     Scenario,
     ScenarioType,
 )
-from src.verification.scenario_executor import ScenarioResult
-from src.verification.satisfaction_scorer import (
+from dark_app_factory.verification.scenario_executor import ScenarioResult
+from dark_app_factory.verification.satisfaction_scorer import (
     SatisfactionReport,
     _score_mechanical,
     compute_satisfaction,

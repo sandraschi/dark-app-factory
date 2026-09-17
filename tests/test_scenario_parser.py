@@ -1,6 +1,6 @@
 """Tests for the scenario parser module."""
 
-from src.verification.scenario_parser import (
+from dark_app_factory.verification.scenario_parser import (
     HttpAction,
     ScenarioType,
     classify_scenario,

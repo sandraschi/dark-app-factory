@@ -12,11 +12,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import factory
-from src.ghost_extractor import GhostExtractor
-from src.llm_client import LLMClient
-from src.specialists.council import get_council
-from src.utils.logger import logger
-from src.utils.progress import progress
+from dark_app_factory.ghost_extractor import GhostExtractor
+from dark_app_factory.llm_client import LLMClient
+from dark_app_factory.specialists.council import get_council
+from dark_app_factory.utils.logger import logger
+from dark_app_factory.utils.progress import progress
 
 app = FastAPI(title="Dark App Factory Dashboard")
 app.add_middleware(
@@ -705,7 +705,7 @@ async def fleet_launch(request: FleetLaunchRequest):
 @app.get("/api/progress/stream")
 async def progress_sse():
     """Server-Sent Events endpoint for real-time build progress (polling-based)."""
-    from src.utils.progress import progress as _p
+    from dark_app_factory.utils.progress import progress as _p
 
     async def event_stream():
         last_id = 0

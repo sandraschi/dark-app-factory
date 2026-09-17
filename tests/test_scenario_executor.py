@@ -2,13 +2,13 @@
 
 import pytest
 
-from src.verification.scenario_parser import (
+from dark_app_factory.verification.scenario_parser import (
     Assertion,
     HttpAction,
     Scenario,
     ScenarioType,
 )
-from src.verification.scenario_executor import (
+from dark_app_factory.verification.scenario_executor import (
     ScenarioResult,
     _evaluate_api_assertion,
     _generate_sample_body,

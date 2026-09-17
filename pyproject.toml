@@ -37,7 +37,7 @@ foreman = "dark_app_factory.foreman:main"
 factory = "dark_app_factory.factory:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/"]
+packages = ["src/dark_app_factory"]
 
 [build-system]
 requires = ["hatchling"]

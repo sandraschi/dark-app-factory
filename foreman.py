@@ -12,10 +12,10 @@ if BASE_DIR not in sys.path:
 if os.path.join(BASE_DIR, "src") not in sys.path:
     sys.path.insert(1, os.path.join(BASE_DIR, "src"))
 
-from src.utils.logger import logger
-from src.llm_client import LLMClient
-from src.utils.help_oracle import oracle
-from src.utils.stack_profile import (
+from dark_app_factory.utils.logger import logger
+from dark_app_factory.llm_client import LLMClient
+from dark_app_factory.utils.help_oracle import oracle
+from dark_app_factory.utils.stack_profile import (
     parse_stack_from_vibe,
     embed_in_specs,
     describe_stack,

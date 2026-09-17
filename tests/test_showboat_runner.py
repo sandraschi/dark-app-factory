@@ -17,7 +17,7 @@ if ROOT not in sys.path:
 
 from unittest.mock import patch
 
-from src.verification import showboat_runner
+from dark_app_factory.verification import showboat_runner
 
 
 @pytest.fixture(autouse=True)

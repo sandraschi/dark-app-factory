@@ -13,8 +13,8 @@ if BASE_DIR not in sys.path:
 if os.path.join(BASE_DIR, "src") not in sys.path:
     sys.path.insert(1, os.path.join(BASE_DIR, "src"))
 
-from src.utils.logger import logger
-from src.utils.ports import (
+from dark_app_factory.utils.logger import logger
+from dark_app_factory.utils.ports import (
     is_port_listening,
     kill_pid_tree,
     popen_kwargs,
@@ -563,7 +563,7 @@ class RunManifest:
 if __name__ == "__main__":
     import argparse
 
-    from src.utils.ports import find_free_ports
+    from dark_app_factory.utils.ports import find_free_ports
 
     parser = argparse.ArgumentParser(description="Dark App Factory Run Manifest")
     parser.add_argument("output_dir", help="Directory of the app to boot")

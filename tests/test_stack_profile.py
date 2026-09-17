@@ -2,7 +2,7 @@
 
 import json
 
-from src.utils.stack_profile import (
+from dark_app_factory.utils.stack_profile import (
     DEFAULT_STACK,
     parse_stack_from_vibe,
     embed_in_specs,

@@ -19,17 +19,17 @@ if BASE_DIR not in sys.path:
 if os.path.join(BASE_DIR, "src") not in sys.path:
     sys.path.append(os.path.join(BASE_DIR, "src"))
 
-from src.utils.logger import logger
-from src.llm_client import LLMClient, preflight_models
-from src.utils.progress import progress
-from src.utils.ports import (
+from dark_app_factory.utils.logger import logger
+from dark_app_factory.llm_client import LLMClient, preflight_models
+from dark_app_factory.utils.progress import progress
+from dark_app_factory.utils.ports import (
     KNOWN_FACTORY_PORTS,
     find_free_ports,
     is_port_free,
     kill_pid_tree,
     kill_ports,
 )
-from src.verification import showboat_runner
+from dark_app_factory.verification import showboat_runner
 from foreman import conduct_research, generate_blueprint, read_vibe
 from worker import run_factory
 
@@ -353,7 +353,7 @@ async def main_flow(
 
             # --- Repair loop: syntax check + targeted fixes ---
             try:
-                from src.utils.repair import check_syntax, repair_file
+                from dark_app_factory.utils.repair import check_syntax, repair_file
 
                 max_repair_passes = 3
                 for pass_num in range(1, max_repair_passes + 1):
@@ -377,7 +377,7 @@ async def main_flow(
 
             # --- Frontend scaffold: ensure a working React+Vite webapp ---
             try:
-                from src.utils.frontend_scaffold import ensure_frontend_scaffold
+                from dark_app_factory.utils.frontend_scaffold import ensure_frontend_scaffold
 
                 project_name = "BeeKeeper App"
                 progress.update(68, "Frontend: Scaffolding React app...")
@@ -389,7 +389,7 @@ async def main_flow(
 
             # --- TSX repair loop: fix generated pages until tsc passes ---
             try:
-                from src.utils.tsx_repair import repair_tsx
+                from dark_app_factory.utils.tsx_repair import repair_tsx
 
                 progress.update(69, "Frontend: Compiling + repairing TSX...")
                 repair_result = await repair_tsx(output_dir, worker=worker_client, max_passes=3)
@@ -410,7 +410,7 @@ async def main_flow(
             # --- Ruffy: ruff + mypy lint report ---
             lint_report = ""
             try:
-                from src.verification.ruffy_runner import run_ruffy
+                from dark_app_factory.verification.ruffy_runner import run_ruffy
 
                 progress.add_step("Lint", "Running ruff + mypy + JS/TS gates")
                 progress.update(70, "Ruffy: Running linters...")
@@ -420,7 +420,7 @@ async def main_flow(
                 logger.warning("Ruffy lint step failed (non-fatal): %s", e)
 
             # --- Git Versioning ---
-            from src.utils.git_manager import GitManager
+            from dark_app_factory.utils.git_manager import GitManager
 
             gm = GitManager(output_dir)
             gm.initialize()
@@ -460,7 +460,7 @@ async def main_flow(
 
             # 6a. PWA artifacts (manifest, sw, icons, meta injection)
             try:
-                from src.pwa import add_pwa_artifacts
+                from dark_app_factory.pwa import add_pwa_artifacts
 
                 data = _extract_landing_page_data("specs/specs.md")
                 progress.update(86, "PWA: Adding manifest, service worker, icons...")
@@ -470,7 +470,7 @@ async def main_flow(
 
             # 6b. Deploy artifacts (Phase 1: deploy.sh, deploy_config.example.yaml)
             try:
-                from src.deployment import generate_deploy_artifacts
+                from dark_app_factory.deployment import generate_deploy_artifacts
 
                 progress.update(88, "Deploy: Generating deploy artifacts...")
                 generate_deploy_artifacts(output_dir)

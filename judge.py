@@ -13,13 +13,13 @@ if os.path.join(BASE_DIR, "src") not in sys.path:
     sys.path.insert(1, os.path.join(BASE_DIR, "src"))
 
 from run_manifest import RunManifest
-from src.llm_client import LLMClient
-from src.utils.logger import logger
-from src.utils.ports import find_free_ports
-from src.verification import rodney_runner, showboat_runner
-from src.verification.satisfaction_scorer import compute_satisfaction
-from src.verification.scenario_executor import execute_all_scenarios
-from src.verification.scenario_parser import parse_scenarios
+from dark_app_factory.llm_client import LLMClient
+from dark_app_factory.utils.logger import logger
+from dark_app_factory.utils.ports import find_free_ports
+from dark_app_factory.verification import rodney_runner, showboat_runner
+from dark_app_factory.verification.satisfaction_scorer import compute_satisfaction
+from dark_app_factory.verification.scenario_executor import execute_all_scenarios
+from dark_app_factory.verification.scenario_parser import parse_scenarios
 
 
 class PlaywrightVerifier:
@@ -109,7 +109,7 @@ async def run_judgement(
             files_present.append(os.path.relpath(os.path.join(root, file), output_dir))
 
     # 2. Logic Verification (Specialist Auditor)
-    from src.specialists.council import Auditor
+    from dark_app_factory.specialists.council import Auditor
 
     auditor = Auditor()
 

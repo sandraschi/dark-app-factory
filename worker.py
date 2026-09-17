@@ -12,11 +12,11 @@ if BASE_DIR not in sys.path:
 if os.path.join(BASE_DIR, "src") not in sys.path:
     sys.path.insert(1, os.path.join(BASE_DIR, "src"))
 
-from src.utils.logger import logger
-from src.llm_client import LLMClient
-from src.utils.git_manager import GitManager
-from src.utils.progress import progress
-from src.utils.stack_profile import (
+from dark_app_factory.utils.logger import logger
+from dark_app_factory.llm_client import LLMClient
+from dark_app_factory.utils.git_manager import GitManager
+from dark_app_factory.utils.progress import progress
+from dark_app_factory.utils.stack_profile import (
     extract_from_specs,
     describe_stack,
     is_python_backend,
@@ -186,7 +186,7 @@ async def run_factory(
     # 1a. G3: Pin stack to FastAPI + React when blocks are matched
     if matched_blocks:
         logger.info("Blocks matched (%s) — pinning stack to FastAPI + React", [m["name"] for m in matched_blocks])
-        from src.utils.stack_profile import (
+        from dark_app_factory.utils.stack_profile import (
             embed_in_specs as _embed,
             extract_from_specs as _extract,
             is_python_backend as _is_py,
@@ -280,7 +280,7 @@ async def run_factory(
     logger.info(f"LLM-planned files: {len(file_paths)}")
 
     # 2. Assign Specialists
-    from src.specialists.council import (
+    from dark_app_factory.specialists.council import (
         Plumber,
         Sculptor,
         Librarian,

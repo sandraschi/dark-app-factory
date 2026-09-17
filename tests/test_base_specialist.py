@@ -2,7 +2,7 @@
 
 from typing import Dict, Any
 
-from src.specialists.base import Specialist
+from dark_app_factory.specialists.base import Specialist
 
 
 class ConcreteSpecialist(Specialist):
