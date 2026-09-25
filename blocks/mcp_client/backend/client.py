@@ -24,6 +24,36 @@ class McpClient:
         self.name = name
         self.url = url.rstrip("/")
         self._http = httpx.AsyncClient(timeout=30.0, headers=MCP_HEADERS)
+        self._initialized = False
+
+    async def _ensure_session(self) -> bool:
+        """Perform the MCP initialize handshake once, capturing Mcp-Session-Id."""
+        if self._initialized:
+            return True
+        init_payload = {
+            "jsonrpc": "2.0",
+            "id": 0,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-11-25",
+                "capabilities": {},
+                "clientInfo": {"name": "dark-app-factory-mcp-client", "version": "0.1.0"},
+            },
+        }
+        try:
+            resp = await self._http.post(self.url, json=init_payload)
+            resp.raise_for_status()
+            if sid := resp.headers.get("Mcp-Session-Id"):
+                self._http.headers["Mcp-Session-Id"] = sid
+            await self._http.post(
+                self.url,
+                json={"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
+            )
+            self._initialized = True
+            return True
+        except Exception as e:
+            logger.warning("MCP %s initialize failed: %s", self.name, e)
+            return False
 
     async def list_tools(self) -> list[dict[str, Any]]:
         """Call tools/list and return the tool list."""
@@ -34,6 +64,8 @@ class McpClient:
             "params": {},
         }
         try:
+            if not await self._ensure_session():
+                return []
             resp = await self._http.post(self.url, json=payload)
             resp.raise_for_status()
             result = resp.json()
@@ -51,6 +83,8 @@ class McpClient:
             "params": {"name": tool_name, "arguments": arguments or {}},
         }
         try:
+            if not await self._ensure_session():
+                return {"jsonrpc": "2.0", "id": 2, "error": {"code": -1, "message": "initialize failed"}}
             resp = await self._http.post(self.url, json=payload)
             resp.raise_for_status()
             return resp.json()
