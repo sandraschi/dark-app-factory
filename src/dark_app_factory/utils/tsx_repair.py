@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import re
@@ -149,7 +150,7 @@ async def repair_tsx(output_dir: str, worker: Any | None = None, max_passes: int
 
     for pass_num in range(1, max_passes + 1):
         results["passes"] = pass_num
-        file_errors = _run_tsc(output_dir)
+        file_errors = await asyncio.to_thread(_run_tsc, output_dir)
 
         if not file_errors:
             results["clean"] = True
@@ -181,7 +182,7 @@ async def repair_tsx(output_dir: str, worker: Any | None = None, max_passes: int
                 logger.warning("TSX repair: could not fix %s — keeping as-is (will break build)", fe["file"])
 
     # Final check
-    remaining = _run_tsc(output_dir)
+    remaining = await asyncio.to_thread(_run_tsc, output_dir)
     if remaining:
         results["remaining"] = remaining
         logger.error("TSX repair: %d file(s) still broken after %d passes", len(remaining), max_passes)
