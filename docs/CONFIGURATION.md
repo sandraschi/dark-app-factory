@@ -14,6 +14,41 @@ All configuration is via environment variables. Copy `.env.example` to `.env` �
 | `WORKER_API_KEY` | `ollama` | API key for the Worker model. |
 | `OLLAMA_CONTEXT_LENGTH` | `32768` | Context window size. **Set to `65536` minimum.** The factory generates large prompts. |
 
+### Dual-LLM on one RTX 4090 (Goliath) -- two models resident
+
+The factory has two roles (`src/llm_client.py`): `foreman` (research + blueprint + judge, temp 0.7, called a few times) and `worker` (19 specialists in `worker.py`, `asyncio.gather` per dependency level, called hundreds of times). Both default to `http://localhost:11434/v1` but with different `FOREMAN_MODEL` / `WORKER_MODEL`. On a 24GB 4090 you can keep **two** models resident for true parallel council work.
+
+**Recommended pair (fits 24GB, true parallel):**
+
+```env
+# Foreman = quality/planning (14GB)
+FOREMAN_MODEL=mistral-small:24b
+FOREMAN_BASE_URL=http://localhost:11434/v1
+FOREMAN_API_KEY=ollama
+
+# Worker = speed/codegen (7.1GB) -> 14 + 7.1 = 21.1GB + KV headroom, both stay in VRAM
+WORKER_MODEL=mistral-nemo:12b
+WORKER_BASE_URL=http://localhost:11434/v1
+WORKER_API_KEY=ollama
+
+OLLAMA_CONTEXT_LENGTH=32768
+```
+
+Set Ollama to keep two models loaded:
+
+```powershell
+[System.Environment]::SetEnvironmentVariable("OLLAMA_MAX_LOADED_MODELS","2","User")
+[System.Environment]::SetEnvironmentVariable("OLLAMA_NUM_PARALLEL","2","User")
+[System.Environment]::SetEnvironmentVariable("OLLAMA_KEEP_ALIVE","10m","User")
+# restart Ollama afterwards; verify with: ollama ps
+```
+
+VRAM math (Q4_K_M): `muse-glimmer` 18GB + `nemo` 7.1GB = 25GB -> swaps (not parallel). `qwen3.6-35b-a3b` 23GB + anything = no. Budget pair `nemo` 7.1GB + `pdurugyan/qwen3.5-9b` 6.6GB = 13.7GB fits with huge headroom for long KV at 32k.
+
+Alternatives:
+- Max quality (swaps, sequential): `FOREMAN_MODEL=muse-glimmer:latest` + `WORKER_MODEL=qwen2.5-coder:32b-instruct-q4_K_M`
+- Budget (max parallel, 13GB): `FOREMAN_MODEL=mistral-nemo:12b` + `WORKER_MODEL=pdurugyan/qwen3.5-9b-deepseek-v4-flash-Q4_K_M-v_2:latest`
+
 ### Using a remote model for the Foreman
 
 The Foreman is called once per run, so a remote API is cheap here and often produces better plans:
@@ -110,15 +145,16 @@ The DTU injects these variables into generated apps at test time. You do not nee
 
 ```env
 # ── Models ────────────────────────────────────────────────────────────────────
-FOREMAN_MODEL=llama3.1:latest
+# Dual-LLM on 4090: FOREMAN=mistral-small:24b (14GB), WORKER=mistral-nemo:12b (7.1GB) -> 21GB fits
+FOREMAN_MODEL=mistral-small:24b
 FOREMAN_BASE_URL=http://localhost:11434/v1
 FOREMAN_API_KEY=ollama
 
-WORKER_MODEL=qwen2.5-coder:14b
+WORKER_MODEL=mistral-nemo:12b
 WORKER_BASE_URL=http://localhost:11434/v1
 WORKER_API_KEY=ollama
 
-OLLAMA_CONTEXT_LENGTH=65536
+OLLAMA_CONTEXT_LENGTH=32768
 
 # ── Ports ─────────────────────────────────────────────────────────────────────
 FACTORY_PORT=8001
