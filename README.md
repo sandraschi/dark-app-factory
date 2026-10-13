@@ -106,11 +106,13 @@ A vibe like _"Build a webshop for a climbing club with member registration, prod
 Minimal `.env` (copy from `.env.example`):
 
 ```env
-FOREMAN_MODEL=qwen3.6:27b
-WORKER_MODEL=qwen2.5-coder:32b-instruct-q4_K_M
+FOREMAN_MODEL=mistral-small:24b
+WORKER_MODEL=mistral-nemo:12b
 WORKER_BASE_URL=http://localhost:11434/v1
-OLLAMA_CONTEXT_LENGTH=65536
+OLLAMA_CONTEXT_LENGTH=32768
 ```
+
+**Dual-LLM on one RTX 4090 (Goliath):** Foreman (planning + judge) and worker (19 specialists) run on the same Ollama with different models. Set `OLLAMA_MAX_LOADED_MODELS=2` + `OLLAMA_NUM_PARALLEL=2` and use `mistral-small:24b` (14GB) + `mistral-nemo:12b` (7.1GB, together ~21GB) for true parallel council work without swapping. See `docs/CONFIGURATION.md` for VRAM math and Ollama env setup.
 
 Full reference: [docs/CONFIGURATION.md](docs/CONFIGURATION.md)
 

@@ -87,6 +87,47 @@ Substring triggers (`pay`, `plan`, `user`, `org`, `team`) over-match wildly.
 
 Add optional `"requires": ["stripe"]` to block.json (webshop -> stripe, admin -> membership, subscriptions -> stripe). Loader installs transitively, cycles rejected. Test with webshop.
 
+## G10 (MEDIUM, gate for future work items only, not retroactive to T1-T9 or G1-G9): Critic-gated verification for block integration claims
+
+Evidence: `reports/deep-assess-2026-07-29.md`, `reports/deep-assess-2026-07-30.md`,
+`reports/reassess-blocks-2026-07-30.md` all found the same failure shape: work
+reported done, code present, integration silently absent (glue no-op on empty
+dir, block context invisible to prompts, stack mismatch). A single reviewer
+pass has already missed this twice. Ref: arXiv:2608.18167, Adversarial Review,
+the same false-consensus failure mode shows up when a reviewer and a checking
+agent are the same model or share a prompt frame; the fix that worked there
+was forcing the checker to produce evidence-grounded disagreement rather than
+a pass/fail vibe.
+
+This does NOT replace `judge.py`'s deterministic FAIL gate (CLAUDE.md
+invariant 5, do not touch). It adds a pre-Judge check on whether a *work order
+item* (a G-numbered task here, or a future one) actually did what it claims,
+before it's marked done in this file.
+
+1. Add a `critic_pass(work_item, diff, reviewer_verdict) -> CriticVerdict` step
+   that runs after a G-item's own accept-criteria test passes but before the
+   item is marked `[x]` in this file. Model: use a different model than
+   whatever produced the reviewer verdict, do not reuse foreman/worker for
+   this role, same-model self-review is exactly the false-consensus case
+   above.
+2. Critic prompt must check the specific DAF failure pattern, not general code
+   quality: does glue actually get called (not just present), do deps
+   actually resolve, does block context reach the prompt, is there a stack
+   mismatch. Critic must output either a named, evidence-cited objection
+   (file path, function, or config key), or an explicit
+   "NO DISAGREEMENT FOUND: <what was checked>" line. A bare "looks fine" is
+   a failed critic pass, loop back to worker.
+3. Log verdict (objection or clearance) to `reports/critic-log-<date>.md`,
+   same pattern as the existing reassess reports, so it's auditable the same
+   way.
+
+**Accept**: pick one already-landed, reviewer-approved item from T1-T9 or an
+early G-item and run the critic pass against it retroactively as a pilot only
+(not as a gate, no re-opening of closed work). If the critic finds nothing a
+human wouldn't also find on inspection, tighten the prompt before using it as
+a real gate on new G-items. If it does find something, that's the evidence
+this is worth keeping.
+
 ---
 
 ## After G1-G5 land: THE RUN
