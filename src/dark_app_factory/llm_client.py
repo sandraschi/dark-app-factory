@@ -15,7 +15,7 @@ def preflight_models(base_url: str, *model_names: str) -> None:
     or the server is unreachable. Only runs when base_url points at localhost.
     """
     if not any(host in base_url.lower() for host in ["localhost", "127.0.0.1"]):
-        return  # remote provider — skip preflight
+        return  # remote provider - skip preflight
     tags_url = base_url.rstrip("/v1").rstrip("/") + "/api/tags"
     try:
         req = urllib.request.Request(tags_url)  # noqa: S310
@@ -23,7 +23,7 @@ def preflight_models(base_url: str, *model_names: str) -> None:
             data = json.loads(resp.read().decode())
         available = {m["name"] for m in data.get("models", []) if "name" in m}
     except Exception as e:
-        raise ValueError(f"Cannot reach Ollama at {tags_url} — is it running?\n{e}") from e
+        raise ValueError(f"Cannot reach Ollama at {tags_url} - is it running?\n{e}") from e
 
     missing = [m for m in model_names if m and m not in available]
     if missing:

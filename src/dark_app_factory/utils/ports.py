@@ -24,7 +24,7 @@ import socket
 import subprocess
 import sys
 
-from src.utils.logger import logger
+from dark_app_factory.utils.logger import logger
 
 # Default allocation window for generated apps. Deliberately outside the
 # common dev-server range (3000/5173/8000/8080) so a developer's own

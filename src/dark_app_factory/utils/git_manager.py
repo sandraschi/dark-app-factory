@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from src.utils.logger import logger
+from dark_app_factory.utils.logger import logger
 
 
 class GitManager:

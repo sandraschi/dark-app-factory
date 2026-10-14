@@ -1,4 +1,4 @@
-"""TypeScript repair loop — fix LLM-generated TSX pages via compiler feedback."""
+"""TypeScript repair loop - fix LLM-generated TSX pages via compiler feedback."""
 
 from __future__ import annotations
 
@@ -179,7 +179,7 @@ async def repair_tsx(output_dir: str, worker: Any | None = None, max_passes: int
                         changed = True
 
             if not changed:
-                logger.warning("TSX repair: could not fix %s — keeping as-is (will break build)", fe["file"])
+                logger.warning("TSX repair: could not fix %s - keeping as-is (will break build)", fe["file"])
 
     # Final check
     remaining = await asyncio.to_thread(_run_tsc, output_dir)

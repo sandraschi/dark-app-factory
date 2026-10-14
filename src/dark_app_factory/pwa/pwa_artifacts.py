@@ -3,7 +3,7 @@
 import json
 import os
 
-from src.utils.logger import logger
+from dark_app_factory.utils.logger import logger
 
 # Minimal SVG icon (gradient square, Dark App Factory style)
 ICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">

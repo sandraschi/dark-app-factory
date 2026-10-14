@@ -2,7 +2,7 @@
 
 import os
 
-from src.utils.logger import logger
+from dark_app_factory.utils.logger import logger
 
 
 def _detect_stack(output_dir: str) -> dict:

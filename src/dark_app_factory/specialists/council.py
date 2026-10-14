@@ -264,7 +264,7 @@ class Sculptor(Specialist):
                     if p.startswith("src/components/") and p.endswith(".tsx")
                 )
             )
-            pages_str = "\n".join(f"  - {p}" for p in planned_pages) or "  (none planned yet — scaffold generically)"
+            pages_str = "\n".join(f"  - {p}" for p in planned_pages) or "  (none planned yet - scaffold generically)"
             comps_str = "\n".join(f"  - {c}" for c in planned_components) or "  (none planned yet)"
             prompt = f"""
             Generate the SOTA HIGH-FIDELITY shell for the application: /src/App.tsx.

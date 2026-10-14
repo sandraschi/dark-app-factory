@@ -2,7 +2,7 @@ import json
 import logging
 import os
 
-from src.llm_client import LLMClient
+from dark_app_factory.llm_client import LLMClient
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

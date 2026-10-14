@@ -1,4 +1,4 @@
-"""Repair loop — detect syntax errors, feed back to specialists, regenerate."""
+"""Repair loop - detect syntax errors, feed back to specialists, regenerate."""
 
 from __future__ import annotations
 

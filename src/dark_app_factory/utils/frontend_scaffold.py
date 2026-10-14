@@ -1,4 +1,4 @@
-"""Frontend scaffold — generates working React+Vite scaffold when missing from output."""
+"""Frontend scaffold - generates working React+Vite scaffold when missing from output."""
 
 from __future__ import annotations
 
