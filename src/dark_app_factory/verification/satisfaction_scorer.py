@@ -20,8 +20,8 @@ verdict.
 import logging
 from dataclasses import dataclass, field
 
-from src.verification.scenario_executor import ScenarioResult
-from src.verification.scenario_parser import Scenario
+from dark_app_factory.verification.scenario_executor import ScenarioResult
+from dark_app_factory.verification.scenario_parser import Scenario
 
 logger = logging.getLogger("dark_factory")
 

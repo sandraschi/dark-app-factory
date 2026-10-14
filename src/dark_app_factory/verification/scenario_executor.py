@@ -20,7 +20,7 @@ import logging
 import time
 from dataclasses import dataclass
 
-from src.verification.scenario_parser import (
+from dark_app_factory.verification.scenario_parser import (
     HttpAction,
     Scenario,
     ScenarioType,
@@ -305,7 +305,7 @@ def execute_browser_scenario(
     Deeper browser interactions (form fill, click) would require
     mapping WHEN clauses to Rodney commands -- future enhancement.
     """
-    from src.verification import rodney_runner
+    from dark_app_factory.verification import rodney_runner
 
     result = ScenarioResult(
         scenario_title=scenario.title,
